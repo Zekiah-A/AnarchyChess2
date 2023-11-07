@@ -1,0 +1,595 @@
+:root {
+    --ui-background: white;
+    --ui-background-transparent: #ffffff80;
+    --ui-input: #e9e9ed;
+    --ui-input-hover: #d2d2d5;
+    --ui-hilight: #61a6ff;
+    --ui-hilight-transparent: #61a6ff85;
+    --ui-special-transparent: #8bff6185;
+    --ui-info-transparent: #0009;
+}
+
+html, body {
+    position: absolute;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    left: 0px;
+	top: 0px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+	overscroll-behavior: none;
+	font-size: 14px;
+	font-family: bold;
+	-webkit-tap-highlight-color: transparent;
+	-webkit-touch-callout: none;
+}
+
+body {
+    transition: background-color .3s;
+	background-color: #333;
+    margin: 0px;
+    font-family: Arial, sans-serif;
+    font-size: 150%;
+}
+
+input[type="button"] {
+    border: none;
+    padding: 12px 12px;
+    border-radius: 4px;
+    background-color: var(--ui-input);
+    transition: background-color .1s;
+}
+
+input[type="button"]:hover {
+    background-color: var(--ui-input-hover);
+}
+
+.hud {
+    z-index: 2;
+    position: absolute;
+    background-color: var(--ui-background);
+    display: flex;
+    box-shadow: 0px 0px 4px black;
+    width: 140px;
+    height: 60px;
+    user-select: none;
+    overflow: hidden;
+}
+
+.hud > p {
+    align-self: center;
+    text-align: center;
+    font-size: 18px;
+    flex-grow: 1;
+}
+
+.game-actions {
+    right: 0px;
+    top: 0px;
+    border-radius: 0px 0px 0px 8px;
+    width: min(60%, 300px);
+}
+
+.game-actions > p {
+    flex-grow: 1;
+    text-align: center;
+    align-self: center;
+    margin: 0px;
+    padding-top: 19px;
+    padding-bottom: 19px;
+    transition: background-color .1s, border .1s;
+}
+
+.game-actions > p:hover {
+    background-color: var(--ui-input-hover);
+}
+
+.menu {
+    z-index: 2;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background-color: var(--ui-background);
+    box-shadow: 0px 0px 16px black;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    user-select: none;
+}
+
+.menu > * {
+    align-self: center;
+}
+
+.main-menu {
+    background-color: var(--ui-background);
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    z-index: 2;
+    user-select: none;
+    width: 100%;
+    height: 100%;
+}
+
+.main-menu > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.main-menu > div > * {
+	align-self: center;
+}
+
+.spawn-menu {
+    background-color: var(--ui-background-transparent);
+    width: min(calc(100% - 28px), 500px);
+    top: 25%;
+}
+
+.dual-options {
+    display: flex;
+    flex-direction: row;
+    column-gap: 8px;
+    width: 100%;
+}
+
+.dual-options > * {
+    flex-grow: 1;
+    border: 2px solid transparent;
+    transition: border .1s;
+}
+
+.dual-options > *[selected] {
+    border: 2px solid var(--ui-hilight);
+}
+
+.black-white {
+    height: 60px;
+    border-radius: 8px;
+    text-align: center;
+    line-height: 60px;
+    box-shadow: 0px 0px 2px black;
+    position: relative;
+    z-index: 0;
+}
+
+.black-white > div {
+    position: absolute;
+    height: calc(100% + 4px);
+    top: -2px;
+    left: -2px;
+    background-color: var(--ui-hilight-transparent);
+    border-radius: 8px;
+    z-index: -1;
+    width: 0%;
+    transition: 0.2s width;
+    pointer-events: none;
+}
+
+.scroll-picker {
+    width: 100%;
+    height: 128px;
+    display: flex;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    position: relative;
+    column-gap: 8px;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.scroll-picker::-webkit-scrollbar {
+    display: none;
+}
+
+.scroll-picker img {
+    width: 100%;
+}
+
+.scroll-picker > div {
+    border: 2px solid transparent;
+    min-width: 128px;
+    min-height: 116px;
+    background-color: var(--ui-input);
+    border-radius: 8px;
+    transition: background-color .1s, border .1s;
+}
+
+.scroll-picker:hover > div:hover {
+    background-color: var(--ui-input-hover);
+}
+
+.scroll-picker > div * {
+    pointer-events: none;
+}
+
+.scroll-picker > div[selected] {
+    border: 2px solid var(--ui-hilight);
+    min-height: 116px;
+}
+
+.info-panel {
+    z-index: 2;
+    position: absolute;
+    width: 256px;
+    color: white;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+}
+
+.info-panel * {
+    margin: 0px;
+}
+
+.copyright-notice {
+    position: absolute;
+    pointer-events: none;
+    top: 50%;
+    text-align: center;
+    width: 100%;
+    font-size: x-small;
+    color: darkgray;
+    user-select: none;
+}
+
+.gamemodes-item {
+    position: relative;
+    border-radius: 4px;
+    overflow: clip;
+    user-select: none;
+    border: 2px solid transparent;
+    transition: .2s border;
+}
+
+.gamemodes-item:focus {
+    border: 2px solid var(--ui-hilight);
+}
+
+.gamemodes-item::after {
+    content: "";
+    transition: .2s background-color;
+}
+.gamemodes-item:hover::after {
+    content: "";
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    background-color: var(--ui-info-transparent);
+    transition: .2s background-color;
+}
+
+.gamemodes-item > img {
+    height: 128px;
+    object-fit: cover;
+}
+
+.gamemodes-item > div {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(to bottom, transparent, var(--ui-info-transparent));
+    top: 0px;
+    left: 0px;
+}
+
+.gamemodes-item > div > span {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+}
+
+#gamemodesPanel {
+    background-color: var(--ui-info-transparent);
+    border-radius: 8px;
+    padding: 8px;
+    top: 68px;
+    position: absolute;
+    z-index: 5;
+    height: auto;
+    left: 8px;
+    opacity: 1;
+    row-gap: 8px;
+    transition: .2s left, .2s opacity;
+}
+
+#gamemodesPanel[closed] {
+    left: -272px;
+    opacity: 0;
+}
+
+#gamemodeTitle {
+    border-radius: 0px 0px 8px 0px;
+    transition: .2s box-shadow, .2s transform;
+    cursor: pointer;
+}
+
+#gamemodeTitle:hover {
+    box-shadow: 0px 0px 8px 4px var(--ui-hilight);
+    background-color: var(--ui-input-hover);
+}
+
+
+#deathMenu {
+    transition: .2s transform ease-out;
+    transition-delay: .2s;
+}
+
+#deathMenu[closed] {
+    transform: translate(-50%, -50%) scale(0);
+    pointer-events: none;
+    visibility: hidden;
+}
+
+#chatPanel, #settingsPanel {
+    top: 68px;
+    right: 8px;
+    background: var(--ui-info-transparent);
+    width: 340px;
+    row-gap: 4px;
+    transition: .2s right, .2s opacity;
+}
+
+#chatPanel {
+    min-height: 172px;
+}
+
+#chatPanel[closed], #settingsPanel[closed] {
+    right: -340px;
+    opacity: 0;
+}
+
+#chatPanel > div {
+    flex-grow: 1;
+    overflow-y: scroll;
+    overflow-wrap: anywhere;
+}
+
+#chatPanel > div > span[deathevent] {
+    background-color: var(--ui-hilight-transparent);
+    display: block;
+}
+
+#chatPanel > div > span[spawnevent] {
+    background-color: var(--ui-special-transparent);
+    display: block;
+}
+
+#turnPanel {
+    left: 50%;
+    transform: translateX(-50%);
+    top: 10px;
+    height: 24px;
+    background: var(--ui-info-transparent);
+    transition: .2s top;
+}
+
+#infoPanel {
+    top: 68px;
+    left: 0px;
+    transition: .2s top;
+}
+
+@media screen and (orientation: portrait) {
+    #turnPanel {
+        top: 68px;
+    }
+
+    #infoPanel {
+        top: 108px
+    }
+}
+
+#turnProgress {
+    position: absolute;height: calc(100% - 16px);width: 0%;z-index: -1;
+    background: 
+        repeating-linear-gradient(
+            -45deg,
+            transparent,
+            transparent 10px,
+            #ccc 10px,
+            #ccc 20px
+        ),
+        linear-gradient(
+            to bottom,
+            #eee,
+            #999
+        );
+    
+    transition-property: width;
+    transition-timing-function: linear;
+}
+
+#warningMenu {
+    z-index: 3;
+    position: absolute;
+    width: 60%;
+    height: 100%;
+    display: flex;
+    backdrop-filter: blur(32px);
+    flex-direction: column;
+    padding-left: 20%;
+    padding-right: 20%;
+    justify-content: center;
+    color: white;
+    background-color: var(--ui-info-transparent);
+    text-align: center;
+}
+
+#warningMenu > #warningMenuBackground {
+    z-index: -1;
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    left: 0px;
+    top: 0px;
+    opacity: 0.25;
+    object-fit: cover;
+}
+
+#board {
+    position: absolute;
+    width: 512px;
+    height: 512px;
+    border: 2px solid gray;
+    padding: 4px;
+    transform: scale(0.4);
+    transition: .1s transform;
+    transform-origin: 0px 0px;
+}
+
+#board > canvas {
+    position: absolute;
+    border: 4px solid transparent;
+    transition: .1s border;
+}
+
+#board > canvas:hover {
+    z-index: 1;
+    border: 4px solid var(--ui-hilight-transparent);
+    border-radius: 4px;
+}
+
+#meTurnPopup {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    text-align: center;
+    font-size: 10vw;
+    width: 100%;
+    display: none;
+    transform: translateY(-50%);
+    text-shadow: 2px 2px #fff;
+    background: var(--ui-hilight-transparent);
+    pointer-events: none;
+}
+
+#chatMessages > p {
+    margin: 0px;
+}
+
+.match-rules {
+    box-sizing: border-box;
+    line-height: 24pt;
+}
+
+.match-rules span[kind="keyword"] {
+    font-weight: bold;
+}
+
+.match-rules span[layer] {
+    border-radius: 8px;
+    padding: 3px;
+}
+
+.match-rules span[layer="0"] {
+    background-color: #f1f1f1;
+}
+
+.match-rules span[layer="1"] {
+    background-color: #e7e7e7;
+    margin-top: 1px;
+    margin-bottom: 1px;
+}
+
+.modal {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    min-width: min(calc(100% - 32px), 800px);
+    min-height: min(calc(100% - 32px), 600px);
+}
+
+.modal[closed] {
+    display: none;
+}
+
+.modal > .modal-content {
+    padding: 8px;
+    background: #f1f1f1;
+    border: 1px solid gray;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    row-gap: 8px;
+}
+
+.modal > .modal-title {
+    margin: 0px;
+    display: flex;
+    padding: 0px;
+}
+
+.modal-title > li[selected] {
+    background: #f1f1f1;
+    border: 1px solid gray;
+}
+
+.modal-title > li {
+    display: flex;
+    font-weight: 400;
+    border: 1px solid rgb(189, 189, 189);
+    background: #fafafa;
+    min-height: 32px;
+    align-self: start;
+    align-items: center;
+    padding: 8px;
+    border-bottom: none;
+    font-weight: bold;
+}
+
+#arrangementStats {
+    opacity: 0.6;
+    font-size: 14px;
+}
+
+.arrangement-content {
+    display: flex;
+}
+
+.arrangement-section {
+    padding: 8px;
+    border: 1px solid lightgray;
+}
+
+.arangement-side {
+    display: flex;
+    flex-direction: column;
+    column-gap: 16px;
+    width: 312px;
+    padding: 8px;
+    padding-bottom: 0px;
+}
+
+.arrangement-button {
+    padding: 8px;
+    border: 1px solid lightgray;
+    background: linear-gradient(to bottom, #d6d6d6, #e9e9e9);
+    cursor: pointer;
+}
+
+.arrangement-button:hover {
+    border: 1px solid gray;
+}
+
+@media screen and (orientation: portrait) {
+    .arrangement-content {
+        flex-direction: column;
+    }
+}
