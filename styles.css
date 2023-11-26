@@ -9,7 +9,7 @@
     --ui-info-transparent: #0009;
 }
 
-html, body {
+body {
     position: absolute;
     overflow: hidden;
     width: 100%;
@@ -23,7 +23,7 @@ html, body {
 }
 
 html {
-	overscroll-behavior: none;
+	/*overscroll-behavior: none;*/
 	font-size: 14px;
 	font-family: bold;
 	-webkit-tap-highlight-color: transparent;
@@ -48,6 +48,15 @@ input[type="button"] {
 
 input[type="button"]:hover {
     background-color: var(--ui-input-hover);
+}
+
+header {
+    position: fixed;
+    width: 100%;
+    top: 0;
+    left: 0;
+    backdrop-filter: blur(16px);
+    height: 200px;
 }
 
 .hud {
@@ -115,9 +124,22 @@ input[type="button"]:hover {
     flex-direction: column;
     position: absolute;
     z-index: 2;
-    user-select: none;
     width: 100%;
     height: 100%;
+    top: 0;
+    left: 0;
+    overflow-y: auto;
+}
+
+.main-menu .branding {
+    display: flex;
+    align-items: center;
+    column-gap: 8px;
+    position: absolute;
+}
+
+.main-menu nav {
+    position: absolute;
 }
 
 .main-menu > div {
@@ -371,7 +393,6 @@ input[type="button"]:hover {
     left: 50%;
     transform: translateX(-50%);
     top: 10px;
-    height: 24px;
     background: var(--ui-info-transparent);
     transition: .2s top;
 }
@@ -386,9 +407,8 @@ input[type="button"]:hover {
     #turnPanel {
         top: 68px;
     }
-
     #infoPanel {
-        top: 108px
+        top: calc(100% - 90px);
     }
 }
 
@@ -534,11 +554,13 @@ input[type="button"]:hover {
     margin: 0px;
     display: flex;
     padding: 0px;
+    cursor: default;
 }
 
 .modal-title > li[selected] {
     background: #f1f1f1;
     border: 1px solid gray;
+    border-bottom: none;
 }
 
 .modal-title > li {
@@ -586,6 +608,10 @@ input[type="button"]:hover {
 
 .arrangement-button:hover {
     border: 1px solid gray;
+}
+
+.novisit:visited {
+    color: blue;
 }
 
 @media screen and (orientation: portrait) {
