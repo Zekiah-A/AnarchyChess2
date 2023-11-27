@@ -548,6 +548,9 @@ header {
     display: flex;
     flex-direction: column;
     row-gap: 8px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 800px;
 }
 
 .modal > .modal-title {
@@ -579,9 +582,10 @@ header {
 #arrangementStats {
     opacity: 0.6;
     font-size: 14px;
+    width: fit-content;
 }
 
-.arrangement-content {
+.modal-content-container {
     display: flex;
 }
 
@@ -590,13 +594,26 @@ header {
     border: 1px solid lightgray;
 }
 
-.arangement-side {
+.arrangement-grid {
+    display: grid;
+    grid-gap: 4px;
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.arrangement-grid > img {
+    width: 100%;
+    border: 1px solid lightgray;
+    grid-gap: 4px;
+}
+
+.modal-content-side {
     display: flex;
     flex-direction: column;
-    column-gap: 16px;
     width: 312px;
     padding: 8px;
     padding-bottom: 0px;
+    padding-top: 0px;
+    row-gap: 16px;
 }
 
 .arrangement-button {
@@ -615,7 +632,10 @@ header {
 }
 
 @media screen and (orientation: portrait) {
-    .arrangement-content {
+    .modal-content-container {
         flex-direction: column;
+    }
+    .modal-content-side {
+        width: 100%;
     }
 }

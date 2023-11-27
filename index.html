@@ -7,6 +7,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/x-icon" href="resources/logo.ico">
+    <script src="./lib/tsparticles.confetti.bundle.min.js"></script>
+    <script src="./component-registrar.js"></script>
+    <script src="./piece-data.js"></script>
+    <script src="./resources.js"></script>
+    <script src="./board.js"></script>
     <meta charset="UTF-8">
 </head>
 <body>
@@ -64,7 +69,13 @@
         </div>
     </div>
     <div id="mainMenu" class="main-menu">
-        <header id="header">
+        <header id="header" onwheel="
+            mainMenu.scrollBy({
+                top: event.deltaY,
+                left: 0,
+                behavior: 'smooth'
+            })
+        ">
             <div id="headerBranding" class="branding">
                 <img src="resources/logo.png" height="64" alt="logo">
                 <h1>AnarchyChess</h1>
@@ -88,28 +99,50 @@
                     configurePanel.querySelectorAll('.modal-content').forEach(element => element.style.display = 'none')
                     configurePanel.querySelector(`.modal-content[page=\x22${event.target.dataset.page}\x22]`).style.display = 'flex'
                 }">
-                    <li selected data-page="arrangement">Starting piece arrangement</li>
-                    <li data-page="ruleset">Ruleset</li>
+                    <li selected data-page="ruleset">Ruleset</li>
+                    <li data-page="arrangement">Piece arrangement</li>
                 </ul>
-                <div class="modal-content" page="arrangement">
-                    <div class="arrangement-content">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox=".95 .45 8.1 8.1">
-                            <circle r="99"></circle><path d="M1,1h7M2,2h7M1,3h7M2,4h7M1,5h7M2,6h7M1,7h7M2,8h7" stroke="#fff" stroke-dasharray="1"></path>
-                        </svg>
-                        <div class="arangement-side">
+                <div class="modal-content" page="ruleset">
+                    <div class="modal-content-container">
+                        <ac-ruleset></ac-ruleset>
+                        <div class="modal-content-side"></div>
+                    </div>
+                </div>
+                <div class="modal-content" page="arrangement" style="display: none;">
+                    <div class="modal-content-container">
+                        <ac-board id="arrangementBoard" rows="8" columns="8"></ac-board>
+                        <div class="modal-content-side" ondragstart="const dragged = event.target
+                            if (dragged.nodeName == 'IMG') {
+                                arrangementCurCol = dragged.dataset.colour
+                                arrangementCurType = dragged.dataset.type
+                            }
+                        ">
                             <div class="arrangement-section">Black</div>
+                            <div class="arrangement-grid">
+                                <img src="resources/pawn-black.svg" data-colour="black" data-type="pawn">
+                                <img src="resources/rook-black.svg" data-colour="black" data-type="rook">
+                                <img src="resources/knight-black.svg" data-colour="black" data-type="knight">
+                                <img src="resources/bishop-black.svg" data-colour="black" data-type="bishop">
+                                <img src="resources/queen-black.svg" data-colour="black" data-type="queen">
+                                <img src="resources/king-black.svg" data-colour="black" data-type="king">
+                            </div>
                             <div class="arrangement-section">White</div>
-                            <div style="flex-grow: 1;"></div>
+                            <div class="arrangement-grid">
+                                <img src="resources/pawn-white.svg" data-colour="white" data-type="pawn">
+                                <img src="resources/rook-white.svg" data-colour="white" data-type="rook">
+                                <img src="resources/knight-white.svg" data-colour="white" data-type="knight">
+                                <img src="resources/bishop-white.svg" data-colour="white" data-type="bishop">
+                                <img src="resources/queen-white.svg" data-colour="white" data-type="queen">
+                                <img src="resources/king-white.svg" data-colour="white" data-type="king">
+                            </div>
+                            <div style="flex-grow: 1;"><!--vertical spacer--></div>
                             <div class="arrangement-button" tabindex="1">Delete piece 🗑️</div>
                         </div>
+                        <canvas id="arrangementCanvas" style="position: absolute; bottom: 0; left: 0; height: 100%; pointer-events: none; width: 100%;"></canvas>
                     </div>
-                    <span id="arrangementStats">Black pieces: 2, White pieces: 3, White king present: ✅, Black king present: ✅</span>
-                </div>
-                <div class="modal-content" page="ruleset" style="display: none;">
-                    Ruleset options
+                        <span id="arrangementStats">Black pieces: 0, White pieces: 0, White king present: ❌, Black king present: ❌</span>
                 </div>
             </div>
-            <div style="height: 2000px;"></div>
             <input style="aspect-ratio: 1/1;" value="Create new ruleset" type="button" onclick="configurePanel.removeAttribute('closed')">
             <input style="width: 40%;" value="Play" type="button" onclick="mainMenu.style.display = 'none';">
         </div>
@@ -148,12 +181,86 @@
     </div>
 </body>
 <script>
+    let arrangementCurCol = null
+    let arrangementCurType = null
+    arrangementBoard.ontilehover = function(e, column, row, tile) {
+        tile.classList.add("hilight")
+    } 
+    arrangementBoard.ontiledrop = function(e, column, row, tile) {
+        if (arrangementCurCol === null || arrangementCurType == null) return
+        tile.classList.remove("hilight")
+        arrangementBoard.setPiece(column, row, new PieceData(arrangementCurType, arrangementCurCol))
+        updateArrangementStats()
+    }
+    arrangementBoard.ontileleave = function(e, column, row, tile) {
+        tile.classList.remove("hilight")
+    }
+    function getArrangementStats() {
+        let whiteKing = false
+        let blackKing = false
+        let blackCount = 0
+        let whiteCount = 0
+
+        for (let c = 0; c < arrangementBoard.columns; c++) {
+            for (let r = 0; r < arrangementBoard.rows; r++) {
+                const pieceData = arrangementBoard.tiles[c][r]
+                if (!pieceData) continue
+                if (pieceData.colour === "black") {
+                    blackCount++
+                    if (pieceData.type === "king") whiteKing = true
+                }
+                else {
+                    whiteCount++
+                    if (pieceData.type === "king") blackKing = true
+                }
+            }
+        }
+
+        return { whiteKing, blackKing, blackCount, whiteCount, valid: whiteKing && blackKing && blackCount > 1 && whiteCount > 1 }
+    }
+    function updateArrangementStats() {
+        const stats = getArrangementStats()
+        if (stats.valid) {
+            (async () => {
+                arrangementCanvas.confetti = arrangementCanvas.confetti || (await confetti.create(arrangementCanvas, { resize: true }))
+                arrangementCanvas.confetti({
+                    spread: 100,
+                        particleCount: 85,
+                        startVelocity: 35,
+                    origin: { x: 0.35, y: 1 },
+                })
+            })();
+            arrangementStats.animate([
+                { transform: "scale(1)" },
+                { opacity: 1 },
+				{ opacity: 0 },
+                { transform: "scale(1.2)" },
+            ], {
+                duration: 1000,
+                iterations: 1,
+            })
+            setTimeout(function() {
+                if (getArrangementStats().valid) {
+                    arrangementStats.style.opacity = 1
+                }
+            }, 1000)
+        }
+        else {
+            arrangementStats.style.opacity = 0.6
+        }
+        arrangementStats.innerHTML = `Black pieces: <span style="color:${stats.blackCount > 1 ? 'green' : 'red'}">${
+            stats.blackCount}</span>, White pieces: <span style="color:${stats.whiteCount > 1 ? 'green' : 'red'}">${
+            stats.whiteCount}</span>, White king present: ${stats.whiteKing ? "✅" : "❌"}, Black king present: ${
+            stats.blackKing ? "✅" : "❌"}`
+    }
+    updateArrangementStats()
+
     function lerp(from, to, weight){
         return (1 - weight) * from + weight *to
     }
     let scrollAnim = null
     function calcHeaderPositioning() {        
-        const toCollapsed = Math.min(1, mainMenu.scrollTop / 200)
+        const toCollapsed = Math.min(1, mainMenu.scrollTop / 100)
         const headerCentreX = header.offsetWidth / 2
         header.style.boxShadow = `0px 0px ${Math.min(8, mainMenu.scrollTop)}px gray`
         header.style.height = `${Math.max(100, 200 - mainMenu.scrollTop)}px`
@@ -167,8 +274,8 @@
             clearTimeout(scrollAnim)
             scrollAnim = null
         }
-        if (mainMenu.scrollTop < 200) {
-            let scrollTarget = toCollapsed < 0.5 ? 0 : 200
+        if (mainMenu.scrollTop < 100) {
+            let scrollTarget = toCollapsed < 0.5 ? 0 : 100
             scrollAnim = setTimeout(() => {
                 mainMenu.scrollTo({
                     top: scrollTarget,
