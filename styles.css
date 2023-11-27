@@ -608,6 +608,19 @@ header {
     transition: .1s border;
 }
 
+.arrangement-board-container {
+    position: relative;
+    width: 100%;
+}
+.arrangement-side-label {
+    position: absolute;
+    z-index: 2;
+    text-shadow: -1px -1px 0 white, 1px -1px 0 white, -1px 1px 0 white, 1px 1px 0 white;
+    opacity: 0.4;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
 .modal-content-side {
     display: flex;
     flex-direction: column;

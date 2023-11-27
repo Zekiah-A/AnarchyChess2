@@ -110,7 +110,11 @@
                 </div>
                 <div class="modal-content" page="arrangement" style="display: none;">
                     <div class="modal-content-container">
-                        <ac-board id="arrangementBoard" rows="8" columns="8"></ac-board>
+                        <div class="arrangement-board-container">
+                            <span class="arrangement-side-label">Black</span>
+                            <ac-board id="arrangementBoard" rows="8" columns="8"></ac-board> 
+                            <span class="arrangement-side-label">White</span>
+                        </div>
                         <div class="modal-content-side" ondragstart="{const dragged = event.target
                             if (dragged.nodeName == 'IMG') {
                                 arrangementCurCol = dragged.dataset.colour
@@ -154,6 +158,7 @@
                                 })
                                 const canvBounds = arrangementCanvas.getBoundingClientRect()
                                 const pieceBounds = pieceClone.getBoundingClientRect()
+                                const tileSize = arrangementBoard.getTileSize()
                                 arrangementCanvas.confetti({
                                     spread: 360,
                                     gravity: 1,
@@ -165,8 +170,8 @@
                                             value: ['💥', '🔥', '🔴'],
                                         }
                                     },
-                                    origin: { x: (pieceBounds.left - canvBounds.left) / arrangementCanvas.offsetWidth,
-                                        y: (pieceBounds.top - canvBounds.top) / arrangementCanvas.offsetHeight },
+                                    origin: { x: (pieceBounds.left - canvBounds.left + tileSize / 2) / arrangementCanvas.offsetWidth,
+                                        y: (pieceBounds.top - canvBounds.top + tileSize / 2) / arrangementCanvas.offsetHeight },
                                 })
                                 
                                 arrangementBoard.clearPiece(arrangementSelC, arrangementSelR)
@@ -239,8 +244,13 @@
         tile.classList.remove("hilight")
     }
     arrangementBoard.onpiececlick = function(e, column, row, piece) {
+        if (arrangementSelC != null && arrangementSelR != null) {
+            const previousSelected = arrangementBoard.pieceElements[arrangementSelC][arrangementSelR]
+            previousSelected?.getAnimations().map(animation => animation.cancel())
+        }
         arrangementSelC = column
         arrangementSelR = row
+        
         piece.animate([{
             border: "8px solid var(--ui-hilight-transparent)",
             transform: "scale(1.1)",
