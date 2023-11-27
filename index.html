@@ -156,6 +156,7 @@
                                     fill: 'forwards',
                                     iterations: 1,
                                 })
+                                setTimeout(() => pieceClone.remove(), 1000)
                                 const canvBounds = arrangementCanvas.getBoundingClientRect()
                                 const pieceBounds = pieceClone.getBoundingClientRect()
                                 const tileSize = arrangementBoard.getTileSize()
@@ -223,6 +224,7 @@
     </div>
 </body>
 <script>
+    let arrangementPrevValid = false
     let arrangementCurCol = null
     let arrangementCurType = null
     let arrangementSelC = null
@@ -286,7 +288,7 @@
     }
     function updateArrangementStats() {
         const stats = getArrangementStats()
-        if (stats.valid) {
+        if (stats.valid && !arrangementPrevValid) {
             (async () => {
                 arrangementCanvas.confetti({
                     spread: 100,
@@ -313,6 +315,7 @@
         else {
             arrangementStats.style.opacity = 0.6
         }
+        arrangementPrevValid = stats.valid
         arrangementStats.innerHTML = `Black pieces: <span style="color:${stats.blackCount > 1 ? 'green' : 'red'}">${
             stats.blackCount}</span>, White pieces: <span style="color:${stats.whiteCount > 1 ? 'green' : 'red'}">${
             stats.whiteCount}</span>, White king present: ${stats.whiteKing ? "✅" : "❌"}, Black king present: ${
