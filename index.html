@@ -111,12 +111,17 @@
                 <div class="modal-content" page="arrangement" style="display: none;">
                     <div class="modal-content-container">
                         <ac-board id="arrangementBoard" rows="8" columns="8"></ac-board>
-                        <div class="modal-content-side" ondragstart="const dragged = event.target
+                        <div class="modal-content-side" ondragstart="{const dragged = event.target
                             if (dragged.nodeName == 'IMG') {
                                 arrangementCurCol = dragged.dataset.colour
                                 arrangementCurType = dragged.dataset.type
+                                dragged.style.border = '2px solid var(--ui-special)'
                             }
-                        ">
+                        }" ondragend="{const dragged = event.target
+                            if (dragged.nodeName == 'IMG') {
+                                dragged.style.removeProperty('border')
+                            }
+                        }">
                             <div class="arrangement-section">Black</div>
                             <div class="arrangement-grid">
                                 <img src="resources/pawn-black.svg" data-colour="black" data-type="pawn">
@@ -136,7 +141,38 @@
                                 <img src="resources/king-white.svg" data-colour="white" data-type="king">
                             </div>
                             <div style="flex-grow: 1;"><!--vertical spacer--></div>
-                            <div class="arrangement-button" tabindex="1">Delete piece 🗑️</div>
+                            <div class="arrangement-button" tabindex="1" onclick="if (arrangementSelC != null && arrangementSelR != null) {
+                                const pieceClone = arrangementBoard.pieceElements[arrangementSelC][arrangementSelR].cloneNode(true)
+                                arrangementBoard.board.appendChild(pieceClone)
+                                pieceClone.style.setProperty('--piece-fill', 'red')
+                                pieceClone.animate([
+                                    { transform: 'scale(1.8) rotate(10deg)', opacity: 0 },
+                                ], {
+                                    duration: 1000,
+                                    fill: 'forwards',
+                                    iterations: 1,
+                                })
+                                const canvBounds = arrangementCanvas.getBoundingClientRect()
+                                const pieceBounds = pieceClone.getBoundingClientRect()
+                                arrangementCanvas.confetti({
+                                    spread: 360,
+                                    gravity: 1,
+                                    particleCount: 50,
+                                    startVelocity: 10,
+                                    shapes: ['text'],
+                                    shapeOptions: {
+                                        text: {
+                                            value: ['💥', '🔥', '🔴'],
+                                        }
+                                    },
+                                    origin: { x: (pieceBounds.left - canvBounds.left) / arrangementCanvas.offsetWidth,
+                                        y: (pieceBounds.top - canvBounds.top) / arrangementCanvas.offsetHeight },
+                                })
+                                
+                                arrangementBoard.clearPiece(arrangementSelC, arrangementSelR)
+                                arrangementSelC = null
+                                arrangementSelR = null
+                            }">Delete piece 🗑️</div>
                         </div>
                         <canvas id="arrangementCanvas" style="position: absolute; bottom: 0; left: 0; height: 100%; pointer-events: none; width: 100%;"></canvas>
                     </div>
@@ -183,6 +219,12 @@
 <script>
     let arrangementCurCol = null
     let arrangementCurType = null
+    let arrangementSelC = null
+    let arrangementSelR = null
+    ;(async function() { // Async initialisers
+        arrangementCanvas.confetti = await confetti.create(arrangementCanvas, { resize: true })
+    })()
+
     arrangementBoard.ontilehover = function(e, column, row, tile) {
         tile.classList.add("hilight")
     } 
@@ -194,6 +236,19 @@
     }
     arrangementBoard.ontileleave = function(e, column, row, tile) {
         tile.classList.remove("hilight")
+    }
+    arrangementBoard.onpiececlick = function(e, column, row, piece) {
+        arrangementSelC = column
+        arrangementSelR = row
+        piece.animate([{
+            border: "8px solid var(--ui-hilight-transparent)",
+            transform: "scale(1.1)",
+        },
+        ], {
+            fill: "forwards",
+            duration: 200,
+            iterations: 1,
+        })
     }
     function getArrangementStats() {
         let whiteKing = false
@@ -207,11 +262,11 @@
                 if (!pieceData) continue
                 if (pieceData.colour === "black") {
                     blackCount++
-                    if (pieceData.type === "king") whiteKing = true
+                    if (pieceData.type === "king") blackKing = true
                 }
                 else {
                     whiteCount++
-                    if (pieceData.type === "king") blackKing = true
+                    if (pieceData.type === "king") whiteKing = true
                 }
             }
         }
@@ -222,11 +277,10 @@
         const stats = getArrangementStats()
         if (stats.valid) {
             (async () => {
-                arrangementCanvas.confetti = arrangementCanvas.confetti || (await confetti.create(arrangementCanvas, { resize: true }))
                 arrangementCanvas.confetti({
                     spread: 100,
-                        particleCount: 85,
-                        startVelocity: 35,
+                    particleCount: 85,
+                    startVelocity: 35,
                     origin: { x: 0.35, y: 1 },
                 })
             })();

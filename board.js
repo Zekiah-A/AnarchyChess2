@@ -99,7 +99,8 @@ class Board extends HTMLElement {
         defineAndInject(this, this.shadowRoot)
         this.flushBoard()
 
-        this.addEventListener("resize", this.renderPieces)
+        const _this = this
+        window.addEventListener("resize", () => {  _this.renderPieces() })
     }
 
     getTileSize() {
@@ -110,22 +111,43 @@ class Board extends HTMLElement {
     setPiece(column, row, pieceData) {
         this.#tiles[column][row] = pieceData
 
-        const piece = createPieceSvgElement(pieceData.type)
-        piece.classList.add("piece")
-        piece.style.setProperty("--piece-fill", pieceData.colour)
-        piece.style.setProperty("--piece-stroke", pieceData.colour == "black" ? "white" : "black")
-        
-        const tileSize = this.getTileSize()
-        piece.style.left = (tileSize * column) + "px"
-        piece.style.top = (tileSize * row) + "px"
-        piece.style.width = tileSize + "px"
-        piece.style.height = tileSize + "px"
+        const pieceEl = createPieceSvgElement(pieceData.type)
+        pieceEl.classList.add("piece")
+        pieceEl.style.setProperty("--piece-fill", pieceData.colour)
+        pieceEl.style.setProperty("--piece-stroke", pieceData.colour == "black" ? "white" : "black")
 
-        this.board.appendChild(piece)
+        const _this = this
+        pieceEl.addEventListener("click", function(event) {
+            if (_this.onpiececlick)
+                _this.onpiececlick(event, column, row, pieceEl)
+        })
+
+        this.#pieceElements[column][row] = pieceEl
+        this.setPiecePosition(pieceEl, column, row)
+        this.board.appendChild(pieceEl)
+    }
+
+    clearPiece(column, row) {
+        this.#tiles[column][row] = null
+        this.#pieceElements[column][row].remove()
+    }
+
+    setPiecePosition(pieceEl, column, row) {
+        const tileSize = this.getTileSize()
+        pieceEl.style.left = (tileSize * column) + "px"
+        pieceEl.style.top = (tileSize * row) + "px"
+        pieceEl.style.width = tileSize + "px"
+        pieceEl.style.height = tileSize + "px"
     }
 
     renderPieces() {
-
+        for (let c = 0; c < this.columns; c++) {
+            for (let r = 0; r < this.rows; r++) {
+                const pieceEl = this.#pieceElements[c][r]
+                if (!pieceEl) continue
+                this.setPiecePosition(pieceEl, c, r)
+            }
+        }
     }
 
     flushBoard() {
@@ -151,6 +173,7 @@ class Board extends HTMLElement {
             tileEl.classList.add("tile")
             this.#tileElements[column][row] = tileEl
 
+            // Capture from component scope, otherwise this will be element scope
             const _this = this
             tileEl.addEventListener("dragover", function(event) {
                 event.preventDefault()

@@ -5,6 +5,7 @@
     --ui-input-hover: #d2d2d5;
     --ui-hilight: #61a6ff;
     --ui-hilight-transparent: #61a6ff85;
+    --ui-special: #6eb84c;
     --ui-special-transparent: #8bff6185;
     --ui-info-transparent: #0009;
 }
@@ -604,6 +605,7 @@ header {
     width: 100%;
     border: 1px solid lightgray;
     grid-gap: 4px;
+    transition: .1s border;
 }
 
 .modal-content-side {
