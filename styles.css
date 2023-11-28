@@ -132,6 +132,12 @@ header {
     overflow-y: auto;
 }
 
+.main-menu-page {
+    display: none;
+    flex-direction: column;
+    row-gap: 8px;
+}
+
 .main-menu .branding {
     display: flex;
     align-items: center;
@@ -150,6 +156,18 @@ header {
 
 .main-menu > div > * {
 	align-self: center;
+}
+
+.home-page-link {
+    display: initial;
+    position: absolute;
+    top: 200px;
+    left: 8px;
+    background: var(--ui-hilight-transparent);
+    padding-left: 4px;
+    padding-right: 4px;
+    border-radius: 2px;
+    text-decoration: solid;
 }
 
 .spawn-menu {
