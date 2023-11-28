@@ -566,20 +566,20 @@ header {
     line-height: 24pt;
 }
 
-.match-rules span[kind="keyword"] {
+.match-rules span[data-kind="keyword"] {
     font-weight: bold;
 }
 
-.match-rules span[layer] {
+.match-rules span[data-layer] {
     border-radius: 8px;
     padding: 3px;
 }
 
-.match-rules span[layer="0"] {
+.match-rules span[data-layer="0"] {
     background-color: #f1f1f1;
 }
 
-.match-rules span[layer="1"] {
+.match-rules span[data-layer="1"] {
     background-color: #e7e7e7;
     margin-top: 1px;
     margin-bottom: 1px;
@@ -621,7 +621,7 @@ header {
     cursor: default;
 }
 
-.modal-title > li[selected] {
+.modal-title > li[data-selected] {
     background: #f1f1f1;
     border: 1px solid gray;
     border-bottom: none;

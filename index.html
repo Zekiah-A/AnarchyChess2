@@ -44,6 +44,11 @@
         ">
     </div>
     <div id="settingsPanel" data-closed="true" class="info-panel">
+        <h4 style="margin: 0px;">Sound effects:</h4>
+        <div style="display: flex;flex-direction: column;row-gap: 3px;" onclick="">
+            <input type="button" value="Enable sound">
+            <input type="button" value="Disable sound">
+        </div>
         <h4 style="margin: 0px;">Graphics options:</h4>
         <div style="display: flex;flex-direction: column;row-gap: 3px;" onclick="">
             <input type="button" value="Low graphics">
@@ -92,7 +97,7 @@
         <div class="main-menu-page" data-page="login">
             <h3 style="margin-top: 0;">Login with AnarchyChess account</h3>
             <div class="form-frame">
-                <input type="text" placeholder="Username">
+                <input type="text" placeholder="Username" oninput="validateUsername(this)">
                 <input type="text" placeholder="Email">
                 <input type="button" value="Login">
             </div>
@@ -103,7 +108,7 @@
         <div class="main-menu-page" data-page="signup">
             <h3 style="margin-top: 0;">Sign up to AnarchyChess</h3>
             <div class="form-frame">
-                <input type="text" placeholder="Username">
+                <input type="text" placeholder="Username" oninput="validateUsername(this)">
                 <input type="text" placeholder="Email">
                 <input type="text" placeholder="Confirm email">
                 <input type="button" value="Create account">
@@ -121,18 +126,18 @@
                     })
                     event.target.setAttribute('selected', true)
                     configurePanel.querySelectorAll('.modal-content').forEach(element => element.style.display = 'none')
-                    configurePanel.querySelector(`.modal-content[page=\x22${event.target.dataset.page}\x22]`).style.display = 'flex'
+                    configurePanel.querySelector(`.modal-content[data-page=\x22${event.target.dataset.page}\x22]`).style.display = 'flex'
                 }">
-                    <li selected data-page="ruleset">Ruleset</li>
+                    <li data-selected data-page="ruleset">Ruleset</li>
                     <li data-page="arrangement">Piece arrangement</li>
                 </ul>
-                <div class="modal-content" page="ruleset">
+                <div class="modal-content" data-page="ruleset">
                     <div class="modal-content-container">
                         <ac-ruleset></ac-ruleset>
                         <div class="modal-content-side"></div>
                     </div>
                 </div>
-                <div class="modal-content" page="arrangement" style="display: none;">
+                <div class="modal-content" data-page="arrangement" style="display: none;">
                     <div class="modal-content-container">
                         <div class="arrangement-board-container">
                             <span class="arrangement-side-label">Black</span>
@@ -152,21 +157,21 @@
                         }">
                             <div class="arrangement-section">Black</div>
                             <div class="arrangement-grid">
-                                <img src="resources/pawn-black.svg" data-colour="black" data-type="pawn">
-                                <img src="resources/rook-black.svg" data-colour="black" data-type="rook">
-                                <img src="resources/knight-black.svg" data-colour="black" data-type="knight">
-                                <img src="resources/bishop-black.svg" data-colour="black" data-type="bishop">
-                                <img src="resources/queen-black.svg" data-colour="black" data-type="queen">
-                                <img src="resources/king-black.svg" data-colour="black" data-type="king">
+                                <img src="resources/pawn-black.svg" data-colour="black" alt="" data-type="pawn">
+                                <img src="resources/rook-black.svg" data-colour="black" alt="" data-type="rook">
+                                <img src="resources/knight-black.svg" data-colour="black" alt="" data-type="knight">
+                                <img src="resources/bishop-black.svg" data-colour="black" alt="" data-type="bishop">
+                                <img src="resources/queen-black.svg" data-colour="black" alt="" data-type="queen">
+                                <img src="resources/king-black.svg" data-colour="black" alt="" data-type="king">
                             </div>
                             <div class="arrangement-section">White</div>
                             <div class="arrangement-grid">
-                                <img src="resources/pawn-white.svg" data-colour="white" data-type="pawn">
-                                <img src="resources/rook-white.svg" data-colour="white" data-type="rook">
-                                <img src="resources/knight-white.svg" data-colour="white" data-type="knight">
-                                <img src="resources/bishop-white.svg" data-colour="white" data-type="bishop">
-                                <img src="resources/queen-white.svg" data-colour="white" data-type="queen">
-                                <img src="resources/king-white.svg" data-colour="white" data-type="king">
+                                <img src="resources/pawn-white.svg" data-colour="white" alt="" data-type="pawn">
+                                <img src="resources/rook-white.svg" data-colour="white" alt="" data-type="rook">
+                                <img src="resources/knight-white.svg" data-colour="white" alt="" data-type="knight">
+                                <img src="resources/bishop-white.svg" data-colour="white" alt="" data-type="bishop">
+                                <img src="resources/queen-white.svg" data-colour="white" alt="" data-type="queen">
+                                <img src="resources/king-white.svg" data-colour="white" alt="" data-type="king">
                             </div>
                             <div style="flex-grow: 1;"><!--vertical spacer--></div>
                             <div class="arrangement-button" tabindex="1" onclick="if (arrangementSelC != null && arrangementSelR != null) {
@@ -234,20 +239,19 @@
     <div id="rulesetPanel" class="side-panel" data-closed="true">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h3 style="margin: 0px;">Game rules:</h3>
-            <input type="button" value="close" onclick="rulesetPanel.setAttribute('data-closed', true)">    
+            <input type="button" value="Close" onclick="rulesetPanel.setAttribute('data-closed', true)">    
         </div>
         <div class="match-rules">
             <h5 style="margin-bottom: 0px;">Game events:</h5>
             <div>
-                <span kind="keyword">WHEN</span> <span layer="0">the game starts</span> <span layer="0">it is black's move</span><span>.</span>
+                <span data-kind="keyword">WHEN</span> <span data-layer="0">the game starts</span> <span data-layer="0">it is black's move</span><span>.</span>
             </div>
             <div>
-                <span kind="keyword">WHEN</span> <span layer="0">black's queen is taken</span> <span layer="0">white must forfeit<span layer="1">a pawn</span></span><span>.</span>
+                <span data-kind="keyword">WHEN</span> <span data-layer="0">black's queen is taken</span> <span data-layer="0">white must forfeit<span data-layer="1">a pawn</span></span><span>.</span>
             </div>
             <h5 style="margin-bottom: 0px;">Per move ruleset:</h5>
         </div>
     </div>
-</body>
 <script>
     let arrangementPrevValid = false
     let arrangementCurCol = null
@@ -325,7 +329,7 @@
             arrangementStats.animate([
                 { transform: "scale(1)" },
                 { opacity: 1 },
-				{ opacity: 0 },
+                { opacity: 0 },
                 { transform: "scale(1.2)" },
             ], {
                 duration: 1000,
@@ -347,6 +351,10 @@
             stats.blackKing ? "✅" : "❌"}`
     }
     updateArrangementStats()
+
+    function validateUsername(input) {
+        input.value = input.value.replace(/\W+/g, '').toLowerCase()
+    }
 
     function lerp(from, to, weight){
         return (1 - weight) * from + weight *to
@@ -407,4 +415,5 @@
     window.addEventListener("hashchange", (_) => setHashPage())
     setHashPage(true)
 </script>
+</body>
 </html>
