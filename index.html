@@ -18,20 +18,20 @@
     <p class="copyright-notice">
         If you're seeing this, you probably moved the board offscreen. AnarchyChess, ©Zekiah-A
     </p>
-    <div id="gamemodeTitle" class="hud" onclick="gamemodesPanel.toggleAttribute('closed');">
+    <div id="gamemodeTitle" class="hud" onclick="gamemodesPanel.toggleAttribute('data-closed');">
         <p>AnarchyChess</p>
     </div>
-    <div id="gamemodesPanel" class="info-panel" closed="">
+    <div id="gamemodesPanel" class="info-panel" data-closed="">
         <h4 style="margin: 0px;">Match options:</h4>
         <input type="button" value="Request replay">
         <input type="button" value="Exit match">
     </div>
     <div class="hud game-actions">
-        <p onclick="chatPanel.toggleAttribute('closed'); settingsPanel.setAttribute('closed', true);">Chat</p>
-        <p onclick="settingsPanel.toggleAttribute('closed'); chatPanel.setAttribute('closed', true);">Settings</p>
-        <p>Help</p>
+        <p onclick="chatPanel.toggleAttribute('data-closed'); settingsPanel.setAttribute('data-closed', true);">Chat</p>
+        <p onclick="settingsPanel.toggleAttribute('data-closed'); chatPanel.setAttribute('data-closed', true);">Settings</p>
+        <p onclick="rulesetPanel.toggleAttribute('data-closed')">Ruleset</p>
     </div>
-    <div id="chatPanel" closed="true" class="info-panel">
+    <div id="chatPanel" data-closed="true" class="info-panel">
         <div id="chatMessages">
             <p>🢂 Chat messages will appear here</p>
         </div>
@@ -43,7 +43,7 @@
             }
         ">
     </div>
-    <div id="settingsPanel" closed="true" class="info-panel">
+    <div id="settingsPanel" data-closed="true" class="info-panel">
         <h4 style="margin: 0px;">Graphics options:</h4>
         <div style="display: flex;flex-direction: column;row-gap: 3px;" onclick="">
             <input type="button" value="Low graphics">
@@ -60,7 +60,7 @@
         <p>Board: <span id="boardIndicator">0, 0</span></p>
         <p>Position: <span id="tileIndicator">A1</span></p>
     </div>
-    <div id="deathMenu" closed="true" class="menu">
+    <div id="deathMenu" data-closed="true" class="menu">
         <h1 style="margin-bottom: 8px;">♟️ BLUNDER</h1>
         <p>You were killed by another piece.</p>
         <div class="dual-options">
@@ -80,23 +80,41 @@
                 <img src="resources/logo.png" height="64" alt="logo">
                 <h1>AnarchyChess</h1>
             </div>
-            <nav id="headerNav" onclick="if (event.target.nodeName === 'A') {
-                setMainMenuPage(event.target.dataset.page)
-            }">
-                <a class="novisit" href="#login" data-page="login">Login</a> |
-                <a class="novisit" href="#signup" data-page="signup">Sign up</a> |
-                <a class="novisit" href="#profile" data-page="profile">My profile</a> |
-                <a class="novisit" href="#settings" data-page="settings">Settings</a>
+            <nav id="headerNav">
+                <a class="novisit page-link" href="#login" data-page="login">Login</a> |
+                <a class="novisit page-link" href="#signup" data-page="signup">Sign up</a> |
+                <a class="novisit page-link" href="#main" data-page="main">Home</a> |
+                <a class="novisit page-link" href="#profile" data-page="profile">My profile</a> |
+                <a class="novisit page-link" href="#settings" data-page="settings">Settings</a>
             </nav>
         </header>
-        <div style="height: 200px;"><!--spacer--></div>
-        <a id="homePageLink" class="novisit home-page-link" href="#main" onclick="setMainMenuPage('main')">&lt;- Home</a>
+        <div style="min-height: 200px;"><!--spacer--></div>
         <div class="main-menu-page" data-page="login">
-            <p style="text-align: center;">Login</p>
+            <h3 style="margin-top: 0;">Login with AnarchyChess account</h3>
+            <div class="form-frame">
+                <input type="text" placeholder="Username">
+                <input type="text" placeholder="Email">
+                <input type="button" value="Login">
+            </div>
+            <div>
+                <a class="novisit" href="#signup">Create account</a> | <a class="novisit" href="#forgot">Forgot username?</a>
+            </div>
+        </div>
+        <div class="main-menu-page" data-page="signup">
+            <h3 style="margin-top: 0;">Sign up to AnarchyChess</h3>
+            <div class="form-frame">
+                <input type="text" placeholder="Username">
+                <input type="text" placeholder="Email">
+                <input type="text" placeholder="Confirm email">
+                <input type="button" value="Create account">
+            </div>
+            <div>
+                <a class="novisit" href="#login">Already have an account?</a>
+            </div>
         </div>
         <div class="main-menu-page" data-page="main">
             <p style="text-align: center;">A multiplayer chess board, with infinite variations slightly bent rules. Here be anarchy.</p>
-            <div id="configurePanel" class="modal" closed>
+            <div id="configurePanel" class="modal" data-closed="true">
                 <ul class="modal-title" onclick="if (event.target.nodeName == 'LI') {
                     this.querySelectorAll('li').forEach(element => {
                         element.removeAttribute('selected')
@@ -192,8 +210,17 @@
                         <span id="arrangementStats">Black pieces: 0, White pieces: 0, White king present: ❌, Black king present: ❌</span>
                 </div>
             </div>
-            <input style="aspect-ratio: 1/1;" value="Create new ruleset" type="button" onclick="configurePanel.removeAttribute('closed')">
+            <input style="aspect-ratio: 1/1;" value="Create new ruleset" type="button" onclick="configurePanel.removeAttribute('data-closed')">
             <input style="width: 40%;" value="Play" type="button" onclick="mainMenu.style.display = 'none';">
+        </div>
+        <div class="main-menu-page" data-page="profile">
+            <h3 style="margin-top: 0;">Account profile</h3>
+            <p>No profile found. Are you sure you're logged in?</p>
+            <span><a class="novisit" href="#login">Login</a> | <a class="novisit" href="#signup">Signup</a></span>
+        </div>
+        <div class="main-menu-page" data-page="settings">
+            <h3 style="margin-top: 0;">General settings</h3>
+
         </div>
     </div>
     <div id="spawnMenu" style="display: none;" class="menu spawn-menu">
@@ -204,19 +231,11 @@
         </div>
     </div>
     <div id="meTurnPopup">It is now your turn!</div>
-    <div style="
-        position: absolute;
-        left: 0px;
-        height: 100%;
-        width: min(360px, 100%);
-        background: var(--ui-background);
-        z-index: 2;
-        padding: 16px;
-        box-sizing: border-box;
-        box-shadow: 0px 0px 12px black;
-        display: none;
-    ">
-        <h4>Game rules:</h4>
+    <div id="rulesetPanel" class="side-panel" data-closed="true">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0px;">Game rules:</h3>
+            <input type="button" value="close" onclick="rulesetPanel.setAttribute('data-closed', true)">    
+        </div>
         <div class="match-rules">
             <h5 style="margin-bottom: 0px;">Game events:</h5>
             <div>
@@ -367,14 +386,25 @@
         const page = mainMenu.querySelector(`.main-menu-page[data-page="${pageName}"]`)
         if (!page) return
 
+        // data-page="main"
+        headerNav.querySelector(".page-link-current")?.classList.remove("page-link-current")
+        headerNav.querySelector(`a[data-page=${pageName}]`).classList.add("page-link-current")
+
         mainMenu.querySelectorAll(".main-menu-page").forEach(pageEl =>
             pageEl.style.display = "none")
-        homePageLink.style.display = pageName == "main" ? "none" : "initial"
         page.style.display = "flex"
     }
-    window.addEventListener("hashchange", function(e) {
-        setMainMenuPage(window.location.hash.slice(1) || "main")
-    })
-    setMainMenuPage(window.location.hash.slice(1) || "main")
+    function setHashPage(mainFallback = false) {
+        const pages = ["main", "login", "signup", "profile", "settings"]
+        const page = window.location.hash?.slice(1)
+        if (pages.includes(page)) {
+            setMainMenuPage(page)
+        }
+        else if (mainFallback) {
+            setMainMenuPage("main")
+        }
+    }
+    window.addEventListener("hashchange", (_) => setHashPage())
+    setHashPage(true)
 </script>
 </html>
