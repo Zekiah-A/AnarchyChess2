@@ -1,36 +1,40 @@
 {
   "format": 1,
   "restore": {
-    "/home/zekiah/AnarchyChess2/AnarchyServer/AnarchyServer.csproj": {}
+    "C:\\Users\\zekiah\\AnarchyChess2\\AnarchyServer\\AnarchyServer.csproj": {}
   },
   "projects": {
-    "/home/zekiah/AnarchyChess2/AnarchyServer/AnarchyServer.csproj": {
+    "C:\\Users\\zekiah\\AnarchyChess2\\AnarchyServer\\AnarchyServer.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/zekiah/AnarchyChess2/AnarchyServer/AnarchyServer.csproj",
+        "projectUniqueName": "C:\\Users\\zekiah\\AnarchyChess2\\AnarchyServer\\AnarchyServer.csproj",
         "projectName": "AnarchyServer",
-        "projectPath": "/home/zekiah/AnarchyChess2/AnarchyServer/AnarchyServer.csproj",
-        "packagesPath": "/home/zekiah/.nuget/packages/",
-        "outputPath": "/home/zekiah/AnarchyChess2/AnarchyServer/obj/",
+        "projectPath": "C:\\Users\\zekiah\\AnarchyChess2\\AnarchyServer\\AnarchyServer.csproj",
+        "packagesPath": "C:\\Users\\zekiah\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\zekiah\\AnarchyChess2\\AnarchyServer\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
-          "/home/zekiah/.local/share/godot/mono/GodotNuGetFallbackFolder"
+          "C:\\Users\\zekiah\\AppData\\Roaming\\Godot\\mono\\GodotNuGetFallbackFolder"
         ],
         "configFilePaths": [
-          "/home/zekiah/.nuget/NuGet/NuGet.Config",
-          "/home/zekiah/.nuget/NuGet/config/Godot.Offline.Config"
+          "C:\\Users\\zekiah\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\zekiah\\AppData\\Roaming\\NuGet\\config\\Godot.Offline.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
-          "/usr/share/dotnet/library-packs": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net8.0": {
             "targetAlias": "net8.0",
-            "projectReferences": {}
+            "projectReferences": {
+              "C:\\Users\\zekiah\\AnarchyChess2\\DataProto\\DataProto\\DataProto.csproj": {
+                "projectPath": "C:\\Users\\zekiah\\AnarchyChess2\\DataProto\\DataProto\\DataProto.csproj"
+              }
+            }
           }
         },
         "warningProperties": {
@@ -49,6 +53,10 @@
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[8.0.0-preview.7.23375.9, )"
+            },
+            "Microsoft.EntityFrameworkCore.Sqlite": {
+              "target": "Package",
+              "version": "[8.0.0, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
@@ -74,7 +82,74 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.100-preview.7.23376.3/RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.100-preview.7.23376.3\\RuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "C:\\Users\\zekiah\\AnarchyChess2\\DataProto\\DataProto\\DataProto.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\zekiah\\AnarchyChess2\\DataProto\\DataProto\\DataProto.csproj",
+        "projectName": "DataProto",
+        "projectPath": "C:\\Users\\zekiah\\AnarchyChess2\\DataProto\\DataProto\\DataProto.csproj",
+        "packagesPath": "C:\\Users\\zekiah\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\zekiah\\AnarchyChess2\\DataProto\\DataProto\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Users\\zekiah\\AppData\\Roaming\\Godot\\mono\\GodotNuGetFallbackFolder"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\zekiah\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\zekiah\\AppData\\Roaming\\NuGet\\config\\Godot.Offline.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "default"
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "Microsoft.EntityFrameworkCore.Sqlite": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.100-preview.7.23376.3\\RuntimeIdentifierGraph.json"
         }
       }
     }
