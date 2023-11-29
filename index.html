@@ -120,16 +120,9 @@
         <div class="main-menu-page" data-page="main">
             <p style="text-align: center;">A multiplayer chess board, with infinite variations slightly bent rules. Here be anarchy.</p>
             <div id="configurePanel" class="modal" data-closed="true">
-                <ul class="modal-title" onclick="if (event.target.nodeName == 'LI') {
-                    this.querySelectorAll('li').forEach(element => {
-                        element.removeAttribute('selected')
-                    })
-                    event.target.setAttribute('selected', true)
-                    configurePanel.querySelectorAll('.modal-content').forEach(element => element.style.display = 'none')
-                    configurePanel.querySelector(`.modal-content[data-page=\x22${event.target.dataset.page}\x22]`).style.display = 'flex'
-                }">
-                    <li data-selected data-page="ruleset">Ruleset</li>
-                    <li data-page="arrangement">Piece arrangement</li>
+                <ul class="modal-title">
+                    <li data-selected data-page="ruleset" onclick="setModalPage(configurePanel, this.dataset.page)">Ruleset</li>
+                    <li data-page="arrangement" onclick="setModalPage(configurePanel, this.dataset.page)">Piece arrangement</li>
                 </ul>
                 <div class="modal-content" data-page="ruleset">
                     <div class="modal-content-container">
@@ -175,36 +168,7 @@
                             </div>
                             <div style="flex-grow: 1;"><!--vertical spacer--></div>
                             <div class="arrangement-button" tabindex="1" onclick="if (arrangementSelC != null && arrangementSelR != null) {
-                                const pieceClone = arrangementBoard.pieceElements[arrangementSelC][arrangementSelR].cloneNode(true)
-                                arrangementBoard.board.appendChild(pieceClone)
-                                pieceClone.style.setProperty('--piece-fill', 'red')
-                                pieceClone.animate([
-                                    { transform: 'scale(1.8) rotate(10deg)', opacity: 0 },
-                                ], {
-                                    duration: 1000,
-                                    fill: 'forwards',
-                                    iterations: 1,
-                                })
-                                setTimeout(() => pieceClone.remove(), 1000)
-                                const canvBounds = arrangementCanvas.getBoundingClientRect()
-                                const pieceBounds = pieceClone.getBoundingClientRect()
-                                const tileSize = arrangementBoard.getTileSize()
-                                arrangementCanvas.confetti({
-                                    spread: 360,
-                                    gravity: 1,
-                                    particleCount: 50,
-                                    startVelocity: 10,
-                                    shapes: ['text'],
-                                    shapeOptions: {
-                                        text: {
-                                            value: ['💥', '🔥', '🔴'],
-                                        }
-                                    },
-                                    origin: { x: (pieceBounds.left - canvBounds.left + tileSize / 2) / arrangementCanvas.offsetWidth,
-                                        y: (pieceBounds.top - canvBounds.top + tileSize / 2) / arrangementCanvas.offsetHeight },
-                                })
-                                
-                                arrangementBoard.clearPiece(arrangementSelC, arrangementSelR)
+                                animateDestroyPiece(arrangementBoard, arrangementCanvas, arrangementSelC, arrangementSelR)
                                 arrangementSelC = null
                                 arrangementSelR = null
                                 updateArrangementStats()
@@ -212,11 +176,68 @@
                         </div>
                         <canvas id="arrangementCanvas" style="position: absolute; bottom: 0; left: 0; height: 100%; pointer-events: none; width: 100%;"></canvas>
                     </div>
-                        <span id="arrangementStats">Black pieces: 0, White pieces: 0, White king present: ❌, Black king present: ❌</span>
+                    <span id="arrangementStats">Black pieces: 0, White pieces: 0, White king present: ❌, Black king present: ❌</span>
                 </div>
             </div>
-            <input style="aspect-ratio: 1/1;" value="Create new ruleset" type="button" onclick="configurePanel.removeAttribute('data-closed')">
-            <input style="width: 40%;" value="Play" type="button" onclick="mainMenu.style.display = 'none';">
+            <div id="matchPanel" class="modal" data-closed="true">
+                <ul class="modal-title">
+                    <li data-selected data-page="join" onclick="setModalPage(matchPanel, this.dataset.page)">Connect</li>
+                    <li data-page="create" onclick="setModalPage(matchPanel, this.dataset.page)">Create</li>
+                    <li data-page="lobby" onclick="setModalPage(matchPanel, this.dataset.page)">Lobby</li>
+                </ul>
+                <div class="modal-content" data-page="join">
+                    <div id="matchList" style="flex-grow: 1;"></div>
+                    <div style="display: flex;column-gap: 8px;">
+                        <input class="arrangement-input" type="number" placeholder="Match ID">
+                        <div class="arrangement-button" tabindex="1" onclick="">Join</div>
+                        <div style="flex-grow: 1;"><!--spacer--></div>
+                        <div class="arrangement-button" tabindex="1" onclick="">➕ Create my own match</div>
+                    </div>
+                </div>
+                <div class="modal-content" data-page="create" style="display: none;">
+                    <fieldset>
+                        <legend><h3 style="margin: 0px;">Game options:</h3></legend>
+                        <p>Using ruleset:</p>
+                        <p>Using arrangement:</p>    
+                    </fieldset>
+                    
+                    <!--int RulesetId, int ArrangementId, string MatchName, bool AdvertisePublic-->
+                    <fieldset style="display: flex; flex-direction: column; row-gap: 8px;">
+                        <legend><h3 style="margin: 0px;">Lobby options:</h3></legend>
+                        <input type="text" style="flex-shrink: 1;" class="arrangement-input" placeholder="Lobby name">
+                        <div>
+                            <input id="createPublic" type="checkbox" value="true">
+                            <label for="createPublic">Make lobby available publicly</label>
+                        </div>
+                    </fieldset>
+                    <div style="flex-grow: 1;"><!--spacer--></div>
+                    <div class="arrangement-button" tabindex="1" onclick="">Create and join match</div>
+                </div>
+            </div>
+            <fieldset class="main-menu-field">
+                <legend><h3>Create</h3></legend>
+                <input value="Create a new ruleset" type="button" onclick="configurePanel.removeAttribute('data-closed'); setModalPage(configurePanel, 'ruleset')">
+                <input value="Create a new arrangement" type="button" onclick="configurePanel.removeAttribute('data-closed'); setModalPage(configurePanel, 'arrangement')">
+            </fieldset>
+            <fieldset class="main-menu-field">
+                <legend><h3>Play</h3></legend>
+                <input value="Play" type="button" onclick="matchPanel.removeAttribute('data-closed')">
+            </fieldset>
+            <div class="main-menu-field" style="position: relative; z-index: -1;">
+                <ac-board id="mainMenuBoard"></ac-board>
+                <canvas id="mainMenuCanvas" style="top: 0; left: 0; width: 100%; height: 100%; position: absolute;"></canvas>
+            </div>
+            <fieldset class="main-menu-field">
+                <legend><h3 style="margin: 0px;">My stats:</h3></legend>
+                <p>Games played:</p>
+                <p>Matches won:</p>
+                <p>Play time:</p>
+            </fieldset>
+            <fieldset class="main-menu-field">
+                <legend><h3 style="margin: 0px;">Global stats:</h3></legend>
+                <p>Online players:</p>
+                <p>Active matches:</p>
+            </fieldset>
         </div>
         <div class="main-menu-page" data-page="profile">
             <h3 style="margin-top: 0;">Account profile</h3>
@@ -260,6 +281,7 @@
     let arrangementSelR = null
     ;(async function() { // Async initialisers
         arrangementCanvas.confetti = await confetti.create(arrangementCanvas, { resize: true })
+        mainMenuCanvas.confetti = await confetti.create(mainMenuCanvas, { resize: true })
     })()
 
     arrangementBoard.ontilehover = function(e, column, row, tile) {
@@ -352,9 +374,72 @@
     }
     updateArrangementStats()
 
-    function validateUsername(input) {
-        input.value = input.value.replace(/\W+/g, '').toLowerCase()
+    function animateDestroyPiece(boardElement, canvasElement, column, row) {
+        const pieceClone = boardElement.pieceElements[column][row].cloneNode(true)
+        boardElement.board.appendChild(pieceClone)
+        pieceClone.style.setProperty('--piece-fill', 'red')
+        pieceClone.animate([
+            { transform: 'scale(1.8) rotate(10deg)', opacity: 0 },
+        ], {
+            duration: 1000,
+            fill: 'forwards',
+            iterations: 1,
+        })
+        setTimeout(() => pieceClone.remove(), 1000)
+        const canvBounds = canvasElement.getBoundingClientRect()
+        const pieceBounds = pieceClone.getBoundingClientRect()
+        const tileSize = boardElement.getTileSize()
+        canvasElement.confetti({
+            spread: 360,
+            gravity: 1,
+            particleCount: 50,
+            startVelocity: 10,
+            shapes: ['text'],
+            shapeOptions: {
+                text: {
+                    value: ['💥', '🔥', '🔴'],
+                }
+            },
+            origin: { x: (pieceBounds.left - canvBounds.left + tileSize / 2) / canvasElement.offsetWidth,
+                y: (pieceBounds.top - canvBounds.top + tileSize / 2) / canvasElement.offsetHeight },
+        })
+        
+        boardElement.clearPiece(column, row)
     }
+
+    // Random piece arrangement
+    function randomMainMenuBoard() {
+        const columnsRows = 6 + Math.floor(Math.random() * 8)
+        // Setting columns and rows will trigger flush, resulting in three flushes per change.
+        // TODO: Optimise with something like a special resizeClear() method
+        mainMenuBoard.columns = columnsRows
+        mainMenuBoard.rows = columnsRows
+        mainMenuBoard.resetAll()
+        mainMenuBoard.flushBoard()
+
+        for (let c = 0; c < columnsRows; c++) {
+            for (let r = 0; r < columnsRows; r++) {
+                if (mainMenuBoard.pieceElements[c][r]) {
+                    animateDestroyPiece(mainMenuBoard, mainMenuCanvas, c, r)
+                }
+            }
+        }
+        
+        let i = 0
+        const tileCount = columnsRows ** 2
+        let putInterval = setInterval(() => {
+            if (Math.random() > 0.8) {
+                const type = ["pawn", "rook", "knight", "bishop", "queen", "king"][Math.floor(Math.random() * 6)]
+                const piece = new PieceData(type, Math.random() > 0.5 ? "black" : "white")
+                mainMenuBoard.setPiece(i % columnsRows, Math.floor(i / columnsRows), piece)
+            }
+
+            i++
+            if (i + 1 == tileCount) clearInterval(putInterval)
+        }, 2e4 / tileCount - 1000)
+    }
+    setInterval(randomMainMenuBoard, 2e4)
+    randomMainMenuBoard()
 
     function lerp(from, to, weight){
         return (1 - weight) * from + weight *to
@@ -390,6 +475,17 @@
     window.addEventListener("resize", calcHeaderPositioning)
     calcHeaderPositioning()
 
+    function setModalPage(modal, pageName) {
+        modal.querySelectorAll(".modal-title > li").forEach(element => {
+            element.removeAttribute('data-selected')
+        })
+        modal.querySelector(`.modal-title > li[data-page="${pageName}"]`)
+            .setAttribute('data-selected', true)
+
+        modal.querySelectorAll('.modal-content').forEach(element => element.style.display = "none")
+        modal.querySelector(`.modal-content[data-page="${pageName}"]`).style.display = "flex"
+    }
+
     function setMainMenuPage(pageName) {
         const page = mainMenu.querySelector(`.main-menu-page[data-page="${pageName}"]`)
         if (!page) return
@@ -414,6 +510,28 @@
     }
     window.addEventListener("hashchange", (_) => setHashPage())
     setHashPage(true)
+
+    function validateUsername(input) {
+        input.value = input.value.replace(/\W+/g, '').toLowerCase()
+    }
+    function play(matchId) {
+        let socket = new WebSocket(`ws://localhost:5068/Match/${matchId}`)
+    }
+    async function loadMatchList() {
+        let failed = false
+        const response = await fetch("http://localhost:5068/Matches").catch(e => failed = true)
+        if (!response.ok || failed) {
+            alert("Failed to load matches. Server response was not okay!")
+            return
+        }
+
+        // We need to reactively update matchList
+        const matches = await response.json()
+        for (const match of matches) {
+            
+        }
+    }
+    loadMatchList()
 </script>
 </body>
 </html>

@@ -8,6 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy => policy.WithOrigins("*"));
+});
 
 var app = builder.Build();
 var socketClients = new List<ClientData>();
@@ -20,6 +24,8 @@ var webSocketOptions = new WebSocketOptions
     KeepAliveInterval = TimeSpan.FromMinutes(2)
 };
 app.UseWebSockets(webSocketOptions);
+app.UseCors();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -90,7 +96,7 @@ async IAsyncEnumerable<IReceiveResult> ReceiveDataAsync(ClientData client, [Enum
     }
 }
 
-app.MapGet("/Matches/Find", (HttpContext context) =>
+app.MapGet("/Matches", (HttpContext context) =>
 {
     var found = new List<MatchInfo>();
     
@@ -108,7 +114,7 @@ app.MapGet("/Matches/Find", (HttpContext context) =>
     return Results.Json(found);
 });
 
-app.MapPost("/Matches/Create", ([FromBody] MatchCreateInfo info, HttpContext context) =>
+app.MapPost("/Match", ([FromBody] MatchCreateInfo info, HttpContext context) =>
 {
     var newId = ++topMatchId;
     var match = new Match(0, info.MatchName, info.AdvertisePublic);
@@ -118,7 +124,7 @@ app.MapPost("/Matches/Create", ([FromBody] MatchCreateInfo info, HttpContext con
     return Results.Unauthorized();
 });
 
-app.MapGet("/Matches/Play/{matchId}", (int matchId, HttpContext context) =>
+app.MapGet("/Match/{matchId}", (int matchId, HttpContext context) =>
 {
     if (!context.WebSockets.IsWebSocketRequest)
     {

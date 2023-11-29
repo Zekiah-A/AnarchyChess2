@@ -2,21 +2,15 @@ class Board extends HTMLElement {
     #tiles
     #tileElements
     #pieceElements
+    #columns
+    #rows
     
     constructor() {
         super()
         this.turn = 0
-        this.rows = parseInt(this.getAttribute("rows")) || 8
-        this.columns = parseInt(this.getAttribute("columns")) || 8
-
-        this.#tiles = new Array(this.columns)
-        this.#tileElements = new Array(this.columns)
-        this.#pieceElements = new Array(this.columns)
-        for (let r = 0; r < this.rows; r++) {
-            this.#tiles[r] = new Array(this.rows)
-            this.#tileElements[r] = new Array(this.rows)
-            this.#pieceElements[r] = new Array(this.rows)
-        }
+        this.#rows = parseInt(this.getAttribute("rows")) || 8
+        this.#columns = parseInt(this.getAttribute("columns")) || 8
+        this.resetAll()
 
         this.ontilehover = null
         this.ontiledrop = null
@@ -35,6 +29,15 @@ class Board extends HTMLElement {
     }
     static get observedAttributes() {
         return ["rows", "columns"]
+    }
+    // TODO: Consider if attribute needs update
+    set columns(value) {
+        this.#columns = value
+        this.flushBoard()
+    }
+    set rows(value) {
+        this.#rows = value
+        this.flushBoard()
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
@@ -104,7 +107,7 @@ class Board extends HTMLElement {
     }
 
     getTileSize() {
-        const topLeft = this.tileElements[0][0]
+        const topLeft = this.#tileElements[0][0]
         return topLeft.offsetWidth
     }
 
@@ -141,8 +144,8 @@ class Board extends HTMLElement {
     }
 
     renderPieces() {
-        for (let c = 0; c < this.columns; c++) {
-            for (let r = 0; r < this.rows; r++) {
+        for (let c = 0; c < this.#columns; c++) {
+            for (let r = 0; r < this.#rows; r++) {
                 const pieceEl = this.#pieceElements[c][r]
                 if (!pieceEl) continue
                 this.setPiecePosition(pieceEl, c, r)
@@ -150,23 +153,34 @@ class Board extends HTMLElement {
         }
     }
 
+    resetAll() {
+        this.#tiles = new Array(this.#columns)
+        this.#tileElements = new Array(this.#columns)
+        this.#pieceElements = new Array(this.#columns)
+        for (let r = 0; r < this.#rows; r++) {
+            this.#tiles[r] = new Array(this.#rows)
+            this.#tileElements[r] = new Array(this.#rows)
+            this.#pieceElements[r] = new Array(this.#rows)
+        }
+    }
+
     flushBoard() {
         this.board.innerHTML = ""
-        this.board.style.setProperty("--columns", this.columns)
-        this.board.style.setProperty("--rows", this.rows)
+        this.board.style.setProperty("--columns", this.#columns)
+        this.board.style.setProperty("--rows", this.#rows)
         this.board.style.gridTemplateRows = "none"
         this.#tileElements = []
-        for (let c = 0; c < this.columns; c++) {
+        for (let c = 0; c < this.#columns; c++) {
             this.#tileElements[c] = []
-            for (let r = 0; r < this.rows; r++) {
+            for (let r = 0; r < this.#rows; r++) {
                 this.#tileElements[c].push(null)
             }
         }
 
         let shift = this.turn == 1 ? 0 : 1
-        for (let i = 0; i < this.columns * this.rows; i++) {
-            const column = i % this.columns
-            const row = Math.floor(i / this.columns)
+        for (let i = 0; i < this.#columns * this.#rows; i++) {
+            const column = i % this.#columns
+            const row = Math.floor(i / this.#columns)
             if (column === 0) shift = shift == 0 ? 1 : 0
 
             const tileEl = document.createElement("div")

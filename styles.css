@@ -39,14 +39,14 @@ body {
     font-size: 150%;
 }
 
-input[type="text"] {
+input[type="text"], input[type="number"] {
     padding: 12px 12px;
     border-radius: 4px;
     outline: none;
     border: 1px solid var(--ui-input);
     transition: border .1s;
 }
-input[type="text"]:focus {
+input[type="text"]:focus, , input[type="number"]:focus {
     border: 1px solid var(--ui-hilight);
 }
 
@@ -167,6 +167,10 @@ header {
 
 .main-menu > div > * {
 	align-self: center;
+}
+
+.main-menu-field {
+    width: 40%;
 }
 
 .page-link {
@@ -691,6 +695,16 @@ header {
     row-gap: 16px;
 }
 
+.arrangement-input {
+    padding: 8px !important;
+    border: 1px solid lightgray !important;
+    border-radius: 0px !important;
+    background: white !important;
+}
+.arrangement-input:focus {
+    border: 1px solid gray;   
+}
+
 .arrangement-button {
     padding: 8px;
     border: 1px solid lightgray;
@@ -712,5 +726,8 @@ header {
     }
     .modal-content-side {
         width: 100%;
+    }
+    .main-menu-field {
+        width: calc(100% - 16px);
     }
 }
