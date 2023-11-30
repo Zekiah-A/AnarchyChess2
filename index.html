@@ -183,7 +183,6 @@
                 <ul class="modal-title">
                     <li data-selected data-page="join" onclick="setModalPage(matchPanel, this.dataset.page)">Connect</li>
                     <li data-page="create" onclick="setModalPage(matchPanel, this.dataset.page)">Create</li>
-                    <li data-page="lobby" onclick="setModalPage(matchPanel, this.dataset.page)">Lobby</li>
                 </ul>
                 <div class="modal-content" data-page="join">
                     <div id="matchList" style="flex-grow: 1;"></div>
@@ -221,7 +220,8 @@
             </fieldset>
             <fieldset class="main-menu-field">
                 <legend><h3>Play</h3></legend>
-                <input value="Play" type="button" onclick="matchPanel.removeAttribute('data-closed')">
+                <input value="Create my own match" type="button" onclick="matchPanel.removeAttribute('data-closed'); setModalPage(matchPanel, 'create')">
+                <input value="Join someone's lobby" type="button" onclick="matchPanel.removeAttribute('data-closed'); setModalPage(matchPanel, 'join')">
             </fieldset>
             <div class="main-menu-field" style="position: relative; z-index: -1;">
                 <ac-board id="mainMenuBoard"></ac-board>
@@ -235,8 +235,8 @@
             </fieldset>
             <fieldset class="main-menu-field">
                 <legend><h3 style="margin: 0px;">Global stats:</h3></legend>
-                <p>Online players:</p>
-                <p>Active matches:</p>
+                <p>Online players: <span id="globalOnlineLabel"></span></p>
+                <p>Active matches: <span id="globalActiveLabel"></span></p>
             </fieldset>
         </div>
         <div class="main-menu-page" data-page="profile">
@@ -408,35 +408,38 @@
     }
 
     // Random piece arrangement
+    let putInterval = null
     function randomMainMenuBoard() {
-        const columnsRows = 6 + Math.floor(Math.random() * 8)
-        // Setting columns and rows will trigger flush, resulting in three flushes per change.
-        // TODO: Optimise with something like a special resizeClear() method
-        mainMenuBoard.columns = columnsRows
-        mainMenuBoard.rows = columnsRows
-        mainMenuBoard.resetAll()
-        mainMenuBoard.flushBoard()
-
-        for (let c = 0; c < columnsRows; c++) {
-            for (let r = 0; r < columnsRows; r++) {
+        clearInterval(putInterval)
+        for (let c = 0; c < mainMenuBoard.columns; c++) {
+            for (let r = 0; r < mainMenuBoard.rows; r++) {
                 if (mainMenuBoard.pieceElements[c][r]) {
                     animateDestroyPiece(mainMenuBoard, mainMenuCanvas, c, r)
                 }
             }
         }
-        
-        let i = 0
-        const tileCount = columnsRows ** 2
-        let putInterval = setInterval(() => {
-            if (Math.random() > 0.8) {
-                const type = ["pawn", "rook", "knight", "bishop", "queen", "king"][Math.floor(Math.random() * 6)]
-                const piece = new PieceData(type, Math.random() > 0.5 ? "black" : "white")
-                mainMenuBoard.setPiece(i % columnsRows, Math.floor(i / columnsRows), piece)
-            }
+        setTimeout(() => {
+            // Setting columns and rows will trigger flush, resulting in three flushes per change.
+            // TODO: Optimise with something like a special resizeClear() method
+            const columnsRows = 6 + Math.floor(Math.random() * 8)
+            mainMenuBoard.columns = columnsRows
+            mainMenuBoard.rows = columnsRows
+            mainMenuBoard.resetAll()
+            mainMenuBoard.flushBoard()
 
-            i++
-            if (i + 1 == tileCount) clearInterval(putInterval)
-        }, 2e4 / tileCount - 1000)
+            let i = 0
+            const tileCount = columnsRows ** 2
+            putInterval = setInterval(() => {
+                if (Math.random() > 0.8) {
+                    const type = ["pawn", "rook", "knight", "bishop", "queen", "king"][Math.floor(Math.random() * 6)]
+                    const piece = new PieceData(type, Math.random() > 0.5 ? "black" : "white")
+                    mainMenuBoard.setPiece(i % columnsRows, Math.floor(i / columnsRows), piece)
+                }
+
+                i++
+                if (i + 1 == tileCount) clearInterval(putInterval)
+            }, (2e4 - 3000) / tileCount)
+        }, 3000)
     }
     setInterval(randomMainMenuBoard, 2e4)
     randomMainMenuBoard()
@@ -445,16 +448,41 @@
         return (1 - weight) * from + weight *to
     }
     let scrollAnim = null
-    function calcHeaderPositioning() {        
+    function setHeaderWillChange() { // Optimisation
+        headerBranding.style.willChange = "left, top, scale"
+        headerNav.style.willChange = "left, top"
+        header.style.willChange = "height, box-shadow"
+    }
+    function clearHeaderWillChange() {
+        headerBranding.style.willChange = "auto"
+        headerNav.style.willChange = "auto"
+        header.style.willChange = "auto"
+    }
+    function calcHeaderPositioning() {
+        setHeaderWillChange()   
+        const portrait = window.innerWidth < window.innerHeight
         const toCollapsed = Math.min(1, mainMenu.scrollTop / 100)
         const headerCentreX = header.offsetWidth / 2
         header.style.boxShadow = `0px 0px ${Math.min(8, mainMenu.scrollTop)}px gray`
         header.style.height = `${Math.max(100, 200 - mainMenu.scrollTop)}px`
-        headerBranding.style.left = `${lerp(headerCentreX - headerBranding.offsetWidth / 2, 16, toCollapsed)}px`
-        headerBranding.style.scale = lerp(1.2, 0.8, toCollapsed)
 
-        headerNav.style.left = `${lerp(headerCentreX - headerNav.offsetWidth / 2, header.offsetWidth - headerNav.offsetWidth - 16, toCollapsed)}px`
-        headerNav.style.top = `${lerp(120, 50 - headerNav.offsetHeight / 2, toCollapsed)}px`
+        if (portrait) {
+            headerBranding.style.left = `${headerCentreX - headerBranding.offsetWidth / 2}px`
+            headerBranding.style.top = `${lerp(0, -16, toCollapsed)}px`
+            headerBranding.style.scale = lerp(1.2, 0.6, toCollapsed)
+
+            headerNav.style.left = `${headerCentreX - headerNav.offsetWidth / 2}px`
+            headerNav.style.top = `${lerp(120, 60, toCollapsed)}px`
+        }
+        else {
+            headerBranding.style.top = "0px"
+            headerBranding.style.left = `${lerp(headerCentreX - headerBranding.offsetWidth / 2, 16, toCollapsed)}px`
+            headerBranding.style.scale = lerp(1.2, 0.8, toCollapsed)
+
+            headerNav.style.left = `${lerp(headerCentreX - headerNav.offsetWidth / 2, header.offsetWidth - headerNav.offsetWidth - 16, toCollapsed)}px`
+            headerNav.style.top = `${lerp(120, 50 - headerNav.offsetHeight / 2, toCollapsed)}px`
+        }
+        clearHeaderWillChange()
 
         if (scrollAnim) {
             clearTimeout(scrollAnim)
@@ -462,12 +490,14 @@
         }
         if (mainMenu.scrollTop < 100) {
             let scrollTarget = toCollapsed < 0.5 ? 0 : 100
+            setHeaderWillChange()
             scrollAnim = setTimeout(() => {
                 mainMenu.scrollTo({
                     top: scrollTarget,
                     left: 0,
                     behavior: "smooth",
                 })
+                setTimeout(clearHeaderWillChange, 500)
             }, 200)
         }
     }
@@ -521,7 +551,7 @@
         let failed = false
         const response = await fetch("http://localhost:5068/Matches").catch(e => failed = true)
         if (!response.ok || failed) {
-            alert("Failed to load matches. Server response was not okay!")
+            console.error("Failed to load matches. Server response was not okay!")
             return
         }
 
@@ -532,6 +562,29 @@
         }
     }
     loadMatchList()
+    async function updateMyStats() {
+        /*let failed = false
+        const response = await fetch("http://localhost:5068/MyStats").catch(e => failed = true)
+        if (!response.ok || failed) {
+            console.error("Failed to load my stats. Server response was not okay!")
+            return
+        }
+        const stats = await response.json()*/
+    }
+    async function updateGlobalStats() {
+        let failed = false
+        const response = await fetch("http://localhost:5068/GlobalStats").catch(e => failed = true)
+        if (!response.ok || failed) {
+            console.error("Failed to load global stats. Server response was not okay!")
+            return
+        }
+        const stats = await response.json()
+        globalOnlineLabel.textContent = stats.onlinePlayers
+        globalActiveLabel.textContent = stats.activeMatches
+
+    }
+    setInterval(updateGlobalStats, 1e4) // 10s
+    updateGlobalStats()
 </script>
 </body>
 </html>

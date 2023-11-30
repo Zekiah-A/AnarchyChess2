@@ -31,9 +31,15 @@ class Board extends HTMLElement {
         return ["rows", "columns"]
     }
     // TODO: Consider if attribute needs update
+    get columns() {
+        return this.#columns
+    }
     set columns(value) {
         this.#columns = value
         this.flushBoard()
+    }
+    get rows() {
+        return this.#rows
     }
     set rows(value) {
         this.#rows = value

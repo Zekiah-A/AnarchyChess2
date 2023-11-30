@@ -1,7 +1,7 @@
 using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
 using AnarchyServer;
-using DataProto;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,6 +11,9 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy => policy.WithOrigins("*"));
+});
+builder.Services.ConfigureHttpJsonOptions(options =>{
+    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
 });
 
 var app = builder.Build();
@@ -114,7 +117,7 @@ app.MapGet("/Matches", (HttpContext context) =>
     return Results.Json(found);
 });
 
-app.MapPost("/Match", ([FromBody] MatchCreateInfo info, HttpContext context) =>
+app.MapPost("/Matches", ([FromBody] MatchCreateInfo info, HttpContext context) =>
 {
     var newId = ++topMatchId;
     var match = new Match(0, info.MatchName, info.AdvertisePublic);
@@ -124,7 +127,7 @@ app.MapPost("/Match", ([FromBody] MatchCreateInfo info, HttpContext context) =>
     return Results.Unauthorized();
 });
 
-app.MapGet("/Match/{matchId}", (int matchId, HttpContext context) =>
+app.MapGet("/Matches/{matchId}", (int matchId, HttpContext context) =>
 {
     if (!context.WebSockets.IsWebSocketRequest)
     {
@@ -161,6 +164,42 @@ app.MapGet("/Match/{matchId}", (int matchId, HttpContext context) =>
     }).ConfigureAwait(false);
     
     return Results.Ok();
+});
+
+app.MapGet("/GlobalStats", () =>
+{
+    var stats = new GlobalStats(socketClients.Count, matches.Count);
+    return Results.Json(stats);
+});
+
+app.MapPost("/Login", () =>
+{
+
+});
+
+app.MapPost("/Signup", () =>
+{
+
+});
+
+app.MapGet("/Users/{id}", (int id) =>
+{
+
+});
+
+app.MapDelete("/Users/{id}", (int id) =>
+{
+
+});
+
+app.MapGet("/Users/{id}/Settings", (int id) =>
+{
+
+});
+
+app.MapPost("/Users/{id}/Settings", (int id) =>
+{
+
 });
 
 // Will collect/destroy all matches that have been open for more than 5 minutes without any player joining, including host
