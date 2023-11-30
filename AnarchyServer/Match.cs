@@ -32,15 +32,17 @@ public class Match
         {
             var stringMessage = Encoding.UTF8.GetString(message.Data);
             HandleChatMessage(fromClient, stringMessage);
+            Console.WriteLine(stringMessage);
+            return;
         }
-        
-        var packet = new ReadablePacket(message.Data);
+
+        /*var packet = new ReadablePacket(message.Data);
         var code = packet.ReadByte();
 
         if (binaryPacketHandlers.TryGetValue(code, out var handler))
         {
             handler(ref packet);
-        }
+        }*/
     }
 
     private void HandleChatMessage(ClientData fromClient, string message)

@@ -2,9 +2,9 @@ namespace AnarchyServer;
 
 public struct SocketCancellation : IReceiveResult
 {
-    public TaskCanceledException? Exception;
+    public Exception? Exception;
     
-    public SocketCancellation(TaskCanceledException? exception)
+    public SocketCancellation(Exception? exception)
     {
         Exception = exception;
     }

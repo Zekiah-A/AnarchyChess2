@@ -1,7 +1,10 @@
 using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
+using System.Text;
 using AnarchyServer;
 using System.Text.Json;
+using CommunityToolkit.HighPerformance.Buffers;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -38,60 +41,75 @@ if (app.Environment.IsDevelopment())
 async IAsyncEnumerable<IReceiveResult> ReceiveDataAsync(ClientData client, [EnumeratorCancellation] CancellationToken token)
 {
     // Receive in chunks
-    var resultStream = new MemoryStream();
+    using var resultStream = new MemoryStream();
     var transportCompleted = false;
     while (true)
     {
         IReceiveResult readLoopResult = null!;
-        if (token.IsCancellationRequested)
-        {
-            app.Logger.LogInformation("Terminating connection with websocket client {Ip} as per cancellation token request", client.Ip);
-            await client.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
-            yield return new SocketCancellation(null);
-            transportCompleted = true;
-        }
         try
         {
-            var buffer = new byte[65536];
-            var result = await client.Socket.ReceiveAsync(buffer, token);
-
-            if (result.CloseStatus != null)
+            if (token.IsCancellationRequested)
             {
-                app.Logger.LogTrace("Close received from websocket client {Ip}. Reason {Reason}",
-                    client.Ip, result.CloseStatusDescription);
-                await client.Socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
-                readLoopResult =  new SocketClosure(result.CloseStatus, result.CloseStatusDescription);
+                app.Logger.LogInformation(
+                    "Terminating connection with websocket client {Ip} as per cancellation token request", client.Ip);
+                readLoopResult = new SocketCancellation(null);
+                await client.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
                 transportCompleted = true;
-
             }
-            
-            if (result.Count > 0)
+            else
             {
-                resultStream.Write(buffer, 0, result.Count);
-            }
-            
-            if (result.EndOfMessage)
-            {
-                resultStream.Flush();
-                var message = new ReceivedMessage(resultStream.ToArray(), result.MessageType);
-                resultStream.SetLength(0);
-                readLoopResult =  message;
+                using var buffer = MemoryOwner<byte>.Allocate(65536);
+                var result = await client.Socket.ReceiveAsync(buffer.Memory, token);
+                
+                if (result.Count > 0)
+                {
+                    resultStream.Write(buffer.Span[..result.Count]);
+                }
+                
+                if (result.EndOfMessage)
+                {
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        resultStream.Flush();
+                        app.Logger.LogTrace("Close received from websocket client {Ip}. Code {Code}, reason: {Reason}",
+                            client.Ip, client.Socket.CloseStatus, client.Socket.CloseStatusDescription);
+                        await client.Socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                        readLoopResult = new SocketClosure(client.Socket.CloseStatus, client.Socket.CloseStatusDescription);
+                        transportCompleted = true;
+                    }
+                    else
+                    {
+                        resultStream.Flush();
+                        var message = new ReceivedMessage(resultStream.ToArray(), result.MessageType);
+                        resultStream.SetLength(0);
+                        readLoopResult = message;
+                    }
+                }
             }
         }
         catch (TaskCanceledException cancelException)
         {
-            app.Logger.LogError("Terminated connection with client {Ip}", client.Ip);
+            app.Logger.LogError("Task cancelled connection with client {Ip}", client.Ip);
             readLoopResult = new SocketCancellation(cancelException);
+            await client.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+            transportCompleted = true;
+        }
+        catch (OperationCanceledException cancelException)
+        {
+            app.Logger.LogError("Task cancelled connection with client {Ip}", client.Ip);
+            readLoopResult = new SocketCancellation(cancelException);
+            await client.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+            transportCompleted = true;
         }
         catch (Exception exception)
         {
             app.Logger.LogError("Unexpected error in websocket connection with {Ip}: {Exception}", client.Ip, exception);
             await client.Socket.CloseOutputAsync(WebSocketCloseStatus.InternalServerError, "", CancellationToken.None);
             readLoopResult = new SocketError(exception);
+            transportCompleted = true;
         }
 
         yield return readLoopResult;
-        
         if (transportCompleted)
         {
             yield break;
@@ -124,46 +142,44 @@ app.MapPost("/Matches", ([FromBody] MatchCreateInfo info, HttpContext context) =
     matches.Add(newId, match);
     // TODO: Query DB for arrangement and ruleset ID to collect them. Cache both of these in an arrangement/ruleset pool.
     // TODO: Pass in host ID.
-    return Results.Unauthorized();
+    return Results.Json(newId);
 });
 
-app.MapGet("/Matches/{matchId}", (int matchId, HttpContext context) =>
+app.MapGet("/Matches/{matchId}", async (int matchId, HttpContext context) =>
 {
     if (!context.WebSockets.IsWebSocketRequest)
     {
-        return Results.StatusCode(405);
+        context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+        return;
     }
     if (context.Connection.RemoteIpAddress is null)
     {
-        return Results.Unauthorized();
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return;
     }
     if (!matches.TryGetValue(matchId, out var match))
     {
-        return Results.NotFound();
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
     }
     
-    Task.Run(async Task?() => 
-    {
-        using var websocket = await context.WebSockets.AcceptWebSocketAsync();
-        var clientCancelToken = new CancellationToken();
-        var client = new ClientData(context.Connection.RemoteIpAddress, context.Connection.RemotePort, websocket, clientCancelToken);
-        socketClients.Add(client);
-        
-        await foreach (var receiveResult in ReceiveDataAsync(client, clientCancelToken))
-        {
-            if (receiveResult is SocketClosure or SocketCancellation or SocketError)
-            {
-                break;
-            }
-            
-            if (receiveResult is ReceivedMessage message)
-            {
-                match.CallHandlerDelegate(client, message);
-            }
-        }
-    }).ConfigureAwait(false);
+    using var websocket = await context.WebSockets.AcceptWebSocketAsync();
+    var clientCancelToken = new CancellationToken();
+    var client = new ClientData(context.Connection.RemoteIpAddress, context.Connection.RemotePort, websocket, clientCancelToken);
+    socketClients.Add(client);
     
-    return Results.Ok();
+    await foreach (var receiveResult in ReceiveDataAsync(client, clientCancelToken))
+    {
+        if (receiveResult is SocketClosure or SocketCancellation or SocketError)
+        {
+            break;
+        }
+        
+        if (receiveResult is ReceivedMessage message)
+        {
+            match.CallHandlerDelegate(client, message);
+        }
+    }
 });
 
 app.MapGet("/GlobalStats", () =>

@@ -15,7 +15,7 @@ public class ClientData
     {
         Ip = ip;
         Port = port;
-        Socket = Socket;
+        Socket = socket;
         CancellationToken = cancellationToken;
     } 
 }
