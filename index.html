@@ -35,7 +35,7 @@
         <div id="chatMessages">
             <p>🢂 Chat messages will appear here</p>
         </div>
-        <input type="text" maxlength="250" onkeydown="
+        <input placeholder="Send chat message" type="text" maxlength="250" onkeydown="
             if (event.key == 'Enter') {
                 let input = this;
                 //sendChatMessage(input.value);
@@ -85,7 +85,7 @@
                 <img src="resources/logo.png" height="64" alt="logo">
                 <h1>AnarchyChess</h1>
             </div>
-            <nav id="headerNav">
+            <nav id="headerNav" class="header-nav">
                 <a class="novisit page-link" href="#login" data-page="login">Login</a> |
                 <a class="novisit page-link" href="#signup" data-page="signup">Sign up</a> |
                 <a class="novisit page-link" href="#main" data-page="main">Home</a> |
@@ -97,9 +97,13 @@
         <div class="main-menu-page" data-page="login">
             <h3 style="margin-top: 0;">Login with AnarchyChess account</h3>
             <div class="form-frame">
-                <input type="text" placeholder="Username" oninput="validateUsername(this)">
-                <input type="text" placeholder="Email">
-                <input type="button" value="Login">
+                <input id="loginUsername" type="text" placeholder="Username" oninput="validateUsername(this)" maxlength="16">
+                <input id="loginEmail" type="email" maxlength="320" placeholder="Email" pattern="[^@\s]+@[^@\s]+\.[^@\s]+">
+                <input type="button" value="Login" onclick="
+                    if (loginUsername.value && loginEmail.value && loginEmail.validity.valid) {
+                        login(loginUsername.value, loginEmail.value)
+                    }
+                ">
             </div>
             <div>
                 <a class="novisit" href="#signup">Create account</a> | <a class="novisit" href="#forgot">Forgot username?</a>
@@ -108,10 +112,17 @@
         <div class="main-menu-page" data-page="signup">
             <h3 style="margin-top: 0;">Sign up to AnarchyChess</h3>
             <div class="form-frame">
-                <input type="text" placeholder="Username" oninput="validateUsername(this)">
-                <input type="text" placeholder="Email">
-                <input type="text" placeholder="Confirm email">
-                <input type="button" value="Create account">
+                <input id="signupUsername" type="text" placeholder="Username" oninput="validateUsername(this)" maxlength="16">
+                <input id="signupEmail" type="email" maxlength="320" placeholder="Email" pattern="[^@\s]+@[^@\s]+\.[^@\s]+">
+                <input type="email" maxlength="320" placeholder="Confirm email" oninput="
+                    this.setCustomValidity(signupEmail.value === this.value ? '' : 'Emails don\'t match!')
+                    this.reportValidity()
+                " pattern="[^@\s]+@[^@\s]+\.[^@\s]+">
+                <input type="button" value="Create account" onclick="
+                    if (signupUsername.value && signupEmail.value && signupEmail.validity.valid) {
+                        signup(signupUsername.value, signupEmail.value)
+                    }
+                ">
             </div>
             <div>
                 <a class="novisit" href="#login">Already have an account?</a>
@@ -210,7 +221,9 @@
                         </div>
                     </fieldset>
                     <div style="flex-grow: 1;"><!--spacer--></div>
-                    <div class="arrangement-button" tabindex="1" onclick="">Create and join match</div>
+                    <div class="arrangement-button" tabindex="1" onclick="
+                        createMatch()
+                    ">Create and join match</div>
                 </div>
             </div>
             <fieldset class="main-menu-field">
@@ -469,7 +482,7 @@
         if (portrait) {
             headerBranding.style.left = `${headerCentreX - headerBranding.offsetWidth / 2}px`
             headerBranding.style.top = `${lerp(0, -16, toCollapsed)}px`
-            headerBranding.style.scale = lerp(1.2, 0.6, toCollapsed)
+            headerBranding.style.scale = lerp(1, 0.6, toCollapsed)
 
             headerNav.style.left = `${headerCentreX - headerNav.offsetWidth / 2}px`
             headerNav.style.top = `${lerp(120, 60, toCollapsed)}px`
@@ -541,15 +554,44 @@
     window.addEventListener("hashchange", (_) => setHashPage())
     setHashPage(true)
 
+    let serverAddress = localStorage.server || "localhost:5068"
     function validateUsername(input) {
         input.value = input.value.replace(/\W+/g, '').toLowerCase()
     }
+    // Get login token
+    async function login(username, email) {
+        const res = await fetch(`ws://${serverAddress}/Login`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json", },
+            body: JSON.stringify({ username, email }),
+        })
+    }
+    async function signup(username, email) {
+        const res = await fetch(`ws://${serverAddress}/Signup`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json", },
+            body: JSON.stringify({ username, email }),
+        })
+    }
+
+    let matchId = 0
+    function createMatch() {
+
+    }
     function play(matchId) {
-        let socket = new WebSocket(`ws://localhost:5068/Match/${matchId}`)
+        let socket = new WebSocket(`ws://${serverAddress}/Match/${matchId}`)
+        socket.binaryType = "arraybuffer"
+        socket.onmessage = function({data}) {
+            if (data instanceof ArrayBuffer) {
+                console.log(data)
+            }
+
+            console.log("Unhandled:", data)
+        }
     }
     async function loadMatchList() {
         let failed = false
-        const response = await fetch("http://localhost:5068/Matches").catch(e => failed = true)
+        const response = await fetch(`http://${serverAddress}/Matches`).catch(e => failed = true)
         if (!response.ok || failed) {
             console.error("Failed to load matches. Server response was not okay!")
             return
@@ -563,17 +605,17 @@
     }
     loadMatchList()
     async function updateMyStats() {
-        /*let failed = false
-        const response = await fetch("http://localhost:5068/MyStats").catch(e => failed = true)
+        let failed = false
+        const response = await fetch(`http://${serverAddress}/MyStats`).catch(e => failed = true)
         if (!response.ok || failed) {
             console.error("Failed to load my stats. Server response was not okay!")
             return
         }
-        const stats = await response.json()*/
+        const stats = await response.json()
     }
     async function updateGlobalStats() {
         let failed = false
-        const response = await fetch("http://localhost:5068/GlobalStats").catch(e => failed = true)
+        const response = await fetch(`http://${serverAddress}/GlobalStats`).catch(e => failed = true)
         if (!response.ok || failed) {
             console.error("Failed to load global stats. Server response was not okay!")
             return

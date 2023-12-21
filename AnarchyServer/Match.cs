@@ -28,26 +28,27 @@ public class Match
 
     public void CallHandlerDelegate(ClientData fromClient, ReceivedMessage message)
     {
+        fromClient.SendAsync(message.Data, WebSocketMessageType.Text);
+        
         if (message.MessageType == WebSocketMessageType.Text)
         {
             var stringMessage = Encoding.UTF8.GetString(message.Data);
             HandleChatMessage(fromClient, stringMessage);
-            Console.WriteLine(stringMessage);
             return;
         }
 
-        /*var packet = new ReadablePacket(message.Data);
+        var packet = new ReadablePacket(message.Data);
         var code = packet.ReadByte();
 
         if (binaryPacketHandlers.TryGetValue(code, out var handler))
         {
             handler(ref packet);
-        }*/
+        }
     }
 
     private void HandleChatMessage(ClientData fromClient, string message)
     {
-        
+        Console.WriteLine(message);
     }
 
     private void HandleMove(ref ReadablePacket packet)

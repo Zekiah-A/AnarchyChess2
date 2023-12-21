@@ -17,5 +17,17 @@ public class ClientData
         Port = port;
         Socket = socket;
         CancellationToken = cancellationToken;
-    } 
+    }
+
+    public async Task SendAsync(byte[] data, WebSocketMessageType type = WebSocketMessageType.Binary, CancellationToken? cancelToken = null)
+    {
+        cancelToken ??= CancellationToken.None;
+        await Socket.SendAsync(data, type, true, cancelToken.Value);
+    }
+
+    public async Task CloseAsync(WebSocketCloseStatus closeStatus, string? closeReason, CancellationToken? cancelToken = null)
+    {
+        cancelToken ??= CancellationToken.None;
+        await Socket.CloseAsync(closeStatus, closeReason, cancelToken.Value);
+    }
 }

@@ -39,15 +39,18 @@ body {
     font-size: 150%;
 }
 
-input[type="text"], input[type="number"] {
+input[type="text"], input[type="email"], input[type="number"] {
     padding: 12px 12px;
     border-radius: 4px;
     outline: none;
     border: 1px solid var(--ui-input);
     transition: border .1s;
 }
-input[type="text"]:focus, , input[type="number"]:focus {
+input[type="text"]:focus, input[type="email"]:focus, input[type="number"]:focus {
     border: 1px solid var(--ui-hilight);
+}
+input[type="email"]:invalid {
+    border: 1px solid red;
 }
 
 input[type="button"] {
@@ -154,6 +157,10 @@ header {
     align-items: center;
     column-gap: 8px;
     position: absolute;
+}
+
+.main-menu .header-nav {
+    text-align: center;
 }
 
 .main-menu nav {
