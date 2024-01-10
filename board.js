@@ -4,7 +4,7 @@ class Board extends HTMLElement {
     #pieceElements
     #columns
     #rows
-    
+
     constructor() {
         super()
         this.turn = 0
@@ -55,6 +55,9 @@ class Board extends HTMLElement {
             this[name] = value
             this.flushBoard()
         }
+        if (name === "theme") {
+            this.setTheme(newValue)
+        }
     }
 
     connectedCallback() {
@@ -67,6 +70,8 @@ class Board extends HTMLElement {
                 width: 100%;
                 --columns: 8;
                 --rows: 8;
+                --white: #fff;
+                --black: #000;
             }
             * {
                 box-sizing: border-box;
@@ -86,13 +91,13 @@ class Board extends HTMLElement {
                 transition: 0.1s background-color;
             }
             .tile-black {
-                background-color: black;
+                background: var(--black);
             }
             .tile-black:hover {
                 background-color: #313131;
             }
             .tile-white {
-                background-color: white;
+                background: var(--white);
             }
             .tile-white:hover {
                 background-color: #d0cfcf;
@@ -108,8 +113,36 @@ class Board extends HTMLElement {
         defineAndInject(this, this.shadowRoot)
         this.flushBoard()
 
+        const theme = this.getAttribute("theme")
+        console.log("theme", theme)
+        this.setTheme(theme)
+
         const _this = this
-        window.addEventListener("resize", () => {  _this.renderPieces() })
+        window.addEventListener("resize", () => { _this.renderPieces() })
+    }
+
+    setTheme(theme) {
+        console.log(theme)
+        switch (theme) {
+            case null:
+            case undefined:
+            case "0":
+                this.style.setProperty("--white", "#fff")
+                this.style.setProperty("--black", "#000")
+                break
+            case "1":
+                this.style.setProperty("--white", "#f0d9b5")
+                this.style.setProperty("--black", "#b58863")
+                break
+            case "2":
+                this.style.setProperty("--white", "#d3ea94")
+                this.style.setProperty("--black", "#6db567")
+                break
+            case "3":
+                this.style.setProperty("--white", "linear-gradient(135deg, #fff 60%, #eee)")
+                this.style.setProperty("--black", "linear-gradient(135deg, #aad3df 60%, #a8c3ee)")
+                break
+        }
     }
 
     getTileSize() {
@@ -126,7 +159,7 @@ class Board extends HTMLElement {
         pieceEl.style.setProperty("--piece-stroke", pieceData.colour == "black" ? "white" : "black")
 
         const _this = this
-        pieceEl.addEventListener("click", function(event) {
+        pieceEl.addEventListener("click", function (event) {
             if (_this.onpiececlick)
                 _this.onpiececlick(event, column, row, pieceEl)
         })
@@ -187,7 +220,6 @@ class Board extends HTMLElement {
         for (let i = 0; i < this.#columns * this.#rows; i++) {
             const column = i % this.#columns
             const row = Math.floor(i / this.#columns)
-            if (column === 0) shift = shift == 0 ? 1 : 0
 
             const tileEl = document.createElement("div")
             tileEl.classList.add("tile")
@@ -195,29 +227,32 @@ class Board extends HTMLElement {
 
             // Capture from component scope, otherwise this will be element scope
             const _this = this
-            tileEl.addEventListener("dragover", function(event) {
+            tileEl.addEventListener("dragover", function (event) {
                 event.preventDefault()
                 if (typeof _this.ontilehover === "function")
                     _this.ontilehover(event, column, row, tileEl)
             })
-            tileEl.addEventListener("drop", function(event) {
+            tileEl.addEventListener("drop", function (event) {
                 if (typeof _this.ontiledrop === "function")
                     _this.ontiledrop(event, column, row, tileEl)
             })
-            tileEl.addEventListener("dragleave", function(event) {
+            tileEl.addEventListener("dragleave", function (event) {
                 if (typeof _this.ontileleave === "function")
                     _this.ontileleave(event, column, row, tileEl)
             })
-            
-            if ((i + shift) % 2 == 0) {
+
+            if ((column + shift) % 2 == 0) {
                 tileEl.classList.add("tile-black")
             }
             else {
                 tileEl.classList.add("tile-white")
             }
+            if (column === this.#columns - 1) {
+                shift = shift === 0 ? 1 : 0;
+            }
 
-            this.board.appendChild(tileEl) 
-        }    
+            this.board.appendChild(tileEl)
+        }
         this.sizeChanged = false
     }
 }

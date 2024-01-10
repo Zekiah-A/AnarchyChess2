@@ -251,14 +251,14 @@
             </div>
             <fieldset class="main-menu-field">
                 <legend><h3 style="margin: 0px;">My stats:</h3></legend>
-                <p>Games played:</p>
-                <p>Matches won:</p>
-                <p>Play time:</p>
+                <p>Games played: <span><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
+                <p>Matches won: <span><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
+                <p>Play time: <span><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
             </fieldset>
             <fieldset class="main-menu-field">
                 <legend><h3 style="margin: 0px;">Global stats:</h3></legend>
-                <p>Online players: <span id="globalOnlineLabel"></span></p>
-                <p>Active matches: <span id="globalActiveLabel"></span></p>
+                <p>Online players: <span id="globalOnlineLabel"><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
+                <p>Active matches: <span id="globalActiveLabel"><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
             </fieldset>
         </div>
         <div class="main-menu-page" data-page="profile">
@@ -268,7 +268,15 @@
         </div>
         <div class="main-menu-page" data-page="settings">
             <h3 style="margin-top: 0;">General settings</h3>
-
+            <div>
+                <label for="themeSelect">Game Chess Board theme:</label>
+                <select id="themeSelect">
+                    <option value="classic">Classic</option>
+                    <option value="wooden">Wooden</option>
+                    <option value="chess.com">Chess.com</option>
+                    <option value="glass">Glass</option>
+                </select>    
+            </div>
         </div>
     </div>
     <div id="spawnMenu" style="display: none;" class="menu spawn-menu">
