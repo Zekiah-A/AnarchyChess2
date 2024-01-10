@@ -596,20 +596,18 @@ header {
     margin-bottom: 1px;
 }
 
-.modal {
+.modal[open] {
     display: flex;
     flex-direction: column;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
     z-index: 1;
-    min-width: min(calc(100% - 32px), 800px);
-    min-height: min(calc(100% - 32px), 600px);
 }
 
-.modal[data-closed] {
-    display: none;
+.modal {
+    padding: 0px;
+    border: none;
+    background: transparent;
+    min-width: min(calc(100% - 32px), 800px);
+    min-height: min(calc(100% - 32px), 600px);
 }
 
 .modal > .modal-content {

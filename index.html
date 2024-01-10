@@ -130,15 +130,21 @@
         </div>
         <div class="main-menu-page" data-page="main">
             <p style="text-align: center;">A multiplayer chess board, with infinite variations slightly bent rules. Here be anarchy.</p>
-            <div id="configurePanel" class="modal" data-closed="true">
+            <dialog id="configurePanel" class="modal">
                 <ul class="modal-title">
                     <li data-selected data-page="ruleset" onclick="setModalPage(configurePanel, this.dataset.page)">Ruleset</li>
                     <li data-page="arrangement" onclick="setModalPage(configurePanel, this.dataset.page)">Piece arrangement</li>
+                    <button autofocus aria-label="close" onclick="configurePanel.close()">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+                    </button>
                 </ul>
                 <div class="modal-content" data-page="ruleset">
                     <div class="modal-content-container">
                         <ac-ruleset></ac-ruleset>
-                        <div class="modal-content-side"></div>
+                        <div class="modal-content-side" style="width: 56px;">
+                            <div class="arrangement-button" tabindex="1" >➕</div>
+                            <div class="arrangement-button" tabindex="1" >➖</div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-content" data-page="arrangement" style="display: none;">
@@ -189,11 +195,14 @@
                     </div>
                     <span id="arrangementStats">Black pieces: 0, White pieces: 0, White king present: ❌, Black king present: ❌</span>
                 </div>
-            </div>
-            <div id="matchPanel" class="modal" data-closed="true">
+            </dialog>
+            <dialog id="matchPanel" class="modal">
                 <ul class="modal-title">
                     <li data-selected data-page="join" onclick="setModalPage(matchPanel, this.dataset.page)">Connect</li>
                     <li data-page="create" onclick="setModalPage(matchPanel, this.dataset.page)">Create</li>
+                    <button autofocus aria-label="close" onclick="matchPanel.close()">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+                    </button>
                 </ul>
                 <div class="modal-content" data-page="join">
                     <div id="matchList" style="flex-grow: 1;"></div>
@@ -225,16 +234,16 @@
                         createMatch()
                     ">Create and join match</div>
                 </div>
-            </div>
+            </dialog>
             <fieldset class="main-menu-field">
                 <legend><h3>Create</h3></legend>
-                <input value="Create a new ruleset" type="button" onclick="configurePanel.removeAttribute('data-closed'); setModalPage(configurePanel, 'ruleset')">
-                <input value="Create a new arrangement" type="button" onclick="configurePanel.removeAttribute('data-closed'); setModalPage(configurePanel, 'arrangement')">
+                <input value="Create a new ruleset" type="button" onclick="configurePanel.showModal(); /*configurePanel.removeAttribute('data-closed');*/ setModalPage(configurePanel, 'ruleset')">
+                <input value="Create a new arrangement" type="button" onclick="configurePanel.showModal(); /*configurePanel.removeAttribute('data-closed');*/ setModalPage(configurePanel, 'arrangement')">
             </fieldset>
             <fieldset class="main-menu-field">
                 <legend><h3>Play</h3></legend>
-                <input value="Create my own match" type="button" onclick="matchPanel.removeAttribute('data-closed'); setModalPage(matchPanel, 'create')">
-                <input value="Join someone's lobby" type="button" onclick="matchPanel.removeAttribute('data-closed'); setModalPage(matchPanel, 'join')">
+                <input value="Create my own match" type="button" onclick="matchPanel.showModal(); setModalPage(matchPanel, 'create')">
+                <input value="Join someone's lobby" type="button" onclick="matchPanel.showModal(); setModalPage(matchPanel, 'join')">
             </fieldset>
             <div class="main-menu-field" style="position: relative; z-index: -1;">
                 <ac-board id="mainMenuBoard"></ac-board>
@@ -560,14 +569,14 @@
     }
     // Get login token
     async function login(username, email) {
-        const res = await fetch(`ws://${serverAddress}/Login`, {
+        const res = await fetch(`http://${serverAddress}/Login`, {
             method: "GET",
             headers: { "Content-Type": "application/json", },
             body: JSON.stringify({ username, email }),
         })
     }
     async function signup(username, email) {
-        const res = await fetch(`ws://${serverAddress}/Signup`, {
+        const res = await fetch(`http://${serverAddress}/Signup`, {
             method: "GET",
             headers: { "Content-Type": "application/json", },
             body: JSON.stringify({ username, email }),
