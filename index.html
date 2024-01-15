@@ -106,7 +106,7 @@
                 ">
             </div>
             <div>
-                <a class="novisit" href="#signup">Create account</a> | <a class="novisit" href="#forgot">Forgot username?</a>
+                <a class="novisit" href="#signup">Create account</a> | <a class="novisit" href="#home" onclick="if (confirm('Are you sure you want to sign out?')) signout()">Sign out of account</a>
             </div>
         </div>
         <div class="main-menu-page" data-page="signup">
@@ -269,14 +269,19 @@
         <div class="main-menu-page" data-page="settings">
             <h3 style="margin-top: 0;">General settings</h3>
             <div>
-                <label for="themeSelect">Game Chess Board theme:</label>
+                <label for="themeSelect">Chess Board theme:</label>
                 <select id="themeSelect">
                     <option value="classic">Classic</option>
                     <option value="wooden">Wooden</option>
                     <option value="chess.com">Chess.com</option>
                     <option value="glass">Glass</option>
-                </select>    
+                </select>
             </div>
+            <div>
+                <label for="musicCheckbox">Enable sound</label>
+                <input type="checkbox" id="musicCheckbox" value="true" >
+            </div>
+            <input type="button" onclick="confirm('Are you sure you want to revert all user settings?')" value="Reset to defaults">
         </div>
     </div>
     <div id="spawnMenu" style="display: none;" class="menu spawn-menu">
@@ -579,14 +584,23 @@
     // Get login token
     async function login(username, email) {
         const res = await fetch(`${serverAddress}/Login`, {
-            method: "GET",
+            method: "POST",
             headers: { "Content-Type": "application/json", },
             body: JSON.stringify({ username, email }),
         })
         if (!res.ok) {
-            alert("Login failed - " + await res.text())
+            const message = (await res.json())?.message
+            alert("Login failed - " + (message || "network error"))
         }
+
+        const data = await res.json()
+        localStorage.token = data.token
+        alert("Success - " + data.message)
+
+        // Fetch stats and profile
+
     }
+
     async function signup(username, email) {
         const res = await fetch(`${serverAddress}/Signup`, {
             method: "POST",
@@ -594,8 +608,14 @@
             body: JSON.stringify({ username, email }),
         })
         if (!res.ok) {
-            alert("Signup failed - " + await res.text())
+            const message = (await res.json())?.message
+            alert("Signup failed - " + (message || "network error"))
         }
+    }
+
+    function signout() {
+        delete localStorage.token
+        location.reload(true)
     }
 
     let matchId = 0

@@ -277,7 +277,6 @@ app.MapPost("/Signup", async (HttpContext context, [FromBody] SignupRequest requ
 app.MapGet("/Profiles/{id}", async (int id, DatabaseContext dbContext) =>
 {
     var account = await dbContext.Accounts.FindAsync(id);
-
     if (account != null)
     {
         // Sanitised public facing account profile
@@ -297,8 +296,14 @@ app.MapGet("/Profiles/{id}", async (int id, DatabaseContext dbContext) =>
     }
 });
 
-app.MapGet("/Users/{id}", async (int id, DatabaseContext dbContext) =>
+app.MapGet("/Users/{id}", async (int id, HttpContext context, DatabaseContext dbContext) =>
 {
+    // Only allow user to access their own account
+    if (context.Items["AccountId"] is not int requesterId || requesterId != id)
+    {
+        return Results.Unauthorized();
+    }
+
     var user = await dbContext.Accounts.FindAsync(id);
 
     if (user != null)
@@ -311,8 +316,14 @@ app.MapGet("/Users/{id}", async (int id, DatabaseContext dbContext) =>
     }
 });
 
-app.MapDelete("/Users/{id}", async (int id, DatabaseContext dbContext, HttpContext context) =>
+app.MapDelete("/Users/{id}", async (int id, HttpContext context, DatabaseContext dbContext) =>
 {
+    // Only allow user to delete their own account
+    if (context.Items["AccountId"] is not int requesterId || requesterId != id)
+    {
+        return Results.Unauthorized();
+    }
+
     var user = await dbContext.Accounts.FindAsync(id);
 
     if (user != null)
@@ -327,8 +338,14 @@ app.MapDelete("/Users/{id}", async (int id, DatabaseContext dbContext, HttpConte
     }
 });
 
-app.MapGet("/Users/{id}/Settings", async (int id, DatabaseContext dbContext) =>
+app.MapGet("/Users/{id}/Settings", async (int id, HttpContext context, DatabaseContext dbContext) =>
 {
+    // Only allow user to access their own settings
+    if (context.Items["AccountId"] is not int requesterId || requesterId != id)
+    {
+        return Results.Unauthorized();
+    }
+
     var account = await dbContext.Accounts
         .Include(a => a.Settings)
         .FirstOrDefaultAsync(account => account.Id == id);
@@ -345,6 +362,12 @@ app.MapGet("/Users/{id}/Settings", async (int id, DatabaseContext dbContext) =>
 
 app.MapPost("/Users/{id}/Settings", async (int id, HttpContext context, DatabaseContext dbContext) =>
 {
+    // Only allow user to access their own settings
+    if (context.Items["AccountId"] is not int requesterId || requesterId != id)
+    {
+        return Results.Unauthorized();
+    }
+
     var settings = await dbContext.Settings
         .FirstOrDefaultAsync(a => a.AccountId == id);
 
