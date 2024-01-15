@@ -2,9 +2,13 @@ namespace AnarchyServer.DataModel;
 
 public class Account
 {
-    public string Username;
-    public string Biography;
-    public string ProfileImageUri;
-    public string Email;
-    public string Token;
+    public int Id { get; set; }
+    public string Username { get; set; }
+    public string? Biography { get; set; }
+    public string? ProfileImageUri { get; set; }
+    public string Email { get; set; }
+    public string Token { get; set; }
+
+    // Navigation property one to one
+    public Settings Settings { get; set; }
 }

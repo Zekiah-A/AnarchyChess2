@@ -114,7 +114,6 @@ class Board extends HTMLElement {
         this.flushBoard()
 
         const theme = this.getAttribute("theme")
-        console.log("theme", theme)
         this.setTheme(theme)
 
         const _this = this
@@ -122,8 +121,7 @@ class Board extends HTMLElement {
     }
 
     setTheme(theme) {
-        console.log(theme)
-        switch (theme) {
+        switch (theme?.toString()) {
             case null:
             case undefined:
             case "0":

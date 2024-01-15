@@ -251,9 +251,9 @@
             </div>
             <fieldset class="main-menu-field">
                 <legend><h3 style="margin: 0px;">My stats:</h3></legend>
-                <p>Games played: <span><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
-                <p>Matches won: <span><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
-                <p>Play time: <span><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
+                <p>Games played: <span id="myGamesPlayed"><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
+                <p>Matches won: <span id="myMatchesWon"><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
+                <p>Play time: <span id="myPlayTime"><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
             </fieldset>
             <fieldset class="main-menu-field">
                 <legend><h3 style="margin: 0px;">Global stats:</h3></legend>
@@ -571,24 +571,31 @@
     window.addEventListener("hashchange", (_) => setHashPage())
     setHashPage(true)
 
-    let serverAddress = localStorage.server || "localhost:5068"
+    const serverAddress = localStorage.serverHost ? `${location.protocol}//${localStorage.serverHost}` : "http://localhost:5068"
+    const socketAddress = localStorage.serverHost ? `${location.protocol === "https:" ? "wss" : "ws"}//${localStorage.serverHost}` : "ws://localhost:5068"
     function validateUsername(input) {
         input.value = input.value.replace(/\W+/g, '').toLowerCase()
     }
     // Get login token
     async function login(username, email) {
-        const res = await fetch(`http://${serverAddress}/Login`, {
+        const res = await fetch(`${serverAddress}/Login`, {
             method: "GET",
             headers: { "Content-Type": "application/json", },
             body: JSON.stringify({ username, email }),
         })
+        if (!res.ok) {
+            alert("Login failed - " + await res.text())
+        }
     }
     async function signup(username, email) {
-        const res = await fetch(`http://${serverAddress}/Signup`, {
-            method: "GET",
+        const res = await fetch(`${serverAddress}/Signup`, {
+            method: "POST",
             headers: { "Content-Type": "application/json", },
             body: JSON.stringify({ username, email }),
         })
+        if (!res.ok) {
+            alert("Signup failed - " + await res.text())
+        }
     }
 
     let matchId = 0
@@ -596,7 +603,7 @@
 
     }
     function play(matchId) {
-        let socket = new WebSocket(`ws://${serverAddress}/Match/${matchId}`)
+        let socket = new WebSocket(`${socketAddress}/Match/${matchId}`)
         socket.binaryType = "arraybuffer"
         socket.onmessage = function({data}) {
             if (data instanceof ArrayBuffer) {
@@ -608,7 +615,7 @@
     }
     async function loadMatchList() {
         let failed = false
-        const response = await fetch(`http://${serverAddress}/Matches`).catch(e => failed = true)
+        const response = await fetch(`${serverAddress}/Matches`).catch(e => failed = true)
         if (!response.ok || failed) {
             console.error("Failed to load matches. Server response was not okay!")
             return
@@ -617,13 +624,13 @@
         // We need to reactively update matchList
         const matches = await response.json()
         for (const match of matches) {
-            
+            document.createElement("ac-mathc")
         }
     }
     loadMatchList()
     async function updateMyStats() {
         let failed = false
-        const response = await fetch(`http://${serverAddress}/MyStats`).catch(e => failed = true)
+        const response = await fetch(`${serverAddress}/MyStats`).catch(e => failed = true)
         if (!response.ok || failed) {
             console.error("Failed to load my stats. Server response was not okay!")
             return
@@ -632,7 +639,7 @@
     }
     async function updateGlobalStats() {
         let failed = false
-        const response = await fetch(`http://${serverAddress}/GlobalStats`).catch(e => failed = true)
+        const response = await fetch(`${serverAddress}/GlobalStats`).catch(e => failed = true)
         if (!response.ok || failed) {
             console.error("Failed to load global stats. Server response was not okay!")
             return

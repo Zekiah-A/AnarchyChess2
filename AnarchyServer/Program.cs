@@ -4,24 +4,37 @@ using System.Text;
 using AnarchyServer;
 using System.Text.Json;
 using CommunityToolkit.HighPerformance.Buffers;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
+using AnarchyServer.DataModel;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
+
+// dotnet ef migrations add InitialCreate
+// dotnet ef database update
+// dotnet ef migrations remove
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddCors(options =>
+builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    options.AddDefaultPolicy(policy => policy.WithOrigins("*"));
-});
-builder.Services.ConfigureHttpJsonOptions(options =>{
     options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+});
+builder.Services.AddCors((cors) =>
+{
+    cors.AddDefaultPolicy((policy) => policy.AllowAnyOrigin());
+});
+builder.Services.AddDbContext<DatabaseContext>(options =>
+{
+    options.UseSqlite("Data Source=server.db");
 });
 
 var app = builder.Build();
 var socketClients = new List<ClientData>();
-var matches = new Dictionary<int, Match>();
+var matches = new Dictionary<int, AnarchyServer.Match>();
 var topMatchId = 0;
 
 // app.UseHttpsRedirection();
@@ -31,11 +44,24 @@ var webSocketOptions = new WebSocketOptions
 };
 app.UseWebSockets(webSocketOptions);
 app.UseCors();
+app.UseMiddleware<TokenAuthMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+
+var authEndpoints = new[] { "/Users" };
+foreach (var endpoint in authEndpoints)
+{
+    app.UseWhen(
+        context => context.Request.Path.StartsWithSegments(endpoint),
+        appBuilder =>
+        {
+            appBuilder.UseMiddleware<TokenAuthMiddleware>();
+        }
+    );
 }
 
 async IAsyncEnumerable<IReceiveResult> ReceiveDataAsync(ClientData client, [EnumeratorCancellation] CancellationToken token)
@@ -138,7 +164,7 @@ app.MapGet("/Matches", (HttpContext context) =>
 app.MapPost("/Matches", ([FromBody] MatchCreateInfo info, HttpContext context) =>
 {
     var newId = ++topMatchId;
-    var match = new Match(0, info.MatchName, info.AdvertisePublic);
+    var match = new AnarchyServer.Match(0, info.MatchName, info.AdvertisePublic);
     matches.Add(newId, match);
     // TODO: Query DB for arrangement and ruleset ID to collect them. Cache both of these in an arrangement/ruleset pool.
     // TODO: Pass in host ID.
@@ -185,37 +211,152 @@ app.MapGet("/Matches/{matchId}", async (int matchId, HttpContext context) =>
 app.MapGet("/GlobalStats", () =>
 {
     var stats = new GlobalStats(socketClients.Count, matches.Count);
-    return Results.Json(stats);
+    return Results.Ok(stats);
 });
 
-app.MapPost("/Login", () =>
+app.MapPost("/Login", async (HttpContext context, [FromBody] LoginRequest request, DatabaseContext dbContext) =>
 {
+    var account = await dbContext.Accounts
+        .FirstOrDefaultAsync(account => account.Username == request.Username && account.Email == request.Email);
 
+    if (account != null)
+    {
+        return Results.Ok(new { Message = "Login successful", Token = account.Token });
+    }
+    else
+    {
+        return Results.BadRequest(new { Message = "Invalid username or email" });
+    }
 });
 
-app.MapPost("/Signup", () =>
+app.MapPost("/Signup", async (HttpContext context, [FromBody] SignupRequest request, DatabaseContext dbContext) =>
 {
+    // Validate email format
+    if (!EmailRegex().IsMatch(request.Email))
+    {
+        return Results.BadRequest(new { Message = "Invalid email format" });
+    }
 
+    // Validate username format
+    if (!UsernameRegex().IsMatch(request.Username))
+    {
+        return Results.BadRequest(new { Message = "Invalid username format" });
+    }
+
+    // Check if the username is already taken
+    if (await dbContext.Accounts.AnyAsync(a => a.Username == request.Username))
+    {
+        return Results.BadRequest(new { Message = "Username is already taken" });
+    }
+
+    // Check if the email is already used
+    if (await dbContext.Accounts.AnyAsync(a => a.Email == request.Email))
+    {
+        return Results.BadRequest(new { Message = "Email is already used" });
+    }
+
+    string token;
+    do
+    {
+        token = Guid.NewGuid().ToString("N");
+    } while (dbContext.Accounts.Any(account => account.Token == token));
+
+    var newAccount = new Account
+    {
+        Username = request.Username,
+        Email = request.Email,
+        Token = token
+    };
+
+    dbContext.Accounts.Add(newAccount);
+    await dbContext.SaveChangesAsync();
+
+    return Results.Ok(new { Message = "Signup successful", Token = newAccount.Token });
 });
 
-app.MapGet("/Users/{id}", (int id) =>
+app.MapGet("/Profiles/{id}", async (int id, DatabaseContext dbContext) =>
 {
+    var account = await dbContext.Accounts.FindAsync(id);
 
+    if (account != null)
+    {
+        // Sanitised public facing account profile
+        var profile = new
+        {
+            Id = account.Id,
+            Username = account.Username,
+            Biography = account.Biography,
+            ProfileImageUri = account.ProfileImageUri,
+        };
+
+        return Results.Ok(profile);
+    }
+    else
+    {
+        return Results.NotFound();
+    }
 });
 
-app.MapDelete("/Users/{id}", (int id) =>
+app.MapGet("/Users/{id}", async (int id, DatabaseContext dbContext) =>
 {
+    var user = await dbContext.Accounts.FindAsync(id);
 
+    if (user != null)
+    {
+        return Results.Ok(user);
+    }
+    else
+    {
+        return Results.NotFound();
+    }
 });
 
-app.MapGet("/Users/{id}/Settings", (int id) =>
+app.MapDelete("/Users/{id}", async (int id, DatabaseContext dbContext, HttpContext context) =>
 {
+    var user = await dbContext.Accounts.FindAsync(id);
 
+    if (user != null)
+    {
+        dbContext.Accounts.Remove(user);
+        await dbContext.SaveChangesAsync();
+        return Results.Ok();
+    }
+    else
+    {
+        return Results.NotFound();
+    }
 });
 
-app.MapPost("/Users/{id}/Settings", (int id) =>
+app.MapGet("/Users/{id}/Settings", async (int id, DatabaseContext dbContext) =>
 {
+    var account = await dbContext.Accounts
+        .Include(a => a.Settings)
+        .FirstOrDefaultAsync(account => account.Id == id);
 
+    if (account != null)
+    {
+        return Results.Ok(account.Settings);
+    }
+    else
+    {
+        return Results.NotFound();
+    }
+});
+
+app.MapPost("/Users/{id}/Settings", async (int id, HttpContext context, DatabaseContext dbContext) =>
+{
+    var settings = await dbContext.Settings
+        .FirstOrDefaultAsync(a => a.AccountId == id);
+
+    if (settings != null)
+    {
+        await dbContext.SaveChangesAsync();
+        return Results.Ok(settings);
+    }
+    else
+    {
+        return Results.NotFound();
+    }
 });
 
 // Will collect/destroy all matches that have been open for more than 5 minutes without any player joining, including host
@@ -242,3 +383,13 @@ matchDestructTimer.Start();
 
 app.Logger.LogInformation("Anarchy server started!");
 app.Run();
+
+partial class Program
+{
+    [GeneratedRegex(@"^\w{4,16}$")]
+    private static partial Regex UsernameRegex();
+
+    // Wikipedia 
+    [GeneratedRegex(@"^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$")]
+    private static partial Regex EmailRegex();
+}
