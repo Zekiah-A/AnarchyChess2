@@ -268,20 +268,27 @@
         </div>
         <div class="main-menu-page" data-page="settings">
             <h3 style="margin-top: 0;">General settings</h3>
-            <div>
-                <label for="themeSelect">Chess Board theme:</label>
-                <select id="themeSelect">
-                    <option value="classic">Classic</option>
-                    <option value="wooden">Wooden</option>
-                    <option value="chess.com">Chess.com</option>
-                    <option value="glass">Glass</option>
-                </select>
-            </div>
-            <div>
-                <label for="musicCheckbox">Enable sound</label>
-                <input type="checkbox" id="musicCheckbox" value="true" >
-            </div>
-            <input type="button" onclick="confirm('Are you sure you want to revert all user settings?')" value="Reset to defaults">
+            <fieldset class="main-menu-field">
+                <legend><h3 style="margin: 0px;">Game settings</h3></legend>
+                <div>
+                    <label for="themeSelect">Chess Board theme:</label>
+                    <select id="themeSelect">
+                        <option value="0">Classic</option>
+                        <option value="1">Wooden</option>
+                        <option value="2">Chess.com</option>
+                        <option value="3">Glass</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="soundCheckbox">Enable sound</label>
+                    <input type="checkbox" id="soundCheckbox" value="true" >
+                </div>
+                <input type="button" onclick="confirm('Are you sure you want to revert all user settings?')" value="Reset to defaults">    
+            </fieldset>
+            <fieldset class="main-menu-field">
+                <legend><h3 style="margin: 0px;">Danger zone</h3></legend>
+                <input type="button" onclick="if (confirm('Are you sure you want to delete your account?')) deleteAccount()" value="Delete my account">
+            </fieldset>
         </div>
     </div>
     <div id="spawnMenu" style="display: none;" class="menu spawn-menu">
@@ -591,14 +598,49 @@
         if (!res.ok) {
             const message = (await res.json())?.message
             alert("Login failed - " + (message || "network error"))
+            return
         }
 
         const data = await res.json()
         localStorage.token = data.token
+        localStorage.me = data.id
         alert("Success - " + data.message)
+        updateUserInfo()
+        updateUserSettings()
+    }
 
+    async function updateUserSettings() {
+        const settingsRes = await fetch(`${serverAddress}/Users/${localStorage.me}/Settings`, {
+            method: "GET",
+            headers: { Authorization: localStorage.token }
+        })
+        if (!settingsRes.ok) {
+            const message = (await settingsRes.json())?.message
+            alert("User settings fetch failed - " + (message || "network error"))
+            return
+        }
+
+        const settings = await settingsRes.json()
+        soundCheckbox.checked = settings.soundEnabled
+        themeSelect.value = settings.theme.toString()
+    }
+
+    async function updateUserInfo() {
         // Fetch stats and profile
+        const userRes = await fetch(`${serverAddress}/Users/${localStorage.me}`, {
+            method: "GET",
+            headers: { Authorization: localStorage.token }
+        })
+        if (!userRes.ok) {
+            const message = (await userRes.json())?.message
+            alert("User data fetch failed - " + (message || "network error"))
+            return
+        }
 
+        const user = await userRes.json()
+        myGamesPlayed.textContent = user.gamesPlayed
+        myMatchesWon.textContent = user.matchesWon
+        myPlayTime.textContent = user.playTime
     }
 
     async function signup(username, email) {
@@ -610,12 +652,33 @@
         if (!res.ok) {
             const message = (await res.json())?.message
             alert("Signup failed - " + (message || "network error"))
+            return
         }
+
+        const data = await res.json()
+        alert("Success - " + data.message)
     }
 
     function signout() {
         delete localStorage.token
+        delete localStorage.me
         location.reload(true)
+    }
+
+    async function deleteAccount() {
+        const res = await fetch(`${serverAddress}/Users/${localStorage.me}`, {
+            method: "DELETE",
+            headers: { Authorization: localStorage.token }
+        })
+        if (!res.ok) {
+            const message = (await res.json())?.message
+            alert("Account deletion failed - " + (message || "network error"))
+            return
+        }
+
+        const data = await res.json()
+        alert("Success - " + data.message)
+        signout()
     }
 
     let matchId = 0

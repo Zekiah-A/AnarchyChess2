@@ -42,7 +42,6 @@ public class DatabaseContext : DbContext
             .HasIndex(account => account.Username)
             .IsUnique();
 
-
         // Unique username
         modelBuilder.Entity<Account>()
             .HasIndex(account => account.Token)

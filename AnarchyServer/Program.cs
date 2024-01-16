@@ -44,7 +44,6 @@ var webSocketOptions = new WebSocketOptions
 };
 app.UseWebSockets(webSocketOptions);
 app.UseCors();
-app.UseMiddleware<TokenAuthMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
@@ -55,7 +54,8 @@ if (app.Environment.IsDevelopment())
 var authEndpoints = new[] { "/Users" };
 foreach (var endpoint in authEndpoints)
 {
-    app.UseWhen(
+    app.UseWhen
+    (
         context => context.Request.Path.StartsWithSegments(endpoint),
         appBuilder =>
         {
@@ -221,7 +221,7 @@ app.MapPost("/Login", async (HttpContext context, [FromBody] LoginRequest reques
 
     if (account != null)
     {
-        return Results.Ok(new { Message = "Login successful", Token = account.Token });
+        return Results.Ok(new { Message = "Login successful", Token = account.Token, Id = account.Id });
     }
     else
     {
@@ -271,7 +271,17 @@ app.MapPost("/Signup", async (HttpContext context, [FromBody] SignupRequest requ
     dbContext.Accounts.Add(newAccount);
     await dbContext.SaveChangesAsync();
 
-    return Results.Ok(new { Message = "Signup successful", Token = newAccount.Token });
+    var newSettings = new Settings
+    {
+        AccountId = newAccount.Id,
+        Theme = BoardTheme.Classic,
+        SoundEnabled = true
+    };
+
+    dbContext.Settings.Add(newSettings);
+    await dbContext.SaveChangesAsync();
+
+    return Results.Ok(new { Message = "Signup successful", Token = newAccount.Token, Id = newAccount.Id });
 });
 
 app.MapGet("/Profiles/{id}", async (int id, DatabaseContext dbContext) =>
@@ -330,11 +340,11 @@ app.MapDelete("/Users/{id}", async (int id, HttpContext context, DatabaseContext
     {
         dbContext.Accounts.Remove(user);
         await dbContext.SaveChangesAsync();
-        return Results.Ok();
+        return Results.Ok(new { Message = "All account data deleted sucessfully" });
     }
     else
     {
-        return Results.NotFound();
+        return Results.NotFound(new { Message = "Specified account does not exist" });
     }
 });
 
@@ -346,17 +356,16 @@ app.MapGet("/Users/{id}/Settings", async (int id, HttpContext context, DatabaseC
         return Results.Unauthorized();
     }
 
-    var account = await dbContext.Accounts
-        .Include(a => a.Settings)
-        .FirstOrDefaultAsync(account => account.Id == id);
+    var settings = await dbContext.Settings
+        .SingleOrDefaultAsync(settings => settings.AccountId == id);
 
-    if (account != null)
+    if (settings != null)
     {
-        return Results.Ok(account.Settings);
+        return Results.Ok(settings);
     }
     else
     {
-        return Results.NotFound();
+        return Results.NotFound(new { Message = "Settings for specified account could not be found" });
     }
 });
 
