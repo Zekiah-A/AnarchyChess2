@@ -216,8 +216,22 @@ app.MapGet("/GlobalStats", () =>
 
 app.MapPost("/Login", async (HttpContext context, [FromBody] LoginRequest request, DatabaseContext dbContext) =>
 {
-    var account = await dbContext.Accounts
-        .FirstOrDefaultAsync(account => account.Username == request.Username && account.Email == request.Email);
+    Account? account = null;
+    if (request.Username == null && request.Email == null)
+    {
+        if (request.Token == null)
+        {
+            return Results.BadRequest(new { Message = "Invalid token provided" });
+        }
+        
+        account = await dbContext.Accounts
+            .FirstOrDefaultAsync(account => account.Token == request.Token);
+    }
+    else
+    {
+        account = await dbContext.Accounts
+            .FirstOrDefaultAsync(account => account.Username == request.Username && account.Email == request.Email);
+    }
 
     if (account != null)
     {

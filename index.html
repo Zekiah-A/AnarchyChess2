@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>Anarchy chess</title>
     <meta name="description" content="A massive multiplayer chess game with slightly bent rules. Here be anarchy.">
     <meta name="keywords" content="chess anarchy game multiplayer online">
@@ -11,8 +12,7 @@
     <script src="./component-registrar.js"></script>
     <script src="./piece-data.js"></script>
     <script src="./resources.js"></script>
-    <script src="./board.js"></script>
-    <meta charset="UTF-8">
+    <script src="./board.js"></script>    
 </head>
 <body>
     <p class="copyright-notice">
@@ -96,7 +96,7 @@
         <div style="min-height: 200px;"><!--spacer--></div>
         <div class="main-menu-page" data-page="login">
             <h3 style="margin-top: 0;">Login with AnarchyChess account</h3>
-            <div class="form-frame">
+            <div class="form-frame" id="loginForm">
                 <input id="loginUsername" type="text" placeholder="Username" oninput="validateUsername(this)" maxlength="16">
                 <input id="loginEmail" type="email" maxlength="320" placeholder="Email" pattern="[^@\s]+@[^@\s]+\.[^@\s]+">
                 <input type="button" value="Login" onclick="
@@ -263,8 +263,10 @@
         </div>
         <div class="main-menu-page" data-page="profile">
             <h3 style="margin-top: 0;">Account profile</h3>
-            <p>No profile found. Are you sure you're logged in?</p>
-            <span><a class="novisit" href="#login">Login</a> | <a class="novisit" href="#signup">Signup</a></span>
+            <div class="needs-login" id="profileNeedsLogin">
+                <p>No profile found. Are you sure you're logged in?</p>
+                <span><a class="novisit" href="#login">Login</a> | <a class="novisit" href="#signup">Signup</a></span>    
+            </div>
         </div>
         <div class="main-menu-page" data-page="settings">
             <h3 style="margin-top: 0;">General settings</h3>
@@ -289,6 +291,10 @@
                 <legend><h3 style="margin: 0px;">Danger zone</h3></legend>
                 <input type="button" onclick="if (confirm('Are you sure you want to delete your account?')) deleteAccount()" value="Delete my account">
             </fieldset>
+            <div id="settingsNeedsLogin" class="needs-login">
+                <p>Settings can not be changed. Are you logged in?</p>
+                <span><a class="novisit" href="#login">Login</a> | <a class="novisit" href="#signup">Signup</a></span>    
+            </div>
         </div>
     </div>
     <div id="spawnMenu" style="display: none;" class="menu spawn-menu">
@@ -604,9 +610,36 @@
         const data = await res.json()
         localStorage.token = data.token
         localStorage.me = data.id
-        alert("Success - " + data.message)
+        applyLoginUi()
         updateUserInfo()
         updateUserSettings()
+        alert("Success - " + data.message)
+    }
+
+    async function loginToken(token) {
+        const res = await fetch(`${serverAddress}/Login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", },
+            body: JSON.stringify({ token: token }),
+        })
+        if (!res.ok) {
+            const message = (await res.json())?.message
+            alert("Automatic login failed - " + (message || "network error"))
+            return
+        }
+
+        const data = await res.json()
+        localStorage.token = data.token
+        localStorage.me = data.id
+        applyLoginUi()
+        updateUserInfo()
+        updateUserSettings()
+    }
+
+    function applyLoginUi() {
+        loginForm.dataset.disabled = "true"
+        profileNeedsLogin.style.display = "none"
+        settingsNeedsLogin.style.display = "none"
     }
 
     async function updateUserSettings() {
@@ -732,8 +765,12 @@
         globalActiveLabel.textContent = stats.activeMatches
 
     }
+
     setInterval(updateGlobalStats, 1e4) // 10s
     updateGlobalStats()
+    if (localStorage.token && localStorage.me) {
+        loginToken(localStorage.token)
+    }
 </script>
 </body>
 </html>
