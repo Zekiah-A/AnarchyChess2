@@ -8,8 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 using AnarchyServer.DataModel;
-using Microsoft.AspNetCore.RateLimiting;
-using System.Threading.RateLimiting;
 
 // dotnet ef migrations add InitialCreate
 // dotnet ef database update
@@ -214,7 +212,19 @@ app.MapGet("/GlobalStats", () =>
     return Results.Ok(stats);
 });
 
-app.MapPost("/Login", async (HttpContext context, [FromBody] LoginRequest request, DatabaseContext dbContext) =>
+void AppendAuthCookie(string token, HttpContext context, IConfiguration config)
+{
+    var secureCookies = config.GetSection("AnarchyServer").GetValue<bool>("SecureCookies");
+    var cookieOptions = new CookieOptions
+    {
+        Expires = DateTime.Now.AddDays(30),
+        HttpOnly = secureCookies,
+        Secure = secureCookies
+    };
+    context.Response.Cookies.Append("Authorization", token, cookieOptions);
+}
+
+app.MapPost("/Login", async (HttpContext context, [FromBody] LoginRequest request, DatabaseContext dbContext, IConfiguration config) =>
 {
     Account? account = null;
     if (request.Username == null && request.Email == null)
@@ -235,6 +245,7 @@ app.MapPost("/Login", async (HttpContext context, [FromBody] LoginRequest reques
 
     if (account != null)
     {
+        AppendAuthCookie(account.Token, context, config);
         return Results.Ok(new { Message = "Login successful", Token = account.Token, Id = account.Id });
     }
     else
@@ -243,28 +254,25 @@ app.MapPost("/Login", async (HttpContext context, [FromBody] LoginRequest reques
     }
 });
 
-app.MapPost("/Signup", async (HttpContext context, [FromBody] SignupRequest request, DatabaseContext dbContext) =>
+app.MapPost("/Signup", async (HttpContext context, [FromBody] SignupRequest request, DatabaseContext dbContext, IConfiguration config) =>
 {
-    // Validate email format
+    // Validate email
     if (!EmailRegex().IsMatch(request.Email))
     {
         return Results.BadRequest(new { Message = "Invalid email format" });
     }
-
-    // Validate username format
+    // Validate username
     if (!UsernameRegex().IsMatch(request.Username))
     {
         return Results.BadRequest(new { Message = "Invalid username format" });
     }
-
     // Check if the username is already taken
-    if (await dbContext.Accounts.AnyAsync(a => a.Username == request.Username))
+    if (await dbContext.Accounts.AnyAsync(account => account.Username == request.Username))
     {
         return Results.BadRequest(new { Message = "Username is already taken" });
     }
-
     // Check if the email is already used
-    if (await dbContext.Accounts.AnyAsync(a => a.Email == request.Email))
+    if (await dbContext.Accounts.AnyAsync(account => account.Email == request.Email))
     {
         return Results.BadRequest(new { Message = "Email is already used" });
     }
@@ -295,6 +303,7 @@ app.MapPost("/Signup", async (HttpContext context, [FromBody] SignupRequest requ
     dbContext.Settings.Add(newSettings);
     await dbContext.SaveChangesAsync();
 
+    AppendAuthCookie(newAccount.Token, context, config);
     return Results.Ok(new { Message = "Signup successful", Token = newAccount.Token, Id = newAccount.Id });
 });
 

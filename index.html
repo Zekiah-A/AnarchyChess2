@@ -625,12 +625,13 @@
         if (!res.ok) {
             const message = (await res.json())?.message
             alert("Automatic login failed - " + (message || "network error"))
+            signout()
             return
         }
 
         const data = await res.json()
-        localStorage.token = data.token
-        localStorage.me = data.id
+        // localStorage.me used to indicate if logged in
+        localStorage.me = data.id 
         applyLoginUi()
         updateUserInfo()
         updateUserSettings()
@@ -645,7 +646,7 @@
     async function updateUserSettings() {
         const settingsRes = await fetch(`${serverAddress}/Users/${localStorage.me}/Settings`, {
             method: "GET",
-            headers: { Authorization: localStorage.token }
+            //headers: { Authorization: localStorage.token }
         })
         if (!settingsRes.ok) {
             const message = (await settingsRes.json())?.message
@@ -662,7 +663,7 @@
         // Fetch stats and profile
         const userRes = await fetch(`${serverAddress}/Users/${localStorage.me}`, {
             method: "GET",
-            headers: { Authorization: localStorage.token }
+            //headers: { Authorization: localStorage.token }
         })
         if (!userRes.ok) {
             const message = (await userRes.json())?.message
@@ -693,7 +694,7 @@
     }
 
     function signout() {
-        delete localStorage.token
+        // TODO: Wipe token cookie
         delete localStorage.me
         location.reload(true)
     }

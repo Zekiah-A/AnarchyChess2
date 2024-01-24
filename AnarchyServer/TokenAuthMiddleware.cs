@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AnarchyServer;
 using AnarchyServer.DataModel;
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +21,7 @@ public class TokenAuthMiddleware
         if (accountId is null)
         {
             context.Response.StatusCode = 401; // Unauthorised
-            await context.Response.WriteAsync("Invalid token");
+            await context.Response.WriteAsJsonAsync(new { Message = "Invalid token provided in auth header" });
             return;
         }
 
