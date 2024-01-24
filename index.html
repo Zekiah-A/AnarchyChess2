@@ -589,8 +589,8 @@
     window.addEventListener("hashchange", (_) => setHashPage())
     setHashPage(true)
 
-    const serverAddress = localStorage.serverHost ? `${location.protocol}//${localStorage.serverHost}` : "http://localhost:5068"
-    const socketAddress = localStorage.serverHost ? `${location.protocol === "https:" ? "wss" : "ws"}//${localStorage.serverHost}` : "ws://localhost:5068"
+    const serverAddress = localStorage.serverHostname ? `${location.protocol}//${localStorage.serverHostname}` : "http://localhost:5068"
+    const socketAddress = localStorage.serverHostname ? `${location.protocol === "https:" ? "wss" : "ws"}//${localStorage.serverHostname}` : "ws://localhost:5068"
     function validateUsername(input) {
         input.value = input.value.replace(/\W+/g, '').toLowerCase()
     }
