@@ -214,12 +214,15 @@ app.MapGet("/GlobalStats", () =>
 
 void AppendAuthCookie(string token, HttpContext context, IConfiguration config)
 {
+    var domain = config.GetSection("AnarchyServer").GetValue<string?>("Origin");
     var secureCookies = config.GetSection("AnarchyServer").GetValue<bool>("SecureCookies");
     var cookieOptions = new CookieOptions
     {
         Expires = DateTime.Now.AddDays(30),
         HttpOnly = secureCookies,
-        Secure = secureCookies
+        Secure = secureCookies,
+        SameSite = secureCookies ? SameSiteMode.Strict : SameSiteMode.Lax,
+        Domain = domain,
     };
     context.Response.Cookies.Append("Authorization", token, cookieOptions);
 }
