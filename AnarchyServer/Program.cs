@@ -227,34 +227,41 @@ void AppendAuthCookie(string token, HttpContext context, IConfiguration config)
     context.Response.Cookies.Append("Authorization", token, cookieOptions);
 }
 
-app.MapPost("/Login", async (HttpContext context, [FromBody] LoginRequest request, DatabaseContext dbContext, IConfiguration config) =>
-{
+app.MapPost("/Login", async (HttpContext context, [FromBody] LoginRequest? request, DatabaseContext dbContext, IConfiguration config) =>
+{    
+    var token = context.Request.Headers.Authorization.FirstOrDefault();
     Account? account = null;
-    if (request.Username == null && request.Email == null)
+    if (token != null)
     {
-        if (request.Token == null)
+        account = await dbContext.Accounts.FirstOrDefaultAsync(account => account.Token == token);
+        if (account == null)
         {
-            return Results.BadRequest(new { Message = "Invalid token provided" });
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsJsonAsync(new { Message = "Invalid token" });
+            return;
         }
-        
-        account = await dbContext.Accounts
-            .FirstOrDefaultAsync(account => account.Token == request.Token);
+    }
+    else if (request != null)
+    {
+        account ??= await dbContext.Accounts
+            .FirstOrDefaultAsync(account => account.Username == request.Username && account.Email == request.Email);
+        if (account == null)
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsJsonAsync(new { Message = "Invalid username or email" });
+            return;
+        }
     }
     else
     {
-        account = await dbContext.Accounts
-            .FirstOrDefaultAsync(account => account.Username == request.Username && account.Email == request.Email);
+        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+        await context.Response.WriteAsJsonAsync(new { Message = "Login credentials not provided" });
+        return;
     }
 
-    if (account != null)
-    {
-        AppendAuthCookie(account.Token, context, config);
-        return Results.Ok(new { Message = "Login successful", Token = account.Token, Id = account.Id });
-    }
-    else
-    {
-        return Results.BadRequest(new { Message = "Invalid username or email" });
-    }
+    AppendAuthCookie(account.Token, context, config);
+    context.Response.StatusCode = StatusCodes.Status200OK;
+    await context.Response.WriteAsJsonAsync(new { Message = "Login successful", Token = account.Token, Id = account.Id });
 });
 
 app.MapPost("/Signup", async (HttpContext context, [FromBody] SignupRequest request, DatabaseContext dbContext, IConfiguration config) =>

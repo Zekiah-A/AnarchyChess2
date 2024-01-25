@@ -14,13 +14,12 @@ public class TokenAuthMiddleware
 
     public async Task Invoke(HttpContext context, DatabaseContext dbContext)
     {
-        // Extract token from request header or query parameter, depending on your setup
         var token = context.Request.Headers.Authorization.FirstOrDefault();
         var accountId = await ValidateToken(token, dbContext);
 
         if (accountId is null)
         {
-            context.Response.StatusCode = 401; // Unauthorised
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             await context.Response.WriteAsJsonAsync(new { Message = "Invalid token provided in auth header" });
             return;
         }

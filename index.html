@@ -97,8 +97,8 @@
         <div class="main-menu-page" data-page="login">
             <h3 style="margin-top: 0;">Login with AnarchyChess account</h3>
             <div class="form-frame" id="loginForm">
-                <input id="loginUsername" type="text" placeholder="Username" oninput="validateUsername(this)" maxlength="16">
-                <input id="loginEmail" type="email" maxlength="320" placeholder="Email" pattern="[^@\s]+@[^@\s]+\.[^@\s]+">
+                <input id="loginUsername" type="text" placeholder="Username" oninput="validateUsername(this)" maxlength="16" autocomplete="username">
+                <input id="loginEmail" type="email" maxlength="320" placeholder="Email" pattern="[^@\s]+@[^@\s]+\.[^@\s]+" autocomplete="email">
                 <input type="button" value="Login" onclick="
                     if (loginUsername.value && loginEmail.value && loginEmail.validity.valid) {
                         login(loginUsername.value, loginEmail.value)
@@ -112,8 +112,8 @@
         <div class="main-menu-page" data-page="signup">
             <h3 style="margin-top: 0;">Sign up to AnarchyChess</h3>
             <div class="form-frame">
-                <input id="signupUsername" type="text" placeholder="Username" oninput="validateUsername(this)" maxlength="16">
-                <input id="signupEmail" type="email" maxlength="320" placeholder="Email" pattern="[^@\s]+@[^@\s]+\.[^@\s]+">
+                <input id="signupUsername" type="text" placeholder="Username" oninput="validateUsername(this)" maxlength="16" autocomplete="username">
+                <input id="signupEmail" type="email" maxlength="320" placeholder="Email" pattern="[^@\s]+@[^@\s]+\.[^@\s]+" autocomplete="email">
                 <input type="email" maxlength="320" placeholder="Confirm email" oninput="
                     this.setCustomValidity(signupEmail.value === this.value ? '' : 'Emails don\'t match!')
                     this.reportValidity()
@@ -617,11 +617,7 @@
     }
 
     async function loginToken(token) {
-        const res = await fetch(`${serverAddress}/Login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", },
-            body: JSON.stringify({ token: token }),
-        })
+        const res = await fetch(`${serverAddress}/Login`, { method: "POST" })
         if (!res.ok) {
             const message = (await res.json())?.message
             alert("Automatic login failed - " + (message || "network error"))
@@ -769,8 +765,8 @@
 
     setInterval(updateGlobalStats, 1e4) // 10s
     updateGlobalStats()
-    if (localStorage.token && localStorage.me) {
-        loginToken(localStorage.token)
+    if (localStorage.me) {
+        loginToken()
     }
 </script>
 </body>
