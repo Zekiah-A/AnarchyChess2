@@ -23,7 +23,13 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 builder.Services.AddCors((cors) =>
 {
-    cors.AddDefaultPolicy((policy) => policy.AllowAnyOrigin());
+    // https://stackoverflow.com/questions/59325994/content-type-is-not-allowed-by-access-control-allow-headers-in-preflight-respons
+    cors.AddDefaultPolicy((policy) =>
+    {
+        policy.AllowAnyOrigin();
+        policy.AllowAnyHeader();
+        policy.AllowAnyMethod();
+    });
 });
 builder.Services.AddDbContext<DatabaseContext>(options =>
 {

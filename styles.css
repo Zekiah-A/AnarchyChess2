@@ -72,6 +72,7 @@ header {
     left: 0;
     backdrop-filter: blur(16px);
     height: 200px;
+    z-index: 1;
 }
 
 .hud {
@@ -161,6 +162,7 @@ header {
 
 .main-menu .header-nav {
     text-align: center;
+    white-space: nowrap;
 }
 
 .main-menu nav {
@@ -192,6 +194,14 @@ header {
     padding-right: 4px;
     border-radius: 2px;
     text-decoration: none;
+}
+
+.main-menu-page-content {
+    display: flex;
+    flex-direction: column;
+    row-gap: 8px;
+    align-items: center;
+    width: 100%;
 }
 
 .form-frame {
@@ -734,6 +744,58 @@ header {
     display: flex;
     flex-direction: column;
     align-items: center;
+    text-align: center;
+}
+
+.profile-content {
+    width: min(80%, 1024px);
+}
+
+.profile-header {
+    border: 1px solid gray;
+    padding-left: 96px;
+    background: linear-gradient(-45deg, #a9ff86, transparent);
+    border-radius: 8px;
+    padding-right: 96px;
+    display: flex;
+    flex-direction: column;
+    height: 256px;
+}
+
+.profile-picture {
+    width: 256px;
+    height: 256px;
+    border: 1px solid gray;
+    background: white;
+    border-radius: 100%;
+    align-self: center;
+    margin-bottom: -72px;
+    box-shadow: 0px 2px 6px 0px #00000059;
+}
+
+.profile-username {
+    opacity: 0.8;
+    letter-spacing: 0.1em;
+    text-align: center;
+    flex-grow: 1;
+}
+
+.profile-biography {
+    resize: none;
+    font-family: Arial, sans-serif;
+    width: 100%;
+    height: 96px;
+    border: none;
+    padding: 0px;
+    font-size: 20px;
+}
+
+@media screen and (max-width: 640px) {
+    .profile-picture {
+        width: 210px;
+        height: 210px;
+        margin-bottom: -56px;
+    }
 }
 
 @media screen and (orientation: portrait) {
@@ -744,6 +806,9 @@ header {
         width: 100%;
     }
     .main-menu-field {
+        width: calc(100% - 16px);
+    }
+    .profile-content {
         width: calc(100% - 16px);
     }
 }

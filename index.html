@@ -129,7 +129,7 @@
             </div>
         </div>
         <div class="main-menu-page" data-page="main">
-            <p style="text-align: center;">A multiplayer chess board, with infinite variations slightly bent rules. Here be anarchy.</p>
+            <p style="text-align: center;">A multiplayer chess game, with infinite variations and slightly bent rules. Here be anarchy.</p>
             <dialog id="configurePanel" class="modal">
                 <ul class="modal-title">
                     <li data-selected data-page="ruleset" onclick="setModalPage(configurePanel, this.dataset.page)">Ruleset</li>
@@ -262,38 +262,67 @@
             </fieldset>
         </div>
         <div class="main-menu-page" data-page="profile">
-            <h3 style="margin-top: 0;">Account profile</h3>
+            <h3 style="margin-top: 0;">Your profile</h3>
             <div class="needs-login" id="profileNeedsLogin">
                 <p>No profile found. Are you sure you're logged in?</p>
                 <span><a class="novisit" href="#login">Login</a> | <a class="novisit" href="#signup">Signup</a></span>    
             </div>
+            <div id="profileContent" class="profile-content" style="display: none;">
+                <div class="profile-header">
+                    <h2 id="profileUsername" class="profile-username">admin</h2>
+                    <img src="resources/logo.png" class="profile-picture">
+                </div>
+                <fieldset style="margin-top: 72px;">
+                    <legend><h3>About me</h3></legend>
+                    <p>Biography:</p>
+                    <textarea maxlength="128" placeholder="Click to start editing your biography" class="profile-biography"></textarea>
+                    <p>Location: United Kingdom</p>
+                    <p>Gender: Male</p>
+                    <p>Friends: None</p>
+                </fieldset>
+                <fieldset>
+                    <legend><h3>My stats</h3></legend>
+                    <p>Games played: </p>
+                    <p>Matches won: </p>
+                    <p>Play time: </p>
+                </fieldset>
+            </div>
         </div>
         <div class="main-menu-page" data-page="settings">
             <h3 style="margin-top: 0;">General settings</h3>
-            <fieldset class="main-menu-field">
-                <legend><h3 style="margin: 0px;">Game settings</h3></legend>
-                <div>
-                    <label for="themeSelect">Chess Board theme:</label>
-                    <select id="themeSelect">
-                        <option value="0">Classic</option>
-                        <option value="1">Wooden</option>
-                        <option value="2">Chess.com</option>
-                        <option value="3">Glass</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="soundCheckbox">Enable sound</label>
-                    <input type="checkbox" id="soundCheckbox" value="true" >
-                </div>
-                <input type="button" onclick="confirm('Are you sure you want to revert all user settings?')" value="Reset to defaults">    
-            </fieldset>
-            <fieldset class="main-menu-field">
-                <legend><h3 style="margin: 0px;">Danger zone</h3></legend>
-                <input type="button" onclick="if (confirm('Are you sure you want to delete your account?')) deleteAccount()" value="Delete my account">
-            </fieldset>
             <div id="settingsNeedsLogin" class="needs-login">
-                <p>Settings can not be changed. Are you logged in?</p>
+                <p>Settings can not be changed. Are you sure you're logged in?</p>
                 <span><a class="novisit" href="#login">Login</a> | <a class="novisit" href="#signup">Signup</a></span>    
+            </div>
+            <div id="settingsContent" class="main-menu-page-content" style="display: none;">
+                <fieldset class="main-menu-field">
+                    <legend><h3 style="margin: 0px;">Game settings</h3></legend>
+                    <p>
+                        <label for="themeSelect">Chess Board theme:</label>
+                        <select id="themeSelect">
+                            <option value="0">Classic</option>
+                            <option value="1">Wooden</option>
+                            <option value="2">Chess.com</option>
+                            <option value="3">Glass</option>
+                        </select>
+                    </p>
+                    <p>
+                        <label for="siteThemeSelect">Site theme:</label>
+                        <select id="siteThemeSelect">
+                            <option value="0">Modern light</option>
+                            <option value="1">Modern dark</option>
+                        </select>
+                    </p>
+                    <p>
+                        <label for="soundCheckbox">Enable sound</label>
+                        <input type="checkbox" id="soundCheckbox" value="true" >
+                    </p>
+                    <input type="button" onclick="confirm('Are you sure you want to revert all user settings?')" value="Reset to defaults">    
+                </fieldset>
+                <fieldset class="main-menu-field">
+                    <legend><h3 style="margin: 0px;">Danger zone</h3></legend>
+                    <input type="button" onclick="if (confirm('Are you sure you want to delete your account?')) deleteAccount()" value="Delete my account">
+                </fieldset>
             </div>
         </div>
     </div>
@@ -589,6 +618,7 @@
     window.addEventListener("hashchange", (_) => setHashPage())
     setHashPage(true)
 
+    let token = null
     const serverAddress = localStorage.serverHostname ? `${location.protocol}//${localStorage.serverHostname}` : "http://localhost:5068"
     const socketAddress = localStorage.serverHostname ? `${location.protocol === "https:" ? "wss" : "ws"}//${localStorage.serverHostname}` : "ws://localhost:5068"
     function validateUsername(input) {
@@ -608,12 +638,14 @@
         }
 
         const data = await res.json()
-        localStorage.token = data.token
+        token = data.token
+        // used to indicate to client that we are currently logged in & likely have a cookie
         localStorage.me = data.id
         applyLoginUi()
         updateUserInfo()
         updateUserSettings()
         alert("Success - " + data.message)
+        setMainMenuPage("main")
     }
 
     async function loginToken(token) {
@@ -637,12 +669,14 @@
         loginForm.dataset.disabled = "true"
         profileNeedsLogin.style.display = "none"
         settingsNeedsLogin.style.display = "none"
+        profileContent.style.display = "block"
+        settingsContent.style.display = "flex"
     }
 
     async function updateUserSettings() {
         const settingsRes = await fetch(`${serverAddress}/Users/${localStorage.me}/Settings`, {
             method: "GET",
-            //headers: { Authorization: localStorage.token }
+            headers: { Authorization: token }
         })
         if (!settingsRes.ok) {
             const message = (await settingsRes.json())?.message
@@ -659,7 +693,7 @@
         // Fetch stats and profile
         const userRes = await fetch(`${serverAddress}/Users/${localStorage.me}`, {
             method: "GET",
-            //headers: { Authorization: localStorage.token }
+            headers: { Authorization: token }
         })
         if (!userRes.ok) {
             const message = (await userRes.json())?.message
@@ -698,7 +732,7 @@
     async function deleteAccount() {
         const res = await fetch(`${serverAddress}/Users/${localStorage.me}`, {
             method: "DELETE",
-            headers: { Authorization: localStorage.token }
+            headers: { Authorization: token }
         })
         if (!res.ok) {
             const message = (await res.json())?.message
@@ -741,6 +775,8 @@
         }
     }
     loadMatchList()
+
+    // Updates stats on profile and main pages
     async function updateMyStats() {
         let failed = false
         const response = await fetch(`${serverAddress}/MyStats`).catch(e => failed = true)
@@ -749,6 +785,7 @@
             return
         }
         const stats = await response.json()
+        
     }
     async function updateGlobalStats() {
         let failed = false
