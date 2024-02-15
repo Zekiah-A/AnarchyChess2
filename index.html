@@ -13,6 +13,7 @@
     <script src="./piece-data.js"></script>
     <script src="./resources.js"></script>
     <script src="./board.js"></script>    
+    <script src="./ruleset-rule.js"></script>
 </head>
 <body>
     <p class="copyright-notice">
@@ -140,7 +141,7 @@
                 </ul>
                 <div class="modal-content" data-page="ruleset">
                     <div class="modal-content-container">
-                        <ac-ruleset></ac-ruleset>
+                        <div style="flex-grow: 1;"><ac-ruleset-rule></ac-ruleset-rule></div>
                         <div class="modal-content-side" style="width: 56px;">
                             <div class="arrangement-button" tabindex="1" >➕</div>
                             <div class="arrangement-button" tabindex="1" >➖</div>
@@ -270,15 +271,44 @@
             <div id="profileContent" class="profile-content" style="display: none;">
                 <div class="profile-header">
                     <h2 id="profileUsername" class="profile-username">admin</h2>
-                    <img src="resources/logo.png" class="profile-picture">
+                    <div class="profile-picture" onclick="profilePictureInput.click()" ondragenter="
+                        event.stopPropagation()
+                        event.preventDefault()
+                    " ondragover="
+                        event.stopPropagation()
+                        event.preventDefault()
+                        this.style.outline = '4px solid var(--ui-hilight)'
+                        profilePictureButton.focus()
+                    " ondrop="
+                        event.stopPropagation()
+                        event.preventDefault()
+                        this.style.outline = 'initial'
+                        const file = event.dataTransfer.files[0]
+                        if (file && file.type.startsWith('image/')) setProfilePicture(file)
+                    " ondragleave="
+                        event.stopPropagation()
+                        event.preventDefault()
+                        this.style.outline = 'initial'
+                    ">
+                        <img src="resources/logo.png">
+                        <input type="file" id="profilePictureInput" accept="image/*" onchange="
+                            if (this.files[0])
+                                setProfilePicture(this.files[0])
+                        " style="display: none;">
+                        <button id="profilePictureButton">
+                            <img src="./resources/edit-photo.svg">
+                            Click to change
+                        </button>
+                    </div>
                 </div>
                 <fieldset style="margin-top: 72px;">
                     <legend><h3>About me</h3></legend>
-                    <p>Biography:</p>
-                    <textarea maxlength="128" placeholder="Click to start editing your biography" class="profile-biography"></textarea>
-                    <p>Location: United Kingdom</p>
-                    <p>Gender: Male</p>
-                    <p>Friends: None</p>
+                    <textarea maxlength="96" placeholder="Click to start editing your bio" class="profile-biography"></textarea>
+                    <div class="profile-stat-section">
+                         <div><span class="profile-stat">Location</span><span id="profileLocation">Unknown</span></div>
+                        <div><span class="profile-stat">Gender</span><span id="profileLocation">Unknown</span></div>
+                        <div><span class="profile-stat">Friends</span><span>Unknown</span></div>
+                    </div>
                 </fieldset>
                 <fieldset>
                     <legend><h3>My stats</h3></legend>
@@ -644,7 +674,6 @@
         applyLoginUi()
         updateUserInfo()
         updateUserSettings()
-        alert("Success - " + data.message)
         setMainMenuPage("main")
     }
 
@@ -729,6 +758,16 @@
         location.reload(true)
     }
 
+    async function setProfilePicture(file) {
+        //FileReader.readAsBinaryString()
+        let reader = new FileReader();
+        reader.onload = function (event) {
+            const resultBytes = new Uint8Array(event.target.result)
+            console.log(btoa(String.fromCharCode(...resultBytes)))    
+        }
+        reader.readAsArrayBuffer(file)
+        console.log(file)
+    }
     async function deleteAccount() {
         const res = await fetch(`${serverAddress}/Users/${localStorage.me}`, {
             method: "DELETE",

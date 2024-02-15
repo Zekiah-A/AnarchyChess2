@@ -763,14 +763,56 @@ header {
 }
 
 .profile-picture {
-    width: 256px;
-    height: 256px;
-    border: 1px solid gray;
-    background: white;
-    border-radius: 100%;
     align-self: center;
     margin-bottom: -72px;
+    width: 210px;
+    height: 210px;
+    min-height: 256px;
+    min-width: 256px;
+    border-radius: 100%;
+    overflow: clip;
+    position: relative;
     box-shadow: 0px 2px 6px 0px #00000059;
+    border: 1px solid gray;
+    background-color: white;
+    cursor: pointer;
+    transition: .2s background-color;
+}
+
+.profile-picture > button {
+    opacity: 0;
+    transition: .2s all;
+}
+
+.profile-picture:hover, .profile-picture:focus-within {
+    background-color: #969696;
+}
+
+.profile-picture:hover > button, .profile-picture:focus-within > button  {
+    opacity: 1;
+}
+
+.profile-picture:hover > img, .profile-picture:focus-within > img {
+    opacity: 0.6;
+}
+
+.profile-picture > button {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border: none;
+    text-align: center;
+    display: flex;
+    border-radius: 4px;
+    align-items: center;
+    cursor: pointer;
+}
+
+.profile-picture > img {
+    width: 100%;
+    height: 100%;
+    transition: .2s opacity;
 }
 
 .profile-username {
@@ -790,10 +832,27 @@ header {
     font-size: 20px;
 }
 
+.profile-stat-section {
+    display: flex;
+    flex-direction: column;
+    row-gap: 6px;
+}
+
+.profile-stat {
+    background: var(--ui-input);
+    padding: 2px;
+    width: 92px;
+    display: inline-block;
+    border-radius: 32px;
+    border: 1px solid lightgrey;
+    margin-right: 8px;
+    text-align: center;
+}
+
 @media screen and (max-width: 640px) {
     .profile-picture {
-        width: 210px;
-        height: 210px;
+        min-width: 210px;
+        min-height: 210px;
         margin-bottom: -56px;
     }
 }
