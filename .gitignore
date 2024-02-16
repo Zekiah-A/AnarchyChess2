@@ -48,3 +48,7 @@ AnarchyServer/Server.db
 AnarchyServer/Server.db-shm
 AnarchyServer/Server.db-wal
 AnarchyServer/Data/*
+
+# Web depends
+node_modules/
+package-lock.json
