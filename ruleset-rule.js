@@ -12,9 +12,9 @@ class RulesetRule extends HTMLElement {
 
     connectedCallback() {
         this.innerHTML = html`
-            <span>Rule:</span
+            <span>Rule:</span>
         `
     }
 }
 
-customElements.define("ac-ruleset-rule", RulesetRule);
+customElements.define("ac-ruleset-rule", ListMatch);

@@ -14,6 +14,7 @@
     <script src="./resources.js"></script>
     <script src="./board.js"></script>    
     <script src="./ruleset-rule.js"></script>
+    <script src="./list-match.js"></script>
 </head>
 <body>
     <p class="copyright-notice">
@@ -24,7 +25,6 @@
     </div>
     <div id="gamemodesPanel" class="info-panel" data-closed="">
         <h4 style="margin: 0px;">Match options:</h4>
-        <input type="button" value="Request replay">
         <input type="button" value="Exit match">
     </div>
     <div class="hud game-actions">
@@ -52,9 +52,8 @@
         </div>
         <h4 style="margin: 0px;">Graphics options:</h4>
         <div style="display: flex;flex-direction: column;row-gap: 3px;" onclick="">
-            <input type="button" value="Low graphics">
-            <input type="button" value="Medium graphics">
-            <input type="button" value="High graphics">
+            <input type="button" onclick="localstorage.effects = false" value="No effects">
+            <input type="button" onclick="localstorage.effects = true" value="All effects">
         </div>
     </div>
     <div id="turnPanel" class="info-panel">
@@ -206,25 +205,33 @@
                     </button>
                 </ul>
                 <div class="modal-content" data-page="join">
-                    <div id="matchList" style="flex-grow: 1;"></div>
-                    <div style="display: flex;column-gap: 8px;">
+                    <div id="matchList" class="match-list"><!--Match list elements go here--></div>
+                    <div class="match-list-buttons">
                         <input class="arrangement-input" type="number" placeholder="Match ID">
                         <div class="arrangement-button" tabindex="1" onclick="">Join</div>
                         <div style="flex-grow: 1;"><!--spacer--></div>
-                        <div class="arrangement-button" tabindex="1" onclick="">➕ Create my own match</div>
+                        <div class="arrangement-button" tabindex="1" onclick="setModalPage(matchPanel, 'create')">➕ Create my own match</div>
                     </div>
                 </div>
                 <div class="modal-content" data-page="create" style="display: none;">
                     <fieldset>
                         <legend><h3 style="margin: 0px;">Game options:</h3></legend>
-                        <p>Using ruleset:</p>
-                        <p>Using arrangement:</p>    
+                        <p>
+                            Using ruleset: 
+                            <select id="createRuleset">
+                                <option value="0">Default</option>
+                            </select>
+                        </p>
+                        <p>
+                            Using arrangement: 
+                            <select id="createArrangement">
+                                <option value="0">Default</option>
+                            </select>
+                        </p>    
                     </fieldset>
-                    
-                    <!--int RulesetId, int ArrangementId, string MatchName, bool AdvertisePublic-->
                     <fieldset style="display: flex; flex-direction: column; row-gap: 8px;">
                         <legend><h3 style="margin: 0px;">Lobby options:</h3></legend>
-                        <input type="text" style="flex-shrink: 1;" class="arrangement-input" placeholder="Lobby name">
+                        <input type="text" id="createLobbyName" style="flex-shrink: 1;" class="arrangement-input" placeholder="Lobby name" maxlength="64">
                         <div>
                             <input id="createPublic" type="checkbox" value="true">
                             <label for="createPublic">Make lobby available publicly</label>
@@ -232,7 +239,7 @@
                     </fieldset>
                     <div style="flex-grow: 1;"><!--spacer--></div>
                     <div class="arrangement-button" tabindex="1" onclick="
-                        createMatch()
+                        createMatch(+createRuleset.value, +createArrangement.value, createLobbyName.value, createPublic.checked)
                     ">Create and join match</div>
                 </div>
             </dialog>
@@ -243,8 +250,8 @@
             </fieldset>
             <fieldset class="main-menu-field">
                 <legend><h3>Play</h3></legend>
-                <input value="Create my own match" type="button" onclick="matchPanel.showModal(); setModalPage(matchPanel, 'create')">
-                <input value="Join someone's lobby" type="button" onclick="matchPanel.showModal(); setModalPage(matchPanel, 'join')">
+                <input id="joinLobbyButton" disabled value="Join someone's lobby" type="button" onclick="matchPanel.showModal(); setModalPage(matchPanel, 'join')">
+                <input id="createMatchButton" disabled value="Create my own match" type="button" onclick="matchPanel.showModal(); setModalPage(matchPanel, 'create')">
             </fieldset>
             <div class="main-menu-field" style="position: relative; z-index: -1;">
                 <ac-board id="mainMenuBoard"></ac-board>
@@ -366,18 +373,26 @@
                         </select>
                     </p>
                     <p>
-                        <label for="soundCheckbox">Enable sound</label>
+                        <label for="soundCheckbox">Enable sound:</label>
                         <input type="checkbox" id="soundCheckbox" onchange="localStorage.soundEnabled = this.checked" value="true" >
                     </p>
-                    <input type="button" onclick="
-                        if (confirm('Are you sure you want to revert all user settings?')) {
-                            delete localStorage.soundEnabled
-                            delete localStorage.boardTheme
-                            delete localStorage.siteTheme
-                            setLocalSettings()
-                        }
-                    " value="Reset to defaults">    
                 </fieldset>
+                <fieldset class="main-menu-field">
+                    <legend><h3 style="margin: 0px;">Advanced settings</h3></legend>
+                    <p>
+                        <label for="soundCheckbox">Site server hostname:</label>
+                        <input id="serverInput" onchange="localStorage.serverHostname = this.value" placeholder="ip/domain:port" value="server.rplace.tk/ac">
+                    </p>
+                </fieldset>
+                <input type="button" onclick="
+                    if (confirm('Are you sure you want to revert all user settings?')) {
+                        delete localStorage.soundEnabled
+                        delete localStorage.boardTheme
+                        delete localStorage.siteTheme
+                        delete localStorage.serverHostname
+                        setLocalSettings()
+                    }
+                " value="Reset to defaults">    
                 <fieldset class="main-menu-field">
                     <legend><h3 style="margin: 0px;">Danger zone</h3></legend>
                     <input type="button" onclick="if (confirm('Are you sure you want to sign out?')) signout()" value="Sign out">
@@ -729,6 +744,8 @@
         profileNeedsLogin.style.display = "none"
         profileContent.style.display = "block"
         settingsContent.style.display = "flex"
+        joinLobbyButton.removeAttribute("disabled")
+        createMatchButton.removeAttribute("disabled")
     }
 
     async function updateUserInfo() {
@@ -905,9 +922,23 @@
     }
 
     let matchId = 0
-    function createMatch() {
-
+    async function createMatch(rulesetId, arrangementId, matchName, advertisePublic) {
+        const res = await fetch(`${serverAddress}/Matches`, {
+            method: "POST",
+            headers: {
+                Authorization: token,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ rulesetId, arrangementId, matchName, advertisePublic })
+        })
+        if (!res.ok) {
+            const message = (await res.json())?.message
+            alert("Failed to create match - " + (message || "network error"))
+        }
+        let json = await res.json()
+        matchId = json.matchId
     }
+
     function play(matchId) {
         let socket = new WebSocket(`${socketAddress}/Match/${matchId}`)
         socket.binaryType = "arraybuffer"
@@ -919,27 +950,42 @@
             console.log("Unhandled:", data)
         }
     }
+
+    //  MatchId : Match
+    const cachedMatches = { }
     async function loadMatchList() {
-        let failed = false
-        const response = await fetch(`${serverAddress}/Matches`).catch(e => failed = true)
-        if (!response.ok || failed) {
-            console.error("Failed to load matches. Server response was not okay!")
+        const response = await fetch(`${serverAddress}/Matches`, {
+            method: "GET",
+            headers: { Authorization: token }
+        })
+        if (!response.ok) {
+            if (response.status != 401) {
+                console.error("Failed to load matches. Server response was not okay!")
+            }
             return
         }
-
-        // We need to reactively update matchList
-        const matches = await response.json()
-        for (const match of matches) {
-            document.createElement("ac-mathc")
+        const json = await response.json()
+        // Update matchList
+        for (const match of json.matches) {
+            //  Update previous cached match list item
+            if (cachedMatches[match.matchId]) {
+                
+            }
+            else {
+                // Create new match list item
+                let matchEl = createFromData("ac-list-match", match)
+                cachedMatches[match.matchId] = matchEl
+                matchList.appendChild(matchEl)
+            }
         }
     }
     loadMatchList()
+    setInterval(() => loadMatchList(), 5000)
 
     // Updates stats on profile and main pages
     async function updateMyStats() {
-        let failed = false
-        const response = await fetch(`${serverAddress}/MyStats`).catch(e => failed = true)
-        if (!response.ok || failed) {
+        const response = await fetch(`${serverAddress}/MyStats`)
+        if (!response.ok) {
             console.error("Failed to load my stats. Server response was not okay!")
             return
         }
@@ -947,9 +993,8 @@
         
     }
     async function updateGlobalStats() {
-        let failed = false
-        const response = await fetch(`${serverAddress}/GlobalStats`).catch(e => failed = true)
-        if (!response.ok || failed) {
+        const response = await fetch(`${serverAddress}/GlobalStats`)
+        if (!response.ok) {
             console.error("Failed to load global stats. Server response was not okay!")
             return
         }
@@ -962,10 +1007,12 @@
         if (localStorage.soundEnabled == undefined) localStorage.soundEnabled = "true"
         if (localStorage.boardTheme == undefined) localStorage.boardTheme = "0"
         if (localStorage.siteTheme == undefined) localStorage.siteTheme = "modernLight"
+        if (localStorage.serverHostname == undefined) localStorage.serverHostname = "server.rplace.tk/ac"
+        if (localstorage.effects == undefined) localStorage.effects = true
         soundCheckbox.checked = localStorage.soundEnabled == "true"
         boardThemeSelect.value = localStorage.boardTheme
         siteThemeSelect.value = localStorage.siteTheme
-
+        serverInput.value = localStorage.serverHostname
     }
 
     setInterval(updateGlobalStats, 1e4) // 10s

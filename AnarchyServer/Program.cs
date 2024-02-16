@@ -41,7 +41,7 @@ builder.Services.AddCors((cors) =>
 });
 builder.Services.AddDbContext<DatabaseContext>(options =>
 {
-    options.UseSqlite("Data Source=server.db");
+    options.UseSqlite("Data Source=Server.db");
 });
 
 var app = builder.Build();
@@ -74,7 +74,7 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/Profiles/Images"
 });
 
-var authEndpoints = new[] { "/Users" };
+var authEndpoints = new[] { "/Users", "/Matches" };
 foreach (var endpoint in authEndpoints)
 {
     app.UseWhen
@@ -174,24 +174,34 @@ app.MapGet("/Matches", (HttpContext context) =>
     {
         var match = matchPair.Value;
         var playerCount = match.Players.Count;
-        if (!match.Started && match.Players.Count < match.Capacity && match.AdvertisePublic)
+        if (!match.Started && match.AdvertisePublic)
         {
-            var matchInfo = new MatchInfo(matchPair.Key, match.HostId, match.Name, match.Capacity, playerCount, 0, 0);
+            var matchInfo = new MatchInfo(matchPair.Key, match.HostId, match.Name, match.Capacity,
+                playerCount, match.RulesetId, match.ArrangementId);
             found.Add(matchInfo);
         }
     }
 
-    return Results.Json(found);
+    return Results.Ok(new { Matches = found });
 });
 
 app.MapPost("/Matches", ([FromBody] MatchCreateInfo info, HttpContext context) =>
 {
+    if (context.Items["AccountId"] is not int userId)
+    {
+        return Results.Unauthorized();
+    }
+    if (info.MatchName.Length > 64)
+    {
+        return Results.BadRequest(new { Message  = "Provided lobby name was longer than maximum allowed length (64)" });
+    }
     var newId = ++topMatchId;
-    var match = new AnarchyServer.Match(0, info.MatchName, info.AdvertisePublic);
+    var match = new AnarchyServer.Match(userId, info.MatchName, info.RulesetId, info.ArrangementId, info.AdvertisePublic);
     matches.Add(newId, match);
+
     // TODO: Query DB for arrangement and ruleset ID to collect them. Cache both of these in an arrangement/ruleset pool.
     // TODO: Pass in host ID.
-    return Results.Json(newId);
+    return Results.Ok(new { MatchId = newId });
 });
 
 app.MapGet("/Matches/{matchId}", async (int matchId, HttpContext context) =>
@@ -337,8 +347,8 @@ app.MapGet("/Profiles/{id}", async (int id, DatabaseContext dbContext) =>
             Id = account.Id,
             Username = account.Username,
             Biography = account.Biography,
-            ImageUri = account.ProfileImageUri,
-            Background = account.ProfileBackground,
+            ProfileImageUri = account.ProfileImageUri,
+            ProfileBackground = account.ProfileBackground,
             Gender = account.Gender,
             Location = account.Location
         };
@@ -408,7 +418,7 @@ app.MapPost("/Users/{id}", async (int id, [FromBody] Account updatedProfile, Htt
         }
         else
         {
-            return Results.BadRequest("Specified profile biography is longer than maximum allowed length (96)");
+            return Results.BadRequest(new { Message = "Specified profile biography is longer than maximum allowed length (96)"});
         }
     }
     if (updatedProfile.ProfileBackground is not null)
@@ -420,7 +430,7 @@ app.MapPost("/Users/{id}", async (int id, [FromBody] Account updatedProfile, Htt
         }
         else
         {
-            return Results.BadRequest("Specified profile background is not valid");
+            return Results.BadRequest(new { Message = "Specified profile background is not valid"});
         }
     }
     if (updatedProfile.Gender is not null)
@@ -432,7 +442,7 @@ app.MapPost("/Users/{id}", async (int id, [FromBody] Account updatedProfile, Htt
         }
         else
         {
-            return Results.BadRequest("Specified profile gender is not valid");
+            return Results.BadRequest(new { Message = "Specified profile gender is not valid"});
         }
     }
     if (updatedProfile.Location is not null)
@@ -444,12 +454,12 @@ app.MapPost("/Users/{id}", async (int id, [FromBody] Account updatedProfile, Htt
         }
         else
         {
-            return Results.BadRequest("Specified profile location is longer than maximum allowed length (16)");
+            return Results.BadRequest(new { Message = "Specified profile location is longer than maximum allowed length (16)"});
         }
     }
     if (!userChanged)
     {
-        return Results.BadRequest("Specified update property either could not be found, or does not exist");
+        return Results.BadRequest(new { Message = "Specified update property either could not be found, or does not exist"});
     }
 
     await dbContext.SaveChangesAsync();
@@ -476,14 +486,14 @@ app.MapPost("/Users/{id}/ProfileImage", async (int id, [FromBody] ProfilePicture
 
     if (!allowedPfpMimes.TryGetValue(pictureRequest.MimeType, out string? fileExtension))
     {
-        return Results.BadRequest("Supplied image was not of a valid format");
+        return Results.BadRequest(new { Message = "Supplied image was not of a valid format"});
     }
     var fileName = id + fileExtension;
     var savePath = Path.Combine(pfpDirectory, fileName);
     var fileData = Convert.FromBase64String(pictureRequest.Data);
     if  (fileData.Length > 25e5)
     {
-        return Results.BadRequest("Supplied image can not be more than 2.5MB");
+        return Results.BadRequest(new { Message = "Supplied image can not be more than 2.5MB"});
     }
 
     if (user.ProfileImageUri is not null)

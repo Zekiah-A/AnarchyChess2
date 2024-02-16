@@ -625,7 +625,7 @@ header {
     min-height: min(calc(100% - 32px), 600px);
 }
 
-.modal > .modal-content {
+.modal-content {
     padding: 8px;
     background: #f1f1f1;
     border: 1px solid gray;
@@ -636,9 +636,10 @@ header {
     overflow-y: auto;
     overflow-x: hidden;
     max-height: 800px;
+    position: relative;
 }
 
-.modal > .modal-title {
+.modal-title {
     margin: 0px;
     display: flex;
     padding: 0px;
@@ -662,6 +663,13 @@ header {
     padding: 8px;
     border-bottom: none;
     font-weight: bold;
+}
+
+.modal-title > button {
+    margin-left: auto;
+    border: 1px solid gray;
+    border-bottom: none;
+    width: 64px;
 }
 
 #arrangementStats {
@@ -729,11 +737,26 @@ header {
     padding: 8px;
     border: 1px solid lightgray;
     background: linear-gradient(to bottom, #d6d6d6, #e9e9e9);
-    cursor: pointer;
+    cursor: default;
 }
 
 .arrangement-button:hover {
     border: 1px solid gray;
+}
+
+.match-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    max-height: 494px;
+    display: flex;
+    flex-direction: column;
+    row-gap: 8px;
+}
+
+.match-list-buttons {
+    display: flex;
+    column-gap: 8px;
+    max-height: 42px;
 }
 
 .novisit:visited {

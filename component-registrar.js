@@ -10,6 +10,15 @@ function defineAndInject(_this, element) {
     }
 }
 
+function createFromData(name, data) {
+    let element = document.createElement(name)
+    for (const [key, value] of Object.entries(data)) {
+        element.setAttribute(key, value.toString())
+    }
+    element.connectedCallback()
+    return element
+}
+
 function html(strings, ...values) {
     return strings.reduce((result, string, i) => {
         const value = values[i] !== undefined ? values[i] : ""
