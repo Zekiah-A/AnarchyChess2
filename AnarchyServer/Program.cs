@@ -357,14 +357,17 @@ app.MapGet("/Profiles/{id}", async (int id, DatabaseContext dbContext) =>
             ProfileImageUri = account.ProfileImageUri,
             ProfileBackground = account.ProfileBackground,
             Gender = account.Gender,
-            Location = account.Location
+            Location = account.Location,
+            // TODO: Implement these properties
+            GamesPlayed = 0,  
+            MatchesWon = 0,
+            PlayTime = 0
         };
-
         return Results.Ok(profile);
     }
     else
     {
-        return Results.NotFound();
+        return Results.NotFound(new { Message = "Specified profile does not exist" });
     }
 });
 
@@ -547,7 +550,7 @@ matchDestructTimer.Elapsed += (_, _) =>
     var toDelete = new List<int>();
     foreach (var matchPair in matches)
     {
-        if (DateTime.Now - matchPair.Value.CreatedDate > TimeSpan.FromMinutes(5) && matchPair.Value.Players.Count == 0)
+        if (DateTime.Now - matchPair.Value.CreatedDate > TimeSpan.FromMinutes(1) && matchPair.Value.Players.Count == 0)
         {
             toDelete.Add(matchPair.Key);
         }

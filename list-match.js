@@ -5,10 +5,16 @@ class ListMatch extends HTMLElement {
     }
 
     static get observedAttributes() {
-        return []
+        return [ "playerCount" ]
     }
     
     attributeChangedCallback(name, oldValue, newValue) {
+        if (name === "playerCount") {
+            this.playerCount.textContent = newValue
+            if  (this.playerCount == this.getAttribute("capacity")) {
+                this.playerCount.color = "red"
+            }
+        }
     }
 
     connectedCallback() {
@@ -59,7 +65,7 @@ class ListMatch extends HTMLElement {
             }
             .match-id {
                 opacity: 0.6;
-                font-size: 10px;        
+                font-size: 10px;
                 align-self: center;
             }
             .play-button {
@@ -68,23 +74,27 @@ class ListMatch extends HTMLElement {
             }
         `
         this.shadowRoot.append(style)
+        this.tabIndex = "0"
         defineAndInject(this, this.shadowRoot)
 
-        this.tabIndex = "0"
+        const _this = this
+        this.creatorButton.onclick = async function() {
+            const creatorId = _this.getAttribute("creatorId")
+            const profileView = document.createElement("ac-profile-view")
+            profileView.style.left = "50%"
+            _this.shadowRoot.appendChild(profileView)
+            await profileView.loadFromUserId(+creatorId)
+        }
+        this.playButton.onclick = function() {
+            const matchId = +_this.getAttribute("matchId")
+            play(+matchId)
+        }
         this.name.textContent = this.name.title = this.getAttribute("name")
         this.matchId.textContent = this.getAttribute("matchId")
         this.arrangementId.textContent = this.getAttribute("arrangementId")
         this.rulesetId.textContent = this.getAttribute("rulesetId")
-        const _this = this
-        this.creatorButton.onclick = function() {
-            let creatorId = _this.getAttribute("creatorId")
-            console.log(creatorId)
-        }
         this.playerCount.textContent = this.getAttribute("playerCount")
         this.capacity.textContent = this.getAttribute("capacity")
-        this.playButton.onclick = function() {
-            let matchId = +_this.getAttribute("matchId")
-        }
     }
 }
 

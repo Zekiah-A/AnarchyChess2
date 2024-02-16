@@ -15,6 +15,7 @@
     <script src="./board.js"></script>    
     <script src="./ruleset-rule.js"></script>
     <script src="./list-match.js"></script>
+    <script src="./profile-view.js"></script>
 </head>
 <body>
     <p class="copyright-notice">
@@ -135,7 +136,7 @@
                     <li data-selected data-page="ruleset" tabindex="0" onclick="setModalPage(configurePanel, this.dataset.page)">Ruleset</li>
                     <li data-page="arrangement" tabindex="0" onclick="setModalPage(configurePanel, this.dataset.page)">Piece arrangement</li>
                     <button autofocus aria-label="close" onclick="configurePanel.close()">
-                        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+                        <img src="./resources/close-icon.svg" alt="Close">
                     </button>
                 </ul>
                 <div class="modal-content" data-page="ruleset">
@@ -201,7 +202,7 @@
                     <li data-selected data-page="join" tabindex="0" onclick="setModalPage(matchPanel, this.dataset.page)">Connect</li>
                     <li data-page="create" tabindex="0" onclick="setModalPage(matchPanel, this.dataset.page)">Create</li>
                     <button autofocus aria-label="close" onclick="matchPanel.close()">
-                        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+                        <img src="./resources/close-icon.svg" alt="Close">
                     </button>
                 </ul>
                 <div class="modal-content" data-page="join">
@@ -750,6 +751,20 @@
         setInterval(() => updateMatchList(), 5000)
     }
 
+    function getGenderFullName(name) {
+        switch (name)
+        {
+            case "male":
+                return "Male"
+            case "female":
+                return "Female"
+            case "other":
+                return "other"
+            default:
+                return "Unknown"
+        }
+    }
+
     async function updateUserInfo() {
         // Fetch stats and profile
         const userRes = await fetch(`${serverAddress}/Users/${localStorage.me}`, {
@@ -875,8 +890,8 @@
         green: { background: "linear-gradient(-45deg, #a9ff86, #eee)", cover: "url(resources/logo-pawn-tilted.png) repeat" },
         cyan: { background: "linear-gradient(-45deg, #12ffff, #eee)", cover: "url(resources/logo-pawn-tilted.png) repeat" }
     }
-    async function setProfileBackground(name) {
-        let theme = profileThemes[name || "none"]
+    function setProfileBackground(name) {
+        const theme = profileThemes[name || "none"]
         profileHeader.style.background = theme.background
         profileHeader.style.setProperty("--profile-header-cover", theme.cover)
     }
@@ -965,7 +980,7 @@
     }
 
     //  MatchId : Match
-    const cachedMatches = { }
+    const cachedMatches = new Map()
     async function updateMatchList() {
         const response = await fetch(`${serverAddress}/Matches`, {
             method: "GET",
@@ -978,17 +993,28 @@
             return
         }
         const json = await response.json()
+        let existingIds = []
         // Update matchList
         for (const match of json.matches) {
+            existingIds.push(match.matchId)
             //  Update previous cached match list item
-            if (cachedMatches[match.matchId]) {
-                
+            let cachedMatchElement = cachedMatches.get(match.matchId)
+            if (cachedMatchElement) {
+                cachedMatchElement.setAttribute("playerCount", match.playerCount)
             }
             else {
                 // Create new match list item
                 let matchEl = createFromData("ac-list-match", match)
-                cachedMatches[match.matchId] = matchEl
+                cachedMatches.set(match.matchId, matchEl)
                 matchList.appendChild(matchEl)
+            }
+        }
+
+        // Delete matches that no longer exist
+        for (const [key, value] of cachedMatches) {
+            if (!existingIds.includes(key)) {
+                cachedMatches.delete(key)
+                value.remove()
             }
         }
     }
