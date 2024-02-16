@@ -21,7 +21,7 @@ class ListMatch extends HTMLElement {
                 <p>Arrangement: <span id="arrangementId">0</span></p>
                 <p>Ruleset: <span id="rulesetId">0</span></p>
                 <p>Creator: <button id="creatorButton">View profile</button></p>
-                <p>Players: <span id="playerCount"></span>/<span id="capacity" class="capacity"></span></p>
+                <p>Players: <span id="playerCount" style="color: green;"></span>/<span id="capacity"></span></p>
             </div>
             <button class="play-button" id="playButton">
                 <img src="./resources/play.svg" alt="Play">
@@ -61,9 +61,6 @@ class ListMatch extends HTMLElement {
                 opacity: 0.6;
                 font-size: 10px;        
                 align-self: center;
-            }
-            .capacity {
-                color: green;
             }
             .play-button {
                 display: flex;

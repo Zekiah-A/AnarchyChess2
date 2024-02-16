@@ -17,4 +17,4 @@ class RulesetRule extends HTMLElement {
     }
 }
 
-customElements.define("ac-ruleset-rule", ListMatch);
+customElements.define("ac-ruleset-rule", RulesetRule);

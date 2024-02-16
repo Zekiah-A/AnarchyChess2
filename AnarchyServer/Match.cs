@@ -18,7 +18,7 @@ public class Match
 
     private delegate void BinaryPacketHandler(ref ReadablePacket data);
     private readonly Dictionary<int, BinaryPacketHandler> binaryPacketHandlers;
-    
+
     public Match(int hostId, string name, int rulesetId, int arrangementId, bool advertisePublic)
     {
         CreatedDate = DateTime.Now;
@@ -38,7 +38,7 @@ public class Match
     public void CallHandlerDelegate(ClientData fromClient, ReceivedMessage message)
     {
         fromClient.SendAsync(message.Data, WebSocketMessageType.Text);
-        
+
         if (message.MessageType == WebSocketMessageType.Text)
         {
             var stringMessage = Encoding.UTF8.GetString(message.Data);
@@ -62,6 +62,6 @@ public class Match
 
     private void HandleMove(ref ReadablePacket packet)
     {
-        
+
     }
 }

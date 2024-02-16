@@ -10,7 +10,7 @@ public class Account
     public string? Biography { get; set; }
     public string? ProfileImageUri { get; set; }
     public string? ProfileBackground { get; set; }
-    public string? Gender { get; set;  }
+    public string? Gender { get; set; }
     public string? Location { get; set; }
     public string Email { get; set; }
     public string Token { get; set; }

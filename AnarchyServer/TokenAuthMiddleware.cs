@@ -1,6 +1,4 @@
-using System.Text.Json;
 using AnarchyServer;
-using AnarchyServer.DataModel;
 using Microsoft.EntityFrameworkCore;
 
 public class TokenAuthMiddleware
@@ -16,10 +14,10 @@ public class TokenAuthMiddleware
     {
         // Explicit header takes precedent over cookie, cookie used for tokenLogin to disocurage local saving of
         // token in localStorage. Use header auth when client has already logged in and received their token for the session
-        var token = context.Request.Headers.Authorization.FirstOrDefault() ?? context.Request.Cookies["Authorization"];
-        var accountId = await ValidateToken(token, dbContext);
+        var token = context.Request.Headers.Authorization.FirstOrDefault()
+            ?? context.Request.Cookies["Authorization"] ?? context.Request.Query["authorization"].FirstOrDefault();
 
-        if (accountId is null)
+        if (token is null || await ValidateToken(token, dbContext) is not int accountId)
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             await context.Response.WriteAsJsonAsync(new { Message = "Invalid token provided in auth header" });
@@ -30,7 +28,7 @@ public class TokenAuthMiddleware
         await downstreamHandler(context);
     }
 
-    private static async Task<int?> ValidateToken(string? token, DatabaseContext dbContext)
+    private static async Task<int?> ValidateToken(string token, DatabaseContext dbContext)
     {
         var account = await dbContext.Accounts.FirstOrDefaultAsync(account => account.Token == token);
         return account?.Id;

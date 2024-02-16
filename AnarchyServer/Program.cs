@@ -109,12 +109,12 @@ async IAsyncEnumerable<IReceiveResult> ReceiveDataAsync(ClientData client, [Enum
             {
                 using var buffer = MemoryOwner<byte>.Allocate(65536);
                 var result = await client.Socket.ReceiveAsync(buffer.Memory, token);
-                
+
                 if (result.Count > 0)
                 {
                     resultStream.Write(buffer.Span[..result.Count]);
                 }
-                
+
                 if (result.EndOfMessage)
                 {
                     if (result.MessageType == WebSocketMessageType.Close)
@@ -169,7 +169,7 @@ async IAsyncEnumerable<IReceiveResult> ReceiveDataAsync(ClientData client, [Enum
 app.MapGet("/Matches", (HttpContext context) =>
 {
     var found = new List<MatchInfo>();
-    
+
     foreach (var matchPair in matches)
     {
         var match = matchPair.Value;
@@ -193,7 +193,7 @@ app.MapPost("/Matches", ([FromBody] MatchCreateInfo info, HttpContext context) =
     }
     if (info.MatchName.Length > 64)
     {
-        return Results.BadRequest(new { Message  = "Provided lobby name was longer than maximum allowed length (64)" });
+        return Results.BadRequest(new { Message = "Provided lobby name was longer than maximum allowed length (64)" });
     }
     var newId = ++topMatchId;
     var match = new AnarchyServer.Match(userId, info.MatchName, info.RulesetId, info.ArrangementId, info.AdvertisePublic);
@@ -204,11 +204,18 @@ app.MapPost("/Matches", ([FromBody] MatchCreateInfo info, HttpContext context) =
     return Results.Ok(new { MatchId = newId });
 });
 
-app.MapGet("/Matches/{matchId}", async (int matchId, HttpContext context) =>
+app.MapGet("/Matches/{matchId}", async (int matchId, HttpContext context, DatabaseContext dbContext) =>
 {
-    if (!context.WebSockets.IsWebSocketRequest)
+    if (context.Items["AccountId"] is not int requesterId
+        || await dbContext.Accounts.FindAsync(requesterId) is not Account account)
     {
-        context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return;
+    }
+    if (!matches.TryGetValue(matchId, out var match))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        await context.Response.WriteAsJsonAsync(new { Message = "Specified match does not exist" });
         return;
     }
     if (context.Connection.RemoteIpAddress is null)
@@ -216,24 +223,24 @@ app.MapGet("/Matches/{matchId}", async (int matchId, HttpContext context) =>
         context.Response.StatusCode = StatusCodes.Status403Forbidden;
         return;
     }
-    if (!matches.TryGetValue(matchId, out var match))
+    if (!context.WebSockets.IsWebSocketRequest)
     {
-        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
         return;
     }
-    
+
     using var websocket = await context.WebSockets.AcceptWebSocketAsync();
     var clientCancelToken = new CancellationToken();
     var client = new ClientData(context.Connection.RemoteIpAddress, context.Connection.RemotePort, websocket, clientCancelToken);
     socketClients.Add(client);
-    
+
     await foreach (var receiveResult in ReceiveDataAsync(client, clientCancelToken))
     {
         if (receiveResult is SocketClosure or SocketCancellation or SocketError)
         {
             break;
         }
-        
+
         if (receiveResult is ReceivedMessage message)
         {
             match.CallHandlerDelegate(client, message);
@@ -263,7 +270,7 @@ void AppendAuthCookie(string token, HttpContext context, IConfiguration config)
 }
 
 app.MapPost("/Login", async (HttpContext context, [FromBody] LoginRequest? request, DatabaseContext dbContext, IConfiguration config) =>
-{    
+{
     var token = context.Request.Headers.Authorization.FirstOrDefault();
     Account? account = null;
     if (token != null)
@@ -418,7 +425,7 @@ app.MapPost("/Users/{id}", async (int id, [FromBody] Account updatedProfile, Htt
         }
         else
         {
-            return Results.BadRequest(new { Message = "Specified profile biography is longer than maximum allowed length (96)"});
+            return Results.BadRequest(new { Message = "Specified profile biography is longer than maximum allowed length (96)" });
         }
     }
     if (updatedProfile.ProfileBackground is not null)
@@ -430,7 +437,7 @@ app.MapPost("/Users/{id}", async (int id, [FromBody] Account updatedProfile, Htt
         }
         else
         {
-            return Results.BadRequest(new { Message = "Specified profile background is not valid"});
+            return Results.BadRequest(new { Message = "Specified profile background is not valid" });
         }
     }
     if (updatedProfile.Gender is not null)
@@ -442,7 +449,7 @@ app.MapPost("/Users/{id}", async (int id, [FromBody] Account updatedProfile, Htt
         }
         else
         {
-            return Results.BadRequest(new { Message = "Specified profile gender is not valid"});
+            return Results.BadRequest(new { Message = "Specified profile gender is not valid" });
         }
     }
     if (updatedProfile.Location is not null)
@@ -454,12 +461,12 @@ app.MapPost("/Users/{id}", async (int id, [FromBody] Account updatedProfile, Htt
         }
         else
         {
-            return Results.BadRequest(new { Message = "Specified profile location is longer than maximum allowed length (16)"});
+            return Results.BadRequest(new { Message = "Specified profile location is longer than maximum allowed length (16)" });
         }
     }
     if (!userChanged)
     {
-        return Results.BadRequest(new { Message = "Specified update property either could not be found, or does not exist"});
+        return Results.BadRequest(new { Message = "Specified update property either could not be found, or does not exist" });
     }
 
     await dbContext.SaveChangesAsync();
@@ -486,14 +493,14 @@ app.MapPost("/Users/{id}/ProfileImage", async (int id, [FromBody] ProfilePicture
 
     if (!allowedPfpMimes.TryGetValue(pictureRequest.MimeType, out string? fileExtension))
     {
-        return Results.BadRequest(new { Message = "Supplied image was not of a valid format"});
+        return Results.BadRequest(new { Message = "Supplied image was not of a valid format" });
     }
     var fileName = id + fileExtension;
     var savePath = Path.Combine(pfpDirectory, fileName);
     var fileData = Convert.FromBase64String(pictureRequest.Data);
-    if  (fileData.Length > 25e5)
+    if (fileData.Length > 25e5)
     {
-        return Results.BadRequest(new { Message = "Supplied image can not be more than 2.5MB"});
+        return Results.BadRequest(new { Message = "Supplied image can not be more than 2.5MB" });
     }
 
     if (user.ProfileImageUri is not null)

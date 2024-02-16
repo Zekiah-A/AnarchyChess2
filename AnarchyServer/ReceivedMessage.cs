@@ -7,7 +7,7 @@ public struct ReceivedMessage : IReceiveResult
 {
     public byte[] Data;
     public WebSocketMessageType MessageType;
-    
+
     public ReceivedMessage(byte[] data, WebSocketMessageType messageType)
     {
         Data = data;

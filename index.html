@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Anarchy chess</title>
@@ -132,8 +132,8 @@
             <p style="text-align: center;">A multiplayer chess game, with infinite variations and slightly bent rules. Here be anarchy.</p>
             <dialog id="configurePanel" class="modal">
                 <ul class="modal-title">
-                    <li data-selected data-page="ruleset" onclick="setModalPage(configurePanel, this.dataset.page)">Ruleset</li>
-                    <li data-page="arrangement" onclick="setModalPage(configurePanel, this.dataset.page)">Piece arrangement</li>
+                    <li data-selected data-page="ruleset" tabindex="0" onclick="setModalPage(configurePanel, this.dataset.page)">Ruleset</li>
+                    <li data-page="arrangement" tabindex="0" onclick="setModalPage(configurePanel, this.dataset.page)">Piece arrangement</li>
                     <button autofocus aria-label="close" onclick="configurePanel.close()">
                         <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
                     </button>
@@ -142,8 +142,8 @@
                     <div class="modal-content-container">
                         <div style="flex-grow: 1;"><ac-ruleset-rule></ac-ruleset-rule></div>
                         <div class="modal-content-side" style="width: 56px;">
-                            <div class="arrangement-button" tabindex="1" >➕</div>
-                            <div class="arrangement-button" tabindex="1" >➖</div>
+                            <div class="arrangement-button" tabindex="0" >➕</div>
+                            <div class="arrangement-button" tabindex="0" >➖</div>
                         </div>
                     </div>
                 </div>
@@ -184,7 +184,7 @@
                                 <img src="resources/king-white.svg" data-colour="white" alt="" data-type="king">
                             </div>
                             <div style="flex-grow: 1;"><!--vertical spacer--></div>
-                            <div class="arrangement-button" tabindex="1" onclick="if (arrangementSelC != null && arrangementSelR != null) {
+                            <div class="arrangement-button" tabindex="0" onclick="if (arrangementSelC != null && arrangementSelR != null) {
                                 animateDestroyPiece(arrangementBoard, arrangementCanvas, arrangementSelC, arrangementSelR)
                                 arrangementSelC = null
                                 arrangementSelR = null
@@ -198,8 +198,8 @@
             </dialog>
             <dialog id="matchPanel" class="modal">
                 <ul class="modal-title">
-                    <li data-selected data-page="join" onclick="setModalPage(matchPanel, this.dataset.page)">Connect</li>
-                    <li data-page="create" onclick="setModalPage(matchPanel, this.dataset.page)">Create</li>
+                    <li data-selected data-page="join" tabindex="0" onclick="setModalPage(matchPanel, this.dataset.page)">Connect</li>
+                    <li data-page="create" tabindex="0" onclick="setModalPage(matchPanel, this.dataset.page)">Create</li>
                     <button autofocus aria-label="close" onclick="matchPanel.close()">
                         <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
                     </button>
@@ -207,10 +207,10 @@
                 <div class="modal-content" data-page="join">
                     <div id="matchList" class="match-list"><!--Match list elements go here--></div>
                     <div class="match-list-buttons">
-                        <input class="arrangement-input" type="number" placeholder="Match ID">
-                        <div class="arrangement-button" tabindex="1" onclick="">Join</div>
+                        <input id="matchIdInput" class="arrangement-input" type="number" placeholder="Match ID">
+                        <div class="arrangement-button" tabindex="0" onclick="play(matchIdInput.value)">Join</div>
                         <div style="flex-grow: 1;"><!--spacer--></div>
-                        <div class="arrangement-button" tabindex="1" onclick="setModalPage(matchPanel, 'create')">➕ Create my own match</div>
+                        <div class="arrangement-button" tabindex="0" onclick="setModalPage(matchPanel, 'create')">➕ Create my own match</div>
                     </div>
                 </div>
                 <div class="modal-content" data-page="create" style="display: none;">
@@ -238,7 +238,7 @@
                         </div>
                     </fieldset>
                     <div style="flex-grow: 1;"><!--spacer--></div>
-                    <div class="arrangement-button" tabindex="1" onclick="
+                    <div class="arrangement-button" tabindex="0" onclick="
                         createMatch(+createRuleset.value, +createArrangement.value, createLobbyName.value, createPublic.checked)
                     ">Create and join match</div>
                 </div>
@@ -305,16 +305,16 @@
                             }
                         " style="display: none;">
                         <button type="button" id="profilePictureButton">
-                            <img src="./resources/edit-photo.svg">
+                            <img src="./resources/edit-photo.svg" alt="Edit">
                             Click to change
                         </button>
                     </div>
                     <fieldset class="profile-background-section">
                     <legend>Select profile colour</legend>
-                        <input type="button" onclick="updateProfileBackground('red')" style="background: linear-gradient(-45deg, #ff412d, #eee);" title="Red" alt="Red">
-                        <input type="button" onclick="updateProfileBackground('orange')" style="background: linear-gradient(-45deg, #ffd12d, #eee);" title="Orange" alt="Orange">
-                        <input type="button" onclick="updateProfileBackground('green')" style="background: linear-gradient(-45deg, #a9ff86, #eee);" title="Green" alt="Green">
-                        <input type="button" onclick="updateProfileBackground('cyan')" style="background: linear-gradient(-45deg, #12ffff, #eee);" title="Cyan" alt="Cyan">
+                        <input type="button" onclick="updateProfileBackground('red')" style="background: linear-gradient(-45deg, #ff412d, #eee);" title="Red">
+                        <input type="button" onclick="updateProfileBackground('orange')" style="background: linear-gradient(-45deg, #ffd12d, #eee);" title="Orange">
+                        <input type="button" onclick="updateProfileBackground('green')" style="background: linear-gradient(-45deg, #a9ff86, #eee);" title="Green">
+                        <input type="button" onclick="updateProfileBackground('cyan')" style="background: linear-gradient(-45deg, #12ffff, #eee);" title="Cyan">
                     </fieldset>     
                 </div>
                 <fieldset style="margin-top: 72px;">
@@ -697,7 +697,7 @@
 
     let token = null
     const serverAddress = localStorage.serverHostname ? `${location.protocol}//${localStorage.serverHostname}` : "http://localhost:5068"
-    const socketAddress = localStorage.serverHostname ? `${location.protocol === "https:" ? "wss" : "ws"}//${localStorage.serverHostname}` : "ws://localhost:5068"
+    const socketAddress = localStorage.serverHostname ? `${location.protocol === "https:" ? "wss:" : "ws:"}//${localStorage.serverHostname}` : "ws://localhost:5068"
     function validateUsername(input) {
         input.value = input.value.replace(/\W+/g, '').toLowerCase()
     }
@@ -746,6 +746,8 @@
         settingsContent.style.display = "flex"
         joinLobbyButton.removeAttribute("disabled")
         createMatchButton.removeAttribute("disabled")
+        updateMatchList()
+        setInterval(() => updateMatchList(), 5000)
     }
 
     async function updateUserInfo() {
@@ -939,21 +941,32 @@
         matchId = json.matchId
     }
 
-    function play(matchId) {
-        let socket = new WebSocket(`${socketAddress}/Match/${matchId}`)
+    async function play(matchId) {
+        // Make HTTP request beforehand to check if the specified match exists / is authorised
+        const res = await fetch(`${serverAddress}/Matches/${matchId}`, {
+            method: "GET",
+            headers: { Authorization: token }
+        })
+        if (!res.ok && res.status != 405) {
+            const message = (await res.json())?.message
+            alert("Could not join match - " + (message || "network error"))
+            return
+        }
+        const socket = new WebSocket(`${socketAddress}/Matches/${matchId}?authorization=${token}`)
         socket.binaryType = "arraybuffer"
         socket.onmessage = function({data}) {
             if (data instanceof ArrayBuffer) {
                 console.log(data)
             }
-
-            console.log("Unhandled:", data)
+            else if (typeof data === "string") {
+                console.log(data)
+            }
         }
     }
 
     //  MatchId : Match
     const cachedMatches = { }
-    async function loadMatchList() {
+    async function updateMatchList() {
         const response = await fetch(`${serverAddress}/Matches`, {
             method: "GET",
             headers: { Authorization: token }
@@ -979,8 +992,6 @@
             }
         }
     }
-    loadMatchList()
-    setInterval(() => loadMatchList(), 5000)
 
     // Updates stats on profile and main pages
     async function updateMyStats() {
@@ -1008,7 +1019,7 @@
         if (localStorage.boardTheme == undefined) localStorage.boardTheme = "0"
         if (localStorage.siteTheme == undefined) localStorage.siteTheme = "modernLight"
         if (localStorage.serverHostname == undefined) localStorage.serverHostname = "server.rplace.tk/ac"
-        if (localstorage.effects == undefined) localStorage.effects = true
+        if (localStorage.effects == undefined) localStorage.effects = true
         soundCheckbox.checked = localStorage.soundEnabled == "true"
         boardThemeSelect.value = localStorage.boardTheme
         siteThemeSelect.value = localStorage.siteTheme

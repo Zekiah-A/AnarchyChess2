@@ -7,7 +7,7 @@ public class DatabaseContext : DbContext
 {
     public DbSet<Account> Accounts { get; set; }
     public DbSet<PastMatch> Matches { get; set; }
-    
+
     public DatabaseContext() { }
     public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options) { }
 
@@ -23,7 +23,7 @@ public class DatabaseContext : DbContext
             .HasKey(account => account.Id);
         modelBuilder.Entity<Account>()
             .ToTable("Accounts");
-        
+
         // Unique username
         modelBuilder.Entity<Account>()
             .HasIndex(account => account.Username)
