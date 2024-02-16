@@ -795,25 +795,35 @@
         return true
     }
 
+    // https://stackoverflow.com/questions/12710001/how-to-convert-uint8-array-to-base64-encoded-string
+    async function bufferToBase64(buffer) {
+        const base64url = await new Promise(resolve => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result)
+            reader.readAsDataURL(new Blob([buffer]))
+        })
+
+        return base64url.slice(base64url.indexOf(',') + 1);
+    }
+
     async function updateProfilePicture(file) {
         //FileReader.readAsBinaryString()
         let reader = new FileReader()
         reader.onload = async function (event) {
             const resultBytes = new Uint8Array(event.target.result)
-            const encodedResult = btoa(String.fromCharCode.apply(null, resultBytes))
+            let encodedResult = await bufferToBase64(resultBytes)
             let success = await authedRequest(`Users/${localStorage.me}/ProfileImage`,
                 "POST", {
                     mimeType: file.type,
                     data: encodedResult
                 }, "Update profile picture failed")
             if (success) {
+                profilePicture.src = imageUrl
                 alert("Successfully updated profile picture")
             }
-            
         }
         reader.readAsArrayBuffer(file)
         const imageUrl = URL.createObjectURL(file)
-        profilePicture.src = imageUrl
     }
 
     async function updateProfileBackground(name) {

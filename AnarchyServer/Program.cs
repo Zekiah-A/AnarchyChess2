@@ -485,8 +485,15 @@ app.MapPost("/Users/{id}/ProfileImage", async (int id, [FromBody] ProfilePicture
     {
         return Results.BadRequest("Supplied image can not be more than 2.5MB");
     }
+
+    if (user.ProfileImageUri is not null)
+    {
+        var previousFile = Path.Combine(pfpDirectory, user.ProfileImageUri.Split("/").Last());
+        File.Delete(previousFile);
+    }
+
     await File.WriteAllBytesAsync(savePath, fileData);
-    user.ProfileImageUri = Path.Combine("Profiles", "Images", fileName);
+    user.ProfileImageUri = $"Profiles/Images/{fileName}";
     await dbContext.SaveChangesAsync();
     return Results.Ok();
 });
