@@ -16,7 +16,7 @@ public class TokenAuthMiddleware
     {
         // Explicit header takes precedent over cookie, cookie used for tokenLogin to disocurage local saving of
         // token in localStorage. Use header auth when client has already logged in and received their token for the session
-        var token = context.Request.Headers.Authorization.FirstOrDefault() || context.Request.Cookies["Authorization"];
+        var token = context.Request.Headers.Authorization.FirstOrDefault() ?? context.Request.Cookies["Authorization"];
         var accountId = await ValidateToken(token, dbContext);
 
         if (accountId is null)

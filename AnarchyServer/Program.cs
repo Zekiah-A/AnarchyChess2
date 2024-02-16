@@ -8,12 +8,20 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 using AnarchyServer.DataModel;
+using System.Buffers.Text;
+using Microsoft.Extensions.FileProviders;
 
-// dotnet ef migrations add InitialCreate
-// dotnet ef database update
-// dotnet ef migrations remove
+// Reset DB: dotnet ef database update 0
+// Reset DB: dotnet ef migrations add InitialCreate
+// Reset DB: dotnet ef database update
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    ApplicationName = typeof(Program).Assembly.FullName,
+    ContentRootPath = Path.GetFullPath(Directory.GetCurrentDirectory()),
+    WebRootPath = "/",
+    Args = args
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -47,6 +55,7 @@ var webSocketOptions = new WebSocketOptions
     KeepAliveInterval = TimeSpan.FromMinutes(2)
 };
 app.UseWebSockets(webSocketOptions);
+app.UseStaticFiles();
 app.UseCors();
 
 if (app.Environment.IsDevelopment())
@@ -54,6 +63,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+var currentDirectory = Directory.GetCurrentDirectory();
+var pfpDirectory = Path.Combine(currentDirectory, "Data", "ProfilePictures");
+Directory.CreateDirectory(pfpDirectory);
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(pfpDirectory),
+    RequestPath = "/Profiles/Images"
+});
 
 var authEndpoints = new[] { "/Users" };
 foreach (var endpoint in authEndpoints)
@@ -299,24 +318,8 @@ app.MapPost("/Signup", async (HttpContext context, [FromBody] SignupRequest requ
         token = Guid.NewGuid().ToString("N");
     } while (dbContext.Accounts.Any(account => account.Token == token));
 
-    var newAccount = new Account
-    {
-        Username = request.Username,
-        Email = request.Email,
-        Token = token
-    };
-
+    var newAccount = new Account(request.Username, request.Email, token);
     dbContext.Accounts.Add(newAccount);
-    await dbContext.SaveChangesAsync();
-
-    var newSettings = new Settings
-    {
-        AccountId = newAccount.Id,
-        Theme = BoardTheme.Classic,
-        SoundEnabled = true
-    };
-
-    dbContext.Settings.Add(newSettings);
     await dbContext.SaveChangesAsync();
 
     AppendAuthCookie(newAccount.Token, context, config);
@@ -334,7 +337,10 @@ app.MapGet("/Profiles/{id}", async (int id, DatabaseContext dbContext) =>
             Id = account.Id,
             Username = account.Username,
             Biography = account.Biography,
-            ProfileImageUri = account.ProfileImageUri,
+            ImageUri = account.ProfileImageUri,
+            Background = account.ProfileBackground,
+            Gender = account.Gender,
+            Location = account.Location
         };
 
         return Results.Ok(profile);
@@ -365,6 +371,126 @@ app.MapGet("/Users/{id}", async (int id, HttpContext context, DatabaseContext db
     }
 });
 
+var validProfileBackgrounds = new string[]
+{
+    "red",
+    "orange",
+    "green",
+    "cyan"
+};
+
+var validProfileGenders = new string[]
+{
+    "unknown",
+    "male",
+    "female",
+    "other"
+};
+
+app.MapPost("/Users/{id}", async (int id, [FromBody] Account updatedProfile, HttpContext context, DatabaseContext dbContext) =>
+{
+    // Only allow user to access their own account
+    var user = await dbContext.Accounts.FindAsync(id);
+    if (context.Items["AccountId"] is not int requesterId || requesterId != id || user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    // If nothing is changed, then they tried to set an invalid property, like matches won, or no valid property at all
+    var userChanged = false;
+    // Apply all valid new profile fields which are not NULL (unchanged)
+    if (updatedProfile.Biography is not null)
+    {
+        if (updatedProfile.Biography.Length <= 96)
+        {
+            user.Biography = updatedProfile.Biography;
+            userChanged = true;
+        }
+        else
+        {
+            return Results.BadRequest("Specified profile biography is longer than maximum allowed length (96)");
+        }
+    }
+    if (updatedProfile.ProfileBackground is not null)
+    {
+        if (validProfileBackgrounds.Contains(updatedProfile.ProfileBackground))
+        {
+            user.ProfileBackground = updatedProfile.ProfileBackground;
+            userChanged = true;
+        }
+        else
+        {
+            return Results.BadRequest("Specified profile background is not valid");
+        }
+    }
+    if (updatedProfile.Gender is not null)
+    {
+        if (validProfileGenders.Contains(updatedProfile.Gender))
+        {
+            user.Gender = updatedProfile.Gender;
+            userChanged = true;
+        }
+        else
+        {
+            return Results.BadRequest("Specified profile gender is not valid");
+        }
+    }
+    if (updatedProfile.Location is not null)
+    {
+        if (updatedProfile.Location.Length <= 16)
+        {
+            user.Location = updatedProfile.Location;
+            userChanged = true;
+        }
+        else
+        {
+            return Results.BadRequest("Specified profile location is longer than maximum allowed length (16)");
+        }
+    }
+    if (!userChanged)
+    {
+        return Results.BadRequest("Specified update property either could not be found, or does not exist");
+    }
+
+    await dbContext.SaveChangesAsync();
+    return Results.Ok();
+});
+
+
+var allowedPfpMimes = new Dictionary<string, string>
+{
+    { "image/png",  ".png" },
+    { "image/jpg", ".jpg" },
+    { "image/webp", ".webp" },
+    { "image/gif", ".gif" }
+};
+
+app.MapPost("/Users/{id}/ProfileImage", async (int id, [FromBody] ProfilePictureRequest pictureRequest, HttpContext context, DatabaseContext dbContext) =>
+{
+    // Only allow user to access their own account
+    var user = await dbContext.Accounts.FindAsync(id);
+    if (context.Items["AccountId"] is not int requesterId || requesterId != id || user is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (!allowedPfpMimes.TryGetValue(pictureRequest.MimeType, out string? fileExtension))
+    {
+        return Results.BadRequest("Supplied image was not of a valid format");
+    }
+    var fileName = id + fileExtension;
+    var savePath = Path.Combine(pfpDirectory, fileName);
+    var fileData = Convert.FromBase64String(pictureRequest.Data);
+    if  (fileData.Length > 25e5)
+    {
+        return Results.BadRequest("Supplied image can not be more than 2.5MB");
+    }
+    await File.WriteAllBytesAsync(savePath, fileData);
+    user.ProfileImageUri = Path.Combine("Profiles", "Images", fileName);
+    await dbContext.SaveChangesAsync();
+    return Results.Ok();
+});
+
 app.MapDelete("/Users/{id}", async (int id, HttpContext context, DatabaseContext dbContext) =>
 {
     // Only allow user to delete their own account
@@ -384,49 +510,6 @@ app.MapDelete("/Users/{id}", async (int id, HttpContext context, DatabaseContext
     else
     {
         return Results.NotFound(new { Message = "Specified account does not exist" });
-    }
-});
-
-app.MapGet("/Users/{id}/Settings", async (int id, HttpContext context, DatabaseContext dbContext) =>
-{
-    // Only allow user to access their own settings
-    if (context.Items["AccountId"] is not int requesterId || requesterId != id)
-    {
-        return Results.Unauthorized();
-    }
-
-    var settings = await dbContext.Settings
-        .SingleOrDefaultAsync(settings => settings.AccountId == id);
-
-    if (settings != null)
-    {
-        return Results.Ok(settings);
-    }
-    else
-    {
-        return Results.NotFound(new { Message = "Settings for specified account could not be found" });
-    }
-});
-
-app.MapPost("/Users/{id}/Settings", async (int id, HttpContext context, DatabaseContext dbContext) =>
-{
-    // Only allow user to access their own settings
-    if (context.Items["AccountId"] is not int requesterId || requesterId != id)
-    {
-        return Results.Unauthorized();
-    }
-
-    var settings = await dbContext.Settings
-        .FirstOrDefaultAsync(a => a.AccountId == id);
-
-    if (settings != null)
-    {
-        await dbContext.SaveChangesAsync();
-        return Results.Ok(settings);
-    }
-    else
-    {
-        return Results.NotFound();
     }
 });
 

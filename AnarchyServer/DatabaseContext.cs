@@ -6,7 +6,6 @@ namespace AnarchyServer;
 public class DatabaseContext : DbContext
 {
     public DbSet<Account> Accounts { get; set; }
-    public DbSet<Settings> Settings { get; set; }
     public DbSet<PastMatch> Matches { get; set; }
     
     public DatabaseContext() { }
@@ -24,25 +23,13 @@ public class DatabaseContext : DbContext
             .HasKey(account => account.Id);
         modelBuilder.Entity<Account>()
             .ToTable("Accounts");
-            
-        // Primary key and foreign key for Settings
-        modelBuilder.Entity<Settings>()
-            .HasKey(settings => settings.AccountId);
-        modelBuilder.Entity<Settings>()
-            .ToTable("Settings");
-
-        // One to one settings, account
-        modelBuilder.Entity<Account>()
-            .HasOne(account => account.Settings)
-            .WithOne(settings => settings.Account)
-            .HasForeignKey<Settings>(settings => settings.AccountId);
-
+        
         // Unique username
         modelBuilder.Entity<Account>()
             .HasIndex(account => account.Username)
             .IsUnique();
 
-        // Unique username
+        // Unique token
         modelBuilder.Entity<Account>()
             .HasIndex(account => account.Token)
             .IsUnique();

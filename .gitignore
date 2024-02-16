@@ -47,3 +47,4 @@ AnarchyServer/Migrations/
 AnarchyServer/Server.db
 AnarchyServer/Server.db-shm
 AnarchyServer/Server.db-wal
+AnarchyServer/Data/*

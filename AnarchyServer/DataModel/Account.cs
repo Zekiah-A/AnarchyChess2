@@ -9,6 +9,9 @@ public class Account
     public string Username { get; set; }
     public string? Biography { get; set; }
     public string? ProfileImageUri { get; set; }
+    public string? ProfileBackground { get; set; }
+    public string? Gender { get; set;  }
+    public string? Location { get; set; }
     public string Email { get; set; }
     public string Token { get; set; }
 
@@ -16,7 +19,10 @@ public class Account
     public int MatchesWon { get; set; }
     public int PlayTime { get; set; }
 
-    // Navigation property one to one
-    [JsonIgnore]
-    public Settings Settings { get; set; }
+    public Account(string username, string email, string token)
+    {
+        Username = username;
+        Email = email;
+        Token = token;
+    }
 }
