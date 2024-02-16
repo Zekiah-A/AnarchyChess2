@@ -258,12 +258,6 @@
                 <ac-board id="mainMenuBoard"></ac-board>
             </div>
             <fieldset class="main-menu-field">
-                <legend><h3 style="margin: 0px;">My stats:</h3></legend>
-                <p>Games played: <span id="myGamesPlayed"><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
-                <p>Matches won: <span id="myMatchesWon"><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
-                <p>Play time: <span id="myPlayTime"><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
-            </fieldset>
-            <fieldset class="main-menu-field">
                 <legend><h3 style="margin: 0px;">Global stats:</h3></legend>
                 <p>Online players: <span id="globalOnlineLabel"><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
                 <p>Active matches: <span id="globalActiveLabel"><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
@@ -778,9 +772,9 @@
         }
 
         const user = await userRes.json()
-        myGamesPlayed.textContent = profileGamesPlayed.textContent = user.gamesPlayed
-        myMatchesWon.textContent = profileMatchesWon.textContent = user.matchesWon
-        myPlayTime.textContent = profilePlayTime.textContent = user.playTime
+        profileGamesPlayed.textContent = user.gamesPlayed
+        profileMatchesWon.textContent = user.matchesWon
+        profilePlayTime.textContent = user.playTime
         profileUsername.textContent = user.username
         if (user.profileImageUri) profilePicture.src = `${serverAddress}/${user.profileImageUri}`
         profileBiography.textContent = user.biography
