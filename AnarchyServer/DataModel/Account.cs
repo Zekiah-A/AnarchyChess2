@@ -36,4 +36,6 @@ public class Account
         Email = email;
         Token = token;
     }
+
+    public Account() {}
 }

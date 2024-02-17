@@ -651,7 +651,7 @@ header {
     border: 1px solid gray;
 }
 
-.match-list {
+.modal-list {
     flex-grow: 1;
     overflow-y: auto;
     max-height: 494px;
@@ -660,7 +660,7 @@ header {
     row-gap: 8px;
 }
 
-.match-list-buttons {
+.modal-list-buttons {
     display: flex;
     column-gap: 8px;
     max-height: 42px;

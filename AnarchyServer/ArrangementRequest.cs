@@ -1,5 +1,3 @@
 namespace AnarchyServer;
 
-public record ArrangementRequest(int Rows, int Columns, PieceData[][] Data);
-
-public record PieceData(string Type, string Colour);
+public record ArrangementRequest(string Name, int Rows, int Columns, Piece[][] Pieces);

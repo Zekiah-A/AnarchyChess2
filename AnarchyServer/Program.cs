@@ -288,8 +288,8 @@ app.MapPost("/Rulesets", async([FromBody] RulesetRequest rulesetRequest, HttpCon
         return Results.Unauthorized();
     }
 
-    var data = JsonSerializer.Serialize(rulesetRequest.Data);
-    var ruleset = new Ruleset(id, data);
+    var data = JsonSerializer.Serialize(rulesetRequest.Rules);
+    var ruleset = new Ruleset(id, rulesetRequest.Name, data);
     await dbContext.Rulesets.AddAsync(ruleset);
     await dbContext.SaveChangesAsync();
     return Results.Ok();
@@ -303,8 +303,8 @@ app.MapPost("/Arrangements", async ([FromBody] ArrangementRequest arrangementReq
         return Results.Unauthorized();
     }
 
-    var data = JsonSerializer.Serialize(arrangementRequest.Data);
-    var arrangement = new Arrangement(id, arrangementRequest.Rows, arrangementRequest.Columns, data);
+    var data = JsonSerializer.Serialize(arrangementRequest.Pieces);
+    var arrangement = new Arrangement(id, arrangementRequest.Name, arrangementRequest.Rows, arrangementRequest.Columns, data);
     await dbContext.Arrangements.AddAsync(arrangement);
     await dbContext.SaveChangesAsync();
     return Results.Ok();

@@ -5,15 +5,20 @@ public class Ruleset
 {
     public int Id { get; set; }
     public int CreatorId { get; set; }
+    string Name { get; set; }
     // Rule[] string JSON data
     public string Data { get; set; } = null!;
 
     // Navigation property to creator
     public Account Creator { get; set; } = null!;
 
-    public Ruleset(int creatorId, string data)
+    public Ruleset(int creatorId, string name, string data)
     {
         CreatorId = creatorId;
+        Name = name;
         Data = data;
     }
+
+    // EFCore
+    public Ruleset() {}
 }

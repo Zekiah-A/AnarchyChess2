@@ -168,10 +168,28 @@
                 </ul>
                 <div class="modal-content" data-page="ruleset">
                     <div class="modal-content-container">
-                        <div style="flex-grow: 1;"><ac-ruleset-rule></ac-ruleset-rule></div>
-                        <div class="modal-content-side" style="width: 56px;">
-                            <div class="arrangement-button" tabindex="0" >➕</div>
-                            <div class="arrangement-button" tabindex="0" >➖</div>
+                        <div id="rulesetRules" class="modal-list"><!--Ruleset list elements go here--></div>
+                        <div class="modal-content-side" style="width: 192px;">
+                            <div class="arrangement-button" tabindex="0" onclick="
+                                let rule = document.createElement('ac-ruleset-rule')
+                                rulesetRules.appendChild(rule)
+                            ">➕ Add Rule</div>
+                            <div class="arrangement-button" tabindex="0" onclick="
+                                let ruleDatas = []
+                                for (let rule of rulesetRules.children) {
+                                    // Skip adding invalid rules
+                                    if (!rule.data || !rule.data.action?.type || !rule.data.action.condition) {
+                                        continue;
+                                    }
+                                    ruleDatas.push(rule.data)
+                                }
+                                let rulesetName = prompt('Enter name for new ruleset', 'My ruleset')
+                                if (!rulesetName || rulesetName.length > 16) {
+                                    alert('Could not create ruleset. Name length was not in  valid range (1-16)')
+                                    return
+                                }
+                                uploadRulesetRules(rulesetName, ruleDatas)
+                            ">Save</div>
                         </div>
                     </div>
                 </div>
@@ -218,7 +236,8 @@
                                 arrangementSelR = null
                                 updateArrangementStats()
                             }">Delete piece 🗑️</div>
-                        </div>
+                            <div class="arrangement-button" tabindex="0" onclick="">Save</div>
+                    </div>
                         <canvas id="arrangementCanvas" style="position: absolute; bottom: 0; left: 0; height: 100%; pointer-events: none; width: 100%;"></canvas>
                     </div>
                     <span id="arrangementStats">Black pieces: 0, White pieces: 0, White king present: ❌, Black king present: ❌</span>
@@ -233,8 +252,8 @@
                     </button>
                 </ul>
                 <div class="modal-content" data-page="join">
-                    <div id="matchList" class="match-list"><!--Match list elements go here--></div>
-                    <div class="match-list-buttons">
+                    <div id="matchList" class="modal-list"><!--Match list elements go here--></div>
+                    <div class="modal-list-buttons">
                         <input id="matchIdInput" class="arrangement-input" type="number" placeholder="Match ID">
                         <div class="arrangement-button" tabindex="0" onclick="play(matchIdInput.value)">Join</div>
                         <div style="flex-grow: 1;"><!--spacer--></div>
@@ -404,7 +423,7 @@
                 <fieldset class="main-menu-field">
                     <legend><h3 style="margin: 0px;">Advanced settings</h3></legend>
                     <p>
-                        <label for="soundCheckbox">Site server hostname:</label>
+                        <label for="soundCheckbox">Server hostname:</label>
                         <input id="serverInput" onchange="localStorage.serverHostname = this.value" placeholder="ip/domain:port" value="server.rplace.tk/ac">
                     </p>
                 </fieldset>
@@ -943,6 +962,24 @@
         }
         else {
             profileLocation.value = oldLocation
+        }
+    }
+
+    async function uploadRulesetRules(name, rulesObject) {
+        let success = await authedRequest(`Rulesets`,
+            "POST", { name: name, rules: rulesObject },
+            "Failed to upload ruleset")
+        if (success) {
+            alert(`Sucessfully uploaded ruleset ${name}`)
+        }
+    }
+
+    async function uploadArrangement(name, rows, columns, piecesObject) {
+        let success = await authedRequest(`Rulesets`,
+            "POST", { name: name, rows: rows, columns: columns, pieces: piecesObject },
+            "Failed to upload arrangement")
+        if (success) {
+            alert(`Sucessfully uploaded arrangement ${name}`)
         }
     }
 

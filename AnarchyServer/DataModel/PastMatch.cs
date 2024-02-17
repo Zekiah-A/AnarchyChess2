@@ -32,4 +32,6 @@ public class PastMatch
         StartDate = startDate;
         EndDate = endDate;
     }
+
+    public PastMatch() {}
 }
