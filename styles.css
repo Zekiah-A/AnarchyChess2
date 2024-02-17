@@ -544,13 +544,13 @@ header {
     cursor: default;
 }
 
-.modal-title>li[data-selected] {
+.modal-title>div[data-selected] {
     background: #f1f1f1;
     border: 1px solid gray;
     border-bottom: none;
 }
 
-.modal-title>li {
+.modal-title>div {
     display: flex;
     border: 1px solid #bdbdbd;
     background: #fafafa;

@@ -163,13 +163,13 @@
         <div class="main-menu-page" data-page="main">
             <p style="text-align: center;">A multiplayer chess game, with infinite variations and slightly bent rules. Here be anarchy.</p>
             <dialog id="configurePanel" class="modal">
-                <ul class="modal-title">
-                    <li data-selected data-page="ruleset" tabindex="0" onclick="setModalPage(configurePanel, this.dataset.page)">Ruleset</li>
-                    <li data-page="arrangement" tabindex="0" onclick="setModalPage(configurePanel, this.dataset.page)">Piece arrangement</li>
+                <div class="modal-title">
+                    <div data-selected data-page="ruleset" tabindex="0" onclick="setModalPage(configurePanel, this.dataset.page)">Ruleset</div>
+                    <div data-page="arrangement" tabindex="0" onclick="setModalPage(configurePanel, this.dataset.page)">Piece arrangement</div>
                     <button autofocus aria-label="close" onclick="configurePanel.close()">
                         <img src="./resources/close-icon.svg" alt="Close">
                     </button>
-                </ul>
+                </div>
                 <div class="modal-content" data-page="ruleset">
                     <div class="modal-content-container">
                         <div id="rulesetRules" class="modal-list"><!--Ruleset list elements go here--></div>
@@ -286,13 +286,13 @@
                 </div>
             </dialog>
             <dialog id="matchPanel" class="modal">
-                <ul class="modal-title">
-                    <li data-selected data-page="join" tabindex="0" onclick="setModalPage(matchPanel, this.dataset.page)">Connect</li>
-                    <li data-page="create" tabindex="0" onclick="setModalPage(matchPanel, this.dataset.page)">Create</li>
+                <div class="modal-title">
+                    <div data-selected data-page="join" tabindex="0" onclick="setModalPage(matchPanel, this.dataset.page)">Connect</div>
+                    <div data-page="create" tabindex="0" onclick="setModalPage(matchPanel, this.dataset.page)">Create</div>
                     <button autofocus aria-label="close" onclick="matchPanel.close()">
                         <img src="./resources/close-icon.svg" alt="Close">
                     </button>
-                </ul>
+                </div>
                 <div class="modal-content" data-page="join">
                     <div id="matchList" class="modal-list"><!--Match list elements go here--></div>
                     <div class="modal-list-buttons">
@@ -383,7 +383,7 @@
                         event.preventDefault()
                         this.style.outline = 'initial'
                     ">
-                        <img id="profilePicture" src="resources/logo.png">
+                        <img id="profilePicture" src="resources/logo.png" alt="Profile picture">
                         <input type="file" id="profilePictureInput" accept="image/*" onchange="
                             if (this.files[0]) {
                                 updateProfilePicture(this.files[0])
@@ -396,10 +396,10 @@
                     </div>
                     <fieldset class="profile-background-section">
                     <legend>Select profile colour</legend>
-                        <input type="button" onclick="updateProfileBackground('red')" style="background: linear-gradient(-45deg, #ff412d, #eee);" title="Red">
-                        <input type="button" onclick="updateProfileBackground('orange')" style="background: linear-gradient(-45deg, #ffd12d, #eee);" title="Orange">
-                        <input type="button" onclick="updateProfileBackground('green')" style="background: linear-gradient(-45deg, #a9ff86, #eee);" title="Green">
-                        <input type="button" onclick="updateProfileBackground('cyan')" style="background: linear-gradient(-45deg, #12ffff, #eee);" title="Cyan">
+                        <input type="button" onclick="updateProfileBackground('red')" style="background: linear-gradient(-45deg, #ff412d, #eee);" value=" " title="Red">
+                        <input type="button" onclick="updateProfileBackground('orange')" style="background: linear-gradient(-45deg, #ffd12d, #eee);" value=" " title="Orange">
+                        <input type="button" onclick="updateProfileBackground('green')" style="background: linear-gradient(-45deg, #a9ff86, #eee);" value=" " title="Green">
+                        <input type="button" onclick="updateProfileBackground('cyan')" style="background: linear-gradient(-45deg, #12ffff, #eee);" value=" " title="Cyan">
                     </fieldset>     
                 </div>
                 <fieldset style="margin-top: 72px;">
@@ -745,10 +745,10 @@
     calcHeaderPositioning()
 
     function setModalPage(modal, pageName) {
-        modal.querySelectorAll(".modal-title > li").forEach(element => {
+        modal.querySelectorAll(".modal-title > div").forEach(element => {
             element.removeAttribute('data-selected')
         })
-        modal.querySelector(`.modal-title > li[data-page="${pageName}"]`)
+        modal.querySelector(`.modal-title > div[data-page="${pageName}"]`)
             .setAttribute('data-selected', true)
 
         modal.querySelectorAll('.modal-content').forEach(element => element.style.display = "none")
