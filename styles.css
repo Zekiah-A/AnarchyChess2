@@ -390,17 +390,37 @@ header {
 #chatPanel>div {
     flex-grow: 1;
     overflow-y: scroll;
-    overflow-wrap: anywhere;
+    max-height: 178px;
 }
 
-#chatPanel>div>span[deathevent] {
+#chatPanel>div>p[data-spawnevent] {
     background-color: var(--ui-hilight-transparent);
     display: block;
 }
 
-#chatPanel>div>span[spawnevent] {
+#chatPanel>div>p[data-spawnevent] {
     background-color: var(--ui-special-transparent);
     display: block;
+}
+
+.chat-name-button {
+    background: none;
+    color: white;
+    margin: 0;
+    padding: 0;
+    font-size: 12pt;
+    border: none;
+    margin-right: 4px;
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 2px;
+    transition: 0.2s background-color, 0.2s color;
+}
+
+.chat-name-button:hover, .chat-name-button:focus, .chat-name-button:active {
+    text-decoration: underline;
+    background-color: var(--ui-input-hover);
+    color: black;
 }
 
 #turnPanel {
@@ -440,25 +460,12 @@ header {
 
 #board {
     position: absolute;
-    width: 512px;
-    height: 512px;
-    border: 2px solid gray;
-    padding: 4px;
-    transform: scale(0.4);
-    transition: 0.1s transform;
-    transform-origin: 0 0;
-}
-
-#board>canvas {
-    position: absolute;
-    border: 4px solid transparent;
-    transition: 0.1s border;
-}
-
-#board>canvas:hover {
-    z-index: 1;
-    border: 4px solid var(--ui-hilight-transparent);
-    border-radius: 4px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-40%, -40%) scale(0.8);
+    z-index: 2;
+    width: 1000px;
+    height: 1000px;
 }
 
 #meTurnPopup {
@@ -627,6 +634,10 @@ header {
 
 .arrangement-input:focus {
     border: 1px solid gray;
+}
+
+.arrangement-input:invalid {
+    border: 1px solid red !important;
 }
 
 .arrangement-button {

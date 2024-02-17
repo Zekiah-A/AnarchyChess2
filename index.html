@@ -18,6 +18,7 @@
     <script src="./profile-view.js"></script>
 </head>
 <body>
+    <ac-board id="board"></ac-board>
     <p class="copyright-notice">
         If you're seeing this, you probably moved the board offscreen. AnarchyChess, ©Zekiah-A
     </p>
@@ -26,7 +27,7 @@
     </div>
     <div id="gamemodesPanel" class="info-panel" data-closed="">
         <h4 style="margin: 0px;">Match options:</h4>
-        <input type="button" value="Exit match">
+        <input type="button" onclick="window.location.reload(true)" value="Exit match">
     </div>
     <div class="hud game-actions">
         <p onclick="chatPanel.toggleAttribute('data-closed'); settingsPanel.setAttribute('data-closed', true);">Chat</p>
@@ -37,11 +38,10 @@
         <div id="chatMessages">
             <p>🢂 Chat messages will appear here</p>
         </div>
-        <input placeholder="Send chat message" type="text" maxlength="250" onkeydown="
-            if (event.key == 'Enter') {
-                let input = this;
-                //sendChatMessage(input.value);
-                input.value = '';
+        <input placeholder="Send chat message" type="text" maxlength="96" onkeydown="
+            if (event.key == 'Enter' && socket != null) {
+                socket.send(this.value)
+                this.value = ''
             }
         ">
     </div>
@@ -232,16 +232,18 @@
                     </fieldset>
                     <fieldset style="display: flex; flex-direction: column; row-gap: 8px;">
                         <legend><h3 style="margin: 0px;">Lobby options:</h3></legend>
-                        <input type="text" id="createLobbyName" style="flex-shrink: 1;" class="arrangement-input" placeholder="Lobby name" maxlength="64">
+                        <input type="number" id="createLobbyCapacity" autocomplete="off" class="arrangement-input" placeholder="Lobby capacity" min="2" max="2">
+                        <input type="text" id="createLobbyName" autocomplete="off" style="flex-shrink: 1;" class="arrangement-input" placeholder="Lobby name" maxlength="64">
                         <div>
                             <input id="createPublic" type="checkbox" value="true">
-                            <label for="createPublic">Make lobby available publicly</label>
+                            <label for="createPublic">Advertise lobby publicly</label>
                         </div>
                     </fieldset>
                     <div style="flex-grow: 1;"><!--spacer--></div>
-                    <div class="arrangement-button" tabindex="0" onclick="
-                        createMatch(+createRuleset.value, +createArrangement.value, createLobbyName.value, createPublic.checked)
-                    ">Create and join match</div>
+                    <div class="arrangement-button" tabindex="0" onclick="(async function() {
+                        const matchId = await createMatch(+createRuleset.value, +createArrangement.value, createLobbyName.value, createLobbyCapacity.value, createPublic.checked)
+                        play(matchId)
+                    })()">Create and join match</div>
                 </div>
             </dialog>
             <fieldset class="main-menu-field">
@@ -932,24 +934,25 @@
         signout()
     }
 
-    let matchId = 0
-    async function createMatch(rulesetId, arrangementId, matchName, advertisePublic) {
+    async function createMatch(rulesetId, arrangementId, matchName, capacity, advertisePublic) {
         const res = await fetch(`${serverAddress}/Matches`, {
             method: "POST",
             headers: {
                 Authorization: token,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ rulesetId, arrangementId, matchName, advertisePublic })
+            body: JSON.stringify({ rulesetId, arrangementId, matchName, capacity, advertisePublic })
         })
         if (!res.ok) {
             const message = (await res.json())?.message
             alert("Failed to create match - " + (message || "network error"))
         }
         let json = await res.json()
-        matchId = json.matchId
+        return json.matchId
     }
 
+    let socket = null
+    const cachedProfiles = new Map()
     async function play(matchId) {
         // Make HTTP request beforehand to check if the specified match exists / is authorised
         const res = await fetch(`${serverAddress}/Matches/${matchId}`, {
@@ -961,14 +964,70 @@
             alert("Could not join match - " + (message || "network error"))
             return
         }
-        const socket = new WebSocket(`${socketAddress}/Matches/${matchId}?authorization=${token}`)
+        socket = new WebSocket(`${socketAddress}/Matches/${matchId}?authorization=${token}`)
         socket.binaryType = "arraybuffer"
-        socket.onmessage = function({data}) {
+        socket.onopen =  function() {
+            console.log(`Connection to match instance ${matchId} opened`)
+            configurePanel.close()
+            matchPanel.close()
+            mainMenu.style.display = "none"
+        }
+        socket.onmessage = async function({data}) {
             if (data instanceof ArrayBuffer) {
                 console.log(data)
             }
             else if (typeof data === "string") {
-                console.log(data)
+                const jsonData = JSON.parse(data)
+                let cachedProfile = cachedProfiles.get(jsonData.userId)
+                let displayUsername = cachedProfile?.username
+                if (!cachedProfile) {
+                    const res = await fetch(`${serverAddress}/Profiles/${jsonData.userId}`, {
+                        method: "GET",
+                        headers: { "Content-Type": "application/json", },
+                    })
+                    if (!res.ok) {
+                        const message = (await res.json())?.message
+                        console.error(`Could not find profile for chatter ${jsonData.userId}, ${message || "network error"}`)
+                        displayUsername = "#" + jsonData.userId
+                    }
+                    else {
+                        const user = await res.json()
+                        cachedProfiles.set(jsonData.userId, user)
+                        cachedProfile = user
+                        displayUsername = user.username
+                    }
+                }
+
+                // Create chat message item and add to UI
+                const chatItemEl = document.createElement("p")
+                const nameEl = document.createElement("button")
+                nameEl.title = "View profile"
+                nameEl.className = "chat-name-button"
+                nameEl.textContent = `[${displayUsername}]`
+                if (cachedProfile) {
+                    nameEl.onclick = async function() {
+                        const profileView = document.createElement("ac-profile-view")
+                        profileView.style.left = "50%"
+                        profileView.style.top = "50%"
+                        profileView.style.transform = "translateY(-50%)"
+                        chatItemEl.appendChild(profileView)
+                        profileView.loadFromData(cachedProfile)
+                    }
+                }
+                chatItemEl.appendChild(nameEl)
+                const messageEl = document.createElement("span")
+                messageEl.textContent = jsonData.message
+                chatItemEl.appendChild(messageEl)
+                chatMessages.appendChild(chatItemEl)
+    
+                //  If already near bottom, scroll so new chat message is visible
+                if (chatMessages.scrollTopMax - chatMessages.scrollTop < 64) {
+                    chatMessages.scroll({
+                        top: chatMessages.scrollTopMax,
+                        left: 0,
+                        behavior: "smooth",
+                    })
+                }
             }
         }
     }

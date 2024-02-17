@@ -195,8 +195,12 @@ app.MapPost("/Matches", ([FromBody] MatchCreateInfo info, HttpContext context) =
     {
         return Results.BadRequest(new { Message = "Provided lobby name was longer than maximum allowed length (64)" });
     }
+    if (info.Capacity is < 2 or > 2) // TODO: Allow larger matches
+    {
+        return Results.BadRequest(new { Message = "Provided lobby capacity was outside of allowed range (2-2)" });
+    }
     var newId = ++topMatchId;
-    var match = new AnarchyServer.Match(userId, info.MatchName, info.RulesetId, info.ArrangementId, info.AdvertisePublic);
+    var match = new AnarchyServer.Match(userId, info.MatchName, info.Capacity, info.RulesetId, info.ArrangementId, info.AdvertisePublic);
     matches.Add(newId, match);
 
     // TODO: Query DB for arrangement and ruleset ID to collect them. Cache both of these in an arrangement/ruleset pool.
@@ -218,6 +222,12 @@ app.MapGet("/Matches/{matchId}", async (int matchId, HttpContext context, Databa
         await context.Response.WriteAsJsonAsync(new { Message = "Specified match does not exist" });
         return;
     }
+    if (match.Started || match.Players.Count >= match.Capacity)
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        await context.Response.WriteAsJsonAsync(new { Message = "Specified match is full or has already started" });
+        return;
+    }
     if (context.Connection.RemoteIpAddress is null)
     {
         context.Response.StatusCode = StatusCodes.Status403Forbidden;
@@ -231,16 +241,17 @@ app.MapGet("/Matches/{matchId}", async (int matchId, HttpContext context, Databa
 
     using var websocket = await context.WebSockets.AcceptWebSocketAsync();
     var clientCancelToken = new CancellationToken();
-    var client = new ClientData(context.Connection.RemoteIpAddress, context.Connection.RemotePort, websocket, clientCancelToken);
+    var client = new ClientData(context.Connection.RemoteIpAddress, context.Connection.RemotePort, websocket, account, clientCancelToken);
     socketClients.Add(client);
-
+    
+    // Add them to match and hook their messages up to the match message handlers
+    match.AddPlayer(client);
     await foreach (var receiveResult in ReceiveDataAsync(client, clientCancelToken))
     {
         if (receiveResult is SocketClosure or SocketCancellation or SocketError)
         {
             break;
         }
-
         if (receiveResult is ReceivedMessage message)
         {
             match.CallHandlerDelegate(client, message);
@@ -351,13 +362,13 @@ app.MapGet("/Profiles/{id}", async (int id, DatabaseContext dbContext) =>
         // Sanitised public facing account profile
         var profile = new
         {
-            Id = account.Id,
-            Username = account.Username,
-            Biography = account.Biography,
-            ProfileImageUri = account.ProfileImageUri,
-            ProfileBackground = account.ProfileBackground,
-            Gender = account.Gender,
-            Location = account.Location,
+            account.Id,
+            account.Username,
+            account.Biography,
+            account.ProfileImageUri,
+            account.ProfileBackground,
+            account.Gender,
+            account.Location,
             // TODO: Implement these properties
             GamesPlayed = 0,  
             MatchesWon = 0,

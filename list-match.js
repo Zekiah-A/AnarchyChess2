@@ -19,7 +19,7 @@ class ListMatch extends HTMLElement {
 
     connectedCallback() {
         this.shadowRoot.innerHTML = html`
-            <div class="name-container" style="flex-grow: 1;">
+            <div class="name-container" style="flex-grow: 1; max-width: 256px;">
                 <span class="name" id="name">Unknown</span>
                 <sub class="match-id">(Match ID: <span id="matchId">0</span>)</sub>
             </div>
@@ -82,6 +82,8 @@ class ListMatch extends HTMLElement {
             const creatorId = _this.getAttribute("creatorId")
             const profileView = document.createElement("ac-profile-view")
             profileView.style.left = "50%"
+            profileView.style.top = "50%"
+            profileView.style.transform = "translateY(-50%)"
             _this.shadowRoot.appendChild(profileView)
             await profileView.loadFromUserId(+creatorId)
         }

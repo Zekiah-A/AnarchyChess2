@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.WebSockets;
+using AnarchyServer.DataModel;
 
 namespace AnarchyServer;
 
@@ -9,14 +10,15 @@ public class ClientData
     public int Port { get; init; }
     public WebSocket Socket { get; init; }
     public CancellationToken CancellationToken { get; init; }
-    public int Id { get; init; }
+    public Account Account { get; init; }
 
-    public ClientData(IPAddress ip, int port, WebSocket socket, CancellationToken cancellationToken)
+    public ClientData(IPAddress ip, int port, WebSocket socket, Account account, CancellationToken cancellationToken)
     {
         Ip = ip;
         Port = port;
         Socket = socket;
         CancellationToken = cancellationToken;
+        Account = account;
     }
 
     public async Task SendAsync(byte[] data, WebSocketMessageType type = WebSocketMessageType.Binary, CancellationToken? cancelToken = null)

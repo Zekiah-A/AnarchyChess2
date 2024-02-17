@@ -59,6 +59,7 @@ class ProfileView extends HTMLElement {
                 border-radius: 8px;
                 z-index: 1;
                 max-width: 360px;
+                color: black;
             }
 
             .close-button {
@@ -152,17 +153,7 @@ class ProfileView extends HTMLElement {
         }
     }
 
-    async loadFromUserId(id) {
-        const res = await fetch(`${serverAddress}/Profiles/${id}`, {
-            method: "GET",
-            headers: { "Content-Type": "application/json", },
-        })
-        if (!res.ok) {
-            const message = (await res.json())?.message
-            this.biography.textContent = `Failed to load profile: ${message || "network error"}`
-            return
-        }
-        const user = await res.json()
+    loadFromData(user) {
         this.username.textContent = user.username
         this.picture.src = `${serverAddress}/${user.profileImageUri}`
         this.biography.textContent = user.biography
@@ -175,6 +166,20 @@ class ProfileView extends HTMLElement {
         const theme = profileThemes[user.profileBackground || "none"]
         this.header.style.background = theme.background
         this.header.style.setProperty("--profile-header-cover", theme.cover)
+    }
+
+    async loadFromUserId(id) {
+        const res = await fetch(`${serverAddress}/Profiles/${id}`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json", },
+        })
+        if (!res.ok) {
+            const message = (await res.json())?.message
+            this.biography.textContent = `Failed to load profile: ${message || "network error"}`
+            return
+        }
+        const user = await res.json()
+        this.loadFromData(user)
     }
 }
 
