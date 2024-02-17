@@ -1,6 +1,7 @@
 class Board extends HTMLElement {
     #tiles
     #tileElements
+    #pieces
     #pieceElements
     #columns
     #rows
@@ -27,6 +28,9 @@ class Board extends HTMLElement {
     get pieceElements() {
         return this.#pieceElements
     }
+    get pieces() {
+        return this.#pieces
+    }
     static get observedAttributes() {
         return ["rows", "columns"]
     }
@@ -36,6 +40,7 @@ class Board extends HTMLElement {
     }
     set columns(value) {
         this.#columns = value
+        this.resetAll()
         this.flushBoard()
     }
     get rows() {
@@ -43,6 +48,7 @@ class Board extends HTMLElement {
     }
     set rows(value) {
         this.#rows = value
+        this.resetAll()
         this.flushBoard()
     }
 
@@ -160,6 +166,7 @@ class Board extends HTMLElement {
         })
 
         this.#pieceElements[column][row] = pieceEl
+        this.#pieces[column][row] = pieceData
         this.setPiecePosition(pieceEl, column, row)
         this.board.appendChild(pieceEl)
     }
@@ -167,6 +174,7 @@ class Board extends HTMLElement {
     clearPiece(column, row) {
         this.#tiles[column][row] = null
         this.#pieceElements[column][row].remove()
+        this.#pieces[column].splice(row, 1)
     }
 
     setPiecePosition(pieceEl, column, row) {
@@ -191,10 +199,12 @@ class Board extends HTMLElement {
         this.#tiles = new Array(this.#columns)
         this.#tileElements = new Array(this.#columns)
         this.#pieceElements = new Array(this.#columns)
+        this.#pieces = new Array(this.#columns)
         for (let r = 0; r < this.#rows; r++) {
             this.#tiles[r] = new Array(this.#rows)
             this.#tileElements[r] = new Array(this.#rows)
             this.#pieceElements[r] = new Array(this.#rows)
+            this.#pieces[r] = new Array(this.#rows)
         }
     }
 

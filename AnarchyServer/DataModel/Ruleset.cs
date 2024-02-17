@@ -5,7 +5,7 @@ public class Ruleset
 {
     public int Id { get; set; }
     public int CreatorId { get; set; }
-    string Name { get; set; }
+    public string Name { get; set; }
     // Rule[] string JSON data
     public string Data { get; set; } = null!;
 

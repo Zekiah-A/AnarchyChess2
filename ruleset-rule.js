@@ -3,7 +3,7 @@ class RulesetRule extends HTMLElement {
         super()
         this.attachShadow({ mode: "open" })
         // Action types: SpawnPieceAt, DeletePieceAt, SetCurrentTurn
-        this.data = { condition: null, action: {  } }
+        this.data = { condition: "matchStart", action: {  } }
     }
 
     connectedCallback() {
@@ -63,72 +63,78 @@ class RulesetRule extends HTMLElement {
         this.shadowRoot.append(style)
         defineAndInject(this, this.shadowRoot)
         this.tabIndex = "0"
+        this.updateCondition()
+        this.updateAction1()
         
         const _this = this
         this.deleteButton.onclick = function() {
             _this.remove()
         }
-        this.condition.onchange = function() {
-            _this.data.condition = _this.condition.value
-        }
-        this.action.onchange = function() {
-            switch (_this.action.value) {
-                case "spawn": {
-                    _this.action1.innerHTML = html`
-                        <select id="atColour">
-                            <option value="black">Black</option>
-                            <option value="white">White</option>
-                        </select>
-                        <select id="atType">
-                            <option value="pawn">Pawn</option>
-                            <option value="rook">Rook</option>
-                            <option value="knight">Knight</option>
-                            <option value="bishop">Bishop</option>
-                            <option value="queen">Queen</option>
-                            <option value="king">King</option>
-                        </select>
-                        at
-                        <input id="atPosition" type="text" style="width: 48px;" maxlength="2" placeholder="A1" value="A1">
-                    `
-                    defineAndInject(_this, _this.shadowRoot)
-                    _this.data.action = { type: "spawn", atPosition: "A1", atType: "pawn", atColour: "black" }
-                    _this.atPosition.onchange = function() {
-                        _this.data.action.atPosition = _this.atPosition.value 
-                    }
-                    _this.atType.onchange = function() {
-                        _this.data.action.atType = _this.atType.value 
-                    }
-                    _this.atColour.onchange = function() {
-                        _this.data.action.atColour = _this.atColour.value 
-                    }
-                    break
+        this.condition.onchange = () => _this.updateCondition()
+        this.action.onchange = () => _this.updateAction1()
+    }
+
+    updateCondition() {
+        this.data.condition = this.condition.value
+    }
+
+    updateAction1() {
+        switch (this.action.value) {
+            case "spawn": {
+                this.action1.innerHTML = html`
+                    <select id="atColour">
+                        <option value="black">Black</option>
+                        <option value="white">White</option>
+                    </select>
+                    <select id="atType">
+                        <option value="pawn">Pawn</option>
+                        <option value="rook">Rook</option>
+                        <option value="knight">Knight</option>
+                        <option value="bishop">Bishop</option>
+                        <option value="queen">Queen</option>
+                        <option value="king">King</option>
+                    </select>
+                    at
+                    <input id="atPosition" type="text" style="width: 48px;" maxlength="2" placeholder="A1" value="A1">
+                `
+                defineAndInject(this, this.shadowRoot)
+                this.data.action = { type: "spawn", atPosition: "A1", atType: "pawn", atColour: "black" }
+                this.atPosition.onchange = function() {
+                    this.data.action.atPosition = this.atPosition.value 
                 }
-                case "delete": {
-                    _this.action1.innerHTML = html`
-                        at
-                        <input id="atPosition" type="text" style="width: 48px;" maxlength="2" placeholder="A1" value="A1">
-                    `
-                    defineAndInject(_this, _this.shadowRoot)
-                    _this.data.action = { type: "delete", atPosition: "A1" }
-                    _this.atPosition.onchange = function() {
-                        _this.data.action.atPosition = _this.atPosition.value
-                    }
-                    break
+                this.atType.onchange = function() {
+                    this.data.action.atType = this.atType.value 
                 }
-                case "setCurrentTurn": {
-                    _this.action1.innerHTML = html`
-                        <select id="turnColour">
-                            <option value="black">Black</option>
-                            <option value="white">White</option>
-                        </select>
-                    `
-                    defineAndInject(_this, _this.shadowRoot)
-                    _this.data.action = { type: "setCurrentTurn", turnColour: "black" }
-                    _this.turnColour.onchange = function() {
-                        _this.data.action.turnColour = _this.turnColour.value
-                    }
-                    break
+                this.atColour.onchange = function() {
+                    this.data.action.atColour = this.atColour.value 
                 }
+                break
+            }
+            case "delete": {
+                this.action1.innerHTML = html`
+                    at
+                    <input id="atPosition" type="text" style="width: 48px;" maxlength="2" placeholder="A1" value="A1">
+                `
+                defineAndInject(this, this.shadowRoot)
+                this.data.action = { type: "delete", atPosition: "A1" }
+                this.atPosition.onchange = function() {
+                    this.data.action.atPosition = this.atPosition.value
+                }
+                break
+            }
+            case "setCurrentTurn": {
+                this.action1.innerHTML = html`
+                    <select id="turnColour">
+                        <option value="black">Black</option>
+                        <option value="white">White</option>
+                    </select>
+                `
+                defineAndInject(this, this.shadowRoot)
+                this.data.action = { type: "setCurrentTurn", turnColour: "black" }
+                this.turnColour.onchange = function() {
+                    this.data.action.turnColour = this.turnColour.value
+                }
+                break
             }
         }
     }

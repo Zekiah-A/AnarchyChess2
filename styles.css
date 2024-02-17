@@ -622,7 +622,7 @@ header {
     padding: 8px;
     padding-bottom: 0;
     padding-top: 0;
-    row-gap: 16px;
+    row-gap: 8px;
 }
 
 .arrangement-input {

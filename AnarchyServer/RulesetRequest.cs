@@ -1,3 +1,5 @@
+using System.Text.Json.Nodes;
+
 namespace AnarchyServer;
 
-public record RulesetRequest(string Name, Dictionary<string, Dictionary<string, object>>[] Rules);
+public record RulesetRequest(string Name, string Rules);

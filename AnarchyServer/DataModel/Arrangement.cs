@@ -4,7 +4,7 @@ public class Arrangement
 {
     public int Id { get; set; }
     public int CreatorId { get; set; }
-    string Name { get; set; }
+    public string Name { get; set; }
     public int Rows { get; set; }
     public int Columns { get; set; }
     // PieceData[][] string JSON data

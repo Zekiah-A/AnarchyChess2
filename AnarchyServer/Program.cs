@@ -280,6 +280,28 @@ app.MapGet("/GlobalStats", () =>
     return Results.Ok(stats);
 });
 
+app.MapGet("/Users/{id}/Rulesets", async (int id, DatabaseContext dbContext) =>
+{
+    var user = await dbContext.Accounts.FindAsync(id);
+    if (user is null)
+    {
+        return Results.NotFound(new { Message = "Specified user does not exist"});
+    }
+    var rulesets = dbContext.Rulesets.All(user => user.CreatorId == id);
+    return Results.Ok(rulesets);
+});
+
+app.MapGet("/Users/{id}/Arrangements", async (int id, DatabaseContext dbContext) =>
+{
+    var user = await dbContext.Accounts.FindAsync(id);
+    if (user is null)
+    {
+        return Results.NotFound(new { Message = "Specified user does not exist"});
+    }
+    var arrangements = dbContext.Arrangements.All(user => user.CreatorId == id);
+    return Results.Ok(arrangements);
+});
+
 app.MapPost("/Rulesets", async([FromBody] RulesetRequest rulesetRequest, HttpContext context, DatabaseContext dbContext) =>
 {
     if (context.Items["AccountId"] is not int id
@@ -288,8 +310,8 @@ app.MapPost("/Rulesets", async([FromBody] RulesetRequest rulesetRequest, HttpCon
         return Results.Unauthorized();
     }
 
-    var data = JsonSerializer.Serialize(rulesetRequest.Rules);
-    var ruleset = new Ruleset(id, rulesetRequest.Name, data);
+    //var data = JsonSerializer.Serialize(rulesetRequest.Rules);
+    var ruleset = new Ruleset(id, rulesetRequest.Name, rulesetRequest.Rules);
     await dbContext.Rulesets.AddAsync(ruleset);
     await dbContext.SaveChangesAsync();
     return Results.Ok();
@@ -303,8 +325,8 @@ app.MapPost("/Arrangements", async ([FromBody] ArrangementRequest arrangementReq
         return Results.Unauthorized();
     }
 
-    var data = JsonSerializer.Serialize(arrangementRequest.Pieces);
-    var arrangement = new Arrangement(id, arrangementRequest.Name, arrangementRequest.Rows, arrangementRequest.Columns, data);
+    //var data = JsonSerializer.Serialize(arrangementRequest.Pieces);
+    var arrangement = new Arrangement(id, arrangementRequest.Name, arrangementRequest.Rows, arrangementRequest.Columns, arrangementRequest.Pieces);
     await dbContext.Arrangements.AddAsync(arrangement);
     await dbContext.SaveChangesAsync();
     return Results.Ok();

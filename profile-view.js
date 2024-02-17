@@ -153,12 +153,26 @@ class ProfileView extends HTMLElement {
         }
     }
 
+    getGenderFullName(name) {
+        switch (name)
+        {
+            case "male":
+                return "Male"
+            case "female":
+                return "Female"
+            case "other":
+                return "other"
+            default:
+                return "Unknown"
+        }
+    }
+
     loadFromData(user) {
         this.username.textContent = user.username
         this.picture.src = `${serverAddress}/${user.profileImageUri}`
         this.biography.textContent = user.biography
         this.location.textContent = user.location
-        this.gender.textContent = getGenderFullName(user.gender)
+        this.gender.textContent = this.getGenderFullName(user.gender)
         this.gamesPlayed.textContent = user.gamesPlayed
         this.matchesWon.textContent = user.matchesWon
         this.playTime.textContent = user.playTime

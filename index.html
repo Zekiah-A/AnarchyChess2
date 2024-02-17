@@ -142,14 +142,18 @@
                     this.reportValidity()
                 " pattern="[^@\s]+@[^@\s]+\.[^@\s]+">
                 <input type="button" value="Create account" onclick="
-                    if (signupUsername.value && signupEmail.value && signupEmail.validity.valid) {
-                        if (signup(signupUsername.value, signupEmail.value)) {
-                            login(signupUsername.value,  signupEmail.value)
+                    (async function() {
+                        if (signupUsername.value && signupEmail.value && signupEmail.validity.valid) {
+                            if (await signup(signupUsername.value, signupEmail.value)) {
+                                await login(signupUsername.value,  signupEmail.value)
+                                loginUsername.text = signupUsername.value
+                                loginEmail.text = signupEmail.value
+                            }
+                            signupUsername.value = ''
+                            signupEmail.value = ''
+                            signupConfirm.value =  ''
                         }
-                        signupUsername.value = ''
-                        signupEmail.value = ''
-                        signupConfirm.value =  ''
-                    }
+                    })()
                 ">
             </div>
             <div>
@@ -178,7 +182,7 @@
                                 let ruleDatas = []
                                 for (let rule of rulesetRules.children) {
                                     // Skip adding invalid rules
-                                    if (!rule.data || !rule.data.action?.type || !rule.data.action.condition) {
+                                    if (!rule.data || !rule.data?.condition || !rule.data?.action.type) {
                                         continue;
                                     }
                                     ruleDatas.push(rule.data)
@@ -229,14 +233,52 @@
                                 <img src="resources/queen-white.svg" data-colour="white" alt="" data-type="queen">
                                 <img src="resources/king-white.svg" data-colour="white" alt="" data-type="king">
                             </div>
-                            <div style="flex-grow: 1;"><!--vertical spacer--></div>
+                            <div style="display: flex; position: relative;">
+                                <input id="arrangementColumns" data-oldvalue="8" onchange="
+                                    if (confirm('Are you sure you want to resize the board? This will wipe all pieces')) {
+                                        arrangementBoard.columns = this.value
+                                        this.dataset.oldvalue = this.value
+                                    }
+                                    else {
+                                        this.value = +this.dataset.oldvalue
+                                    }
+                                " type="number" style="width: 50%;" value="8" min="6" max="16">
+                                <input id="arrangementRows" data-oldvalue="8" onchange="
+                                    if (confirm('Are you sure you want to resize the board? This will wipe all pieces')) {
+                                        arrangementBoard.rows = this.value
+                                        this.dataset.oldvalue = this.value
+                                    }
+                                    else {
+                                        this.value = +this.dataset.oldvalue
+                                    }
+                                " type="number" style="width: 50%;" value="8" min="6" max="16">
+                            </div>
+                            <div style="flex-grow: 1;"><!--Spacer--></div>
                             <div class="arrangement-button" tabindex="0" onclick="if (arrangementSelC != null && arrangementSelR != null) {
                                 animateDestroyPiece(arrangementBoard, arrangementCanvas, arrangementSelC, arrangementSelR)
                                 arrangementSelC = null
                                 arrangementSelR = null
                                 updateArrangementStats()
                             }">Delete piece 🗑️</div>
-                            <div class="arrangement-button" tabindex="0" onclick="">Save</div>
+                            <div class="arrangement-button" tabindex="0" onclick="
+                                let arrangementName = prompt('Enter name for new arrangement', 'My arrangement')
+                                if (!arrangementName || arrangementName.length > 16) {
+                                    alert('Could not create arrangement. Name length was not in valid range (1-16)')
+                                    return
+                                }
+                                let piecesArray = []
+                                for (let i = 0; i < arrangementBoard.columns * arrangementBoard.rows; i++) {
+                                    const column = Math.floor(i / arrangementBoard.columns)
+                                    const row = i % arrangementBoard.columns
+                                    let pieceData = null
+                                    const columnArray = arrangementBoard.pieces[column]
+                                    if (columnArray != null) {
+                                        pieceData = columnArray[row] || null
+                                    }
+                                    piecesArray.push(pieceData)
+                                }
+                                uploadArrangement(name, arrangementColumns.value, arrangementRows.value, piecesArray)
+                            ">Save</div>
                     </div>
                         <canvas id="arrangementCanvas" style="position: absolute; bottom: 0; left: 0; height: 100%; pointer-events: none; width: 100%;"></canvas>
                     </div>
@@ -294,8 +336,8 @@
             </dialog>
             <fieldset class="main-menu-field">
                 <legend><h3>Create</h3></legend>
-                <input value="Create a new ruleset" type="button" onclick="configurePanel.showModal(); /*configurePanel.removeAttribute('data-closed');*/ setModalPage(configurePanel, 'ruleset')">
-                <input value="Create a new arrangement" type="button" onclick="configurePanel.showModal(); /*configurePanel.removeAttribute('data-closed');*/ setModalPage(configurePanel, 'arrangement')">
+                <input id="createRulesetButton" disabled value="Create a new ruleset" type="button" onclick="configurePanel.showModal(); setModalPage(configurePanel, 'ruleset')">
+                <input id="createArrangementButton" disabled value="Create a new arrangement" type="button" onclick="configurePanel.showModal(); setModalPage(configurePanel, 'arrangement')">
             </fieldset>
             <fieldset class="main-menu-field">
                 <legend><h3>Play</h3></legend>
@@ -789,22 +831,10 @@
         settingsContent.style.display = "flex"
         joinLobbyButton.removeAttribute("disabled")
         createMatchButton.removeAttribute("disabled")
+        createRulesetButton.removeAttribute("disabled")
+        createArrangementButton.removeAttribute("disabled")
         updateMatchList()
         setInterval(() => updateMatchList(), 5000)
-    }
-
-    function getGenderFullName(name) {
-        switch (name)
-        {
-            case "male":
-                return "Male"
-            case "female":
-                return "Female"
-            case "other":
-                return "other"
-            default:
-                return "Unknown"
-        }
     }
 
     async function updateUserInfo() {
@@ -967,16 +997,22 @@
 
     async function uploadRulesetRules(name, rulesObject) {
         let success = await authedRequest(`Rulesets`,
-            "POST", { name: name, rules: rulesObject },
+            "POST", { name: name, rules: JSON.stringify(rulesObject) },
             "Failed to upload ruleset")
         if (success) {
             alert(`Sucessfully uploaded ruleset ${name}`)
         }
     }
 
-    async function uploadArrangement(name, rows, columns, piecesObject) {
+    async function uploadArrangement(name, columns, rows, piecesArray) {
+        const stats = getArrangementStats()
+        if (!stats.valid) {
+            alert(`Could not upload arrangement - Board requirements not satisfied (${
+                stats.blackKing ? 'no' : ''} black king present, ${stats.whiteKing ?  'no' : ''} white king present)`)
+            return
+        }
         let success = await authedRequest(`Rulesets`,
-            "POST", { name: name, rows: rows, columns: columns, pieces: piecesObject },
+            "POST", { name: name, columns: columns, rows: rows, pieces: JSON.stringify(piecesArray) },
             "Failed to upload arrangement")
         if (success) {
             alert(`Sucessfully uploaded arrangement ${name}`)
