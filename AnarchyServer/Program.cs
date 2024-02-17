@@ -87,6 +87,43 @@ foreach (var endpoint in authEndpoints)
     );
 }
 
+void InsertDefaults()
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+    if (dbContext is null)
+    {
+        throw new Exception("Couldn't insert defaults, db was null");
+    }
+    // Insert default arrangement into database if does not already exist
+    if (dbContext.Arrangements.Find(0) is null) {
+        dbContext.Database.ExecuteSqlRaw($$$"""
+            INSERT INTO Arrangements (Id, CreatorId, Rows, Columns, Data, Name)
+            VALUES (
+                0,
+                NULL,
+                8,
+                8,
+                "[{"type":"rook","colour":"black"},{"type":"pawn","colour":"black"},null,null,null,null,{"type":"pawn","colour":"white"},{"type":"rook","colour":"white"},{"type":"knight","colour":"black"},null,null,null,null,null,{"type":"pawn","colour":"white"},{"type":"knight","colour":"white"},{"type":"bishop","colour":"black"},{"type":"pawn","colour":"black"},null,null,null,null,{"type":"pawn","colour":"white"},{"type":"bishop","colour":"white"},{"type":"king","colour":"black"},{"type":"pawn","colour":"black"},null,null,null,null,{"type":"pawn","colour":"white"},{"type":"king","colour":"white"},{"type":"queen","colour":"black"},{"type":"pawn","colour":"black"},null,null,null,null,{"type":"pawn","colour":"white"},{"type":"queen","colour":"white"},{"type":"bishop","colour":"black"},null,null,null,null,null,{"type":"pawn","colour":"white"},{"type":"bishop","colour":"white"},{"type":"knight","colour":"black"},null,null,null,null,null,{"type":"pawn","colour":"white"},{"type":"knight","colour":"white"},{"type":"rook","colour":"black"},{"type":"pawn","colour":"black"},null,null,null,null,{"type":"pawn","colour":"white"},{"type":"rook","colour":"white"}]",
+                "Default"
+            )
+        """);
+    }
+    // Insert default ruleset into database if does not already exist
+    if (dbContext.Rulesets.Find(0) is null) {
+        dbContext.Database.ExecuteSql($$$"""
+            INSERT INTO Rulesets (Id, CreatorId, Data, Name)
+            VALUES (
+                0,
+                NULL,
+                '{"condition":"matchStart","action":{"type":"setCurrentTurn","turnColour":"black"}}',
+                'Default'
+            )
+        """);
+    }
+}
+InsertDefaults();
+
 async IAsyncEnumerable<IReceiveResult> ReceiveDataAsync(ClientData client, [EnumeratorCancellation] CancellationToken token)
 {
     // Receive in chunks

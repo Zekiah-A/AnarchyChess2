@@ -3,7 +3,7 @@ namespace AnarchyServer.DataModel;
 public class Arrangement
 {
     public int Id { get; set; }
-    public int CreatorId { get; set; }
+    public int? CreatorId { get; set; }
     public string Name { get; set; }
     public int Rows { get; set; }
     public int Columns { get; set; }
@@ -11,7 +11,7 @@ public class Arrangement
     public string Data { get; set; }
 
     //  Navigation property to Account
-    public Account Creator { get; set; } = null!;
+    public Account? Creator { get; set; } = null!;
 
     public Arrangement(int creatorId, string name, int rows, int columns, string data)
     {
