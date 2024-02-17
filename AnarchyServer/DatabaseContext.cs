@@ -6,7 +6,10 @@ namespace AnarchyServer;
 public class DatabaseContext : DbContext
 {
     public DbSet<Account> Accounts { get; set; }
-    public DbSet<PastMatch> Matches { get; set; }
+    public DbSet<Arrangement> Arrangements { get; set; }
+    public DbSet<Ruleset> Rulesets { get; set; }
+    public DbSet<PastMatch> PastMatches { get; set; }
+    public DbSet<AccountPastMatch> AccountPastMatches { get; set; }
 
     public DatabaseContext() { }
     public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options) { }
@@ -23,16 +26,38 @@ public class DatabaseContext : DbContext
             .HasKey(account => account.Id);
         modelBuilder.Entity<Account>()
             .ToTable("Accounts");
-
         // Unique username
         modelBuilder.Entity<Account>()
             .HasIndex(account => account.Username)
             .IsUnique();
-
         // Unique token
         modelBuilder.Entity<Account>()
             .HasIndex(account => account.Token)
             .IsUnique();
+
+        // Many to many Account : Past Match, using linker table  AccountPastMatch
+        modelBuilder.Entity<Account>()
+            .HasMany(account => account.PastMatches)
+            .WithMany(pastMatch => pastMatch.Players)
+            .UsingEntity<AccountPastMatch>();
+
+        // Primary key for Arrangement
+        modelBuilder.Entity<Arrangement>()
+            .HasKey(arragement => arragement.Id);
+        // Many to one ruleset : Account
+        modelBuilder.Entity<Arrangement>()
+            .HasOne(arrangement => arrangement.Creator)
+            .WithMany(account => account.Arrangements)
+            .HasForeignKey(arrangement => arrangement.CreatorId);
+
+        // Primary key for ruleset
+        modelBuilder.Entity<Ruleset>()
+            .HasKey(ruleset => ruleset.Id);
+        // Many to one ruleset : Account
+        modelBuilder.Entity<Ruleset>()
+            .HasOne(ruleset => ruleset.Creator)
+            .WithMany(account => account.Rulesets)
+            .HasForeignKey(ruleset => ruleset.CreatorId);
 
         base.OnModelCreating(modelBuilder);
     }

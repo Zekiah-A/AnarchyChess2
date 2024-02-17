@@ -74,7 +74,7 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/Profiles/Images"
 });
 
-var authEndpoints = new[] { "/Users", "/Matches" };
+var authEndpoints = new[] { "/Users", "/Matches",  "/Rulesets", "/Arrangements" };
 foreach (var endpoint in authEndpoints)
 {
     app.UseWhen
@@ -177,7 +177,7 @@ app.MapGet("/Matches", (HttpContext context) =>
         if (!match.Started && match.AdvertisePublic)
         {
             var matchInfo = new MatchInfo(matchPair.Key, match.HostId, match.Name, match.Capacity,
-                playerCount, match.RulesetId, match.ArrangementId);
+                playerCount, match.Ruleset.Id, match.Arrangement.Id);
             found.Add(matchInfo);
         }
     }
@@ -185,7 +185,7 @@ app.MapGet("/Matches", (HttpContext context) =>
     return Results.Ok(new { Matches = found });
 });
 
-app.MapPost("/Matches", ([FromBody] MatchCreateInfo info, HttpContext context) =>
+app.MapPost("/Matches", async ([FromBody] MatchCreateInfo info, HttpContext context, DatabaseContext dbContext) =>
 {
     if (context.Items["AccountId"] is not int userId)
     {
@@ -199,8 +199,14 @@ app.MapPost("/Matches", ([FromBody] MatchCreateInfo info, HttpContext context) =
     {
         return Results.BadRequest(new { Message = "Provided lobby capacity was outside of allowed range (2-2)" });
     }
+    if (await dbContext.Rulesets.FindAsync(info.RulesetId) is not Ruleset ruleset
+        || await dbContext.Arrangements.FindAsync(info.ArrangementId) is not Arrangement arrangement)
+    {
+        return Results.BadRequest(new { Message = "Specified ruleset/arrangement does not exist" });
+    }
+
     var newId = ++topMatchId;
-    var match = new AnarchyServer.Match(userId, info.MatchName, info.Capacity, info.RulesetId, info.ArrangementId, info.AdvertisePublic);
+    var match = new AnarchyServer.Match(userId, info.MatchName, info.Capacity, ruleset, arrangement, info.AdvertisePublic);
     matches.Add(newId, match);
 
     // TODO: Query DB for arrangement and ruleset ID to collect them. Cache both of these in an arrangement/ruleset pool.
@@ -238,6 +244,13 @@ app.MapGet("/Matches/{matchId}", async (int matchId, HttpContext context, Databa
         context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
         return;
     }
+    // Block multiple matches at once
+    if (socketClients.Any(client => client.Account.Id == account.Id))
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsJsonAsync(new { Message = "You are already connected to a match" });
+        return;
+    }
 
     using var websocket = await context.WebSockets.AcceptWebSocketAsync();
     var clientCancelToken = new CancellationToken();
@@ -250,6 +263,8 @@ app.MapGet("/Matches/{matchId}", async (int matchId, HttpContext context, Databa
     {
         if (receiveResult is SocketClosure or SocketCancellation or SocketError)
         {
+            socketClients.Remove(client);
+            await match.RemovePlayer(client);
             break;
         }
         if (receiveResult is ReceivedMessage message)
@@ -264,6 +279,37 @@ app.MapGet("/GlobalStats", () =>
     var stats = new GlobalStats(socketClients.Count, matches.Count);
     return Results.Ok(stats);
 });
+
+app.MapPost("/Rulesets", async([FromBody] RulesetRequest rulesetRequest, HttpContext context, DatabaseContext dbContext) =>
+{
+    if (context.Items["AccountId"] is not int id
+        || await dbContext.Accounts.FindAsync(id) is not Account user)
+    {
+        return Results.Unauthorized();
+    }
+
+    var data = JsonSerializer.Serialize(rulesetRequest.Data);
+    var ruleset = new Ruleset(id, data);
+    await dbContext.Rulesets.AddAsync(ruleset);
+    await dbContext.SaveChangesAsync();
+    return Results.Ok();
+});
+
+app.MapPost("/Arrangements", async ([FromBody] ArrangementRequest arrangementRequest, HttpContext context, DatabaseContext dbContext) =>
+{
+    if (context.Items["AccountId"] is not int id
+        || await dbContext.Accounts.FindAsync(id) is not Account user)
+    {
+        return Results.Unauthorized();
+    }
+
+    var data = JsonSerializer.Serialize(arrangementRequest.Data);
+    var arrangement = new Arrangement(id, arrangementRequest.Rows, arrangementRequest.Columns, data);
+    await dbContext.Arrangements.AddAsync(arrangement);
+    await dbContext.SaveChangesAsync();
+    return Results.Ok();
+});
+
 
 void AppendAuthCookie(string token, HttpContext context, IConfiguration config)
 {
@@ -491,7 +537,7 @@ app.MapPost("/Users/{id}", async (int id, [FromBody] Account updatedProfile, Htt
 var allowedPfpMimes = new Dictionary<string, string>
 {
     { "image/png",  ".png" },
-    { "image/jpg", ".jpg" },
+    { "image/jpeg", ".jpg" },
     { "image/webp", ".webp" },
     { "image/gif", ".gif" }
 };

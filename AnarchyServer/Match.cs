@@ -1,6 +1,7 @@
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using AnarchyServer.DataModel;
 using DataProto;
 
 namespace AnarchyServer;
@@ -12,26 +13,27 @@ public class Match
     public string Name;
     public bool Started;
     public int HostId;
-    public List<ClientData> Players;
+    public IReadOnlyList<ClientData> Players { get => players; }
     public bool AdvertisePublic;
-    public int RulesetId;
-    public int ArrangementId;
+    public Ruleset Ruleset;
+    public Arrangement Arrangement;
 
+    private readonly List<ClientData> players;
     private readonly JsonSerializerOptions jsonOptions;
     private delegate void BinaryPacketHandler(ref ReadablePacket data);
     private readonly Dictionary<int, BinaryPacketHandler> binaryPacketHandlers;
 
-    public Match(int hostId, string name, int capacity, int rulesetId, int arrangementId, bool advertisePublic)
+    public Match(int hostId, string name, int capacity, Ruleset ruleset, Arrangement arrangement, bool advertisePublic)
     {
         CreatedDate = DateTime.Now;
         Name = name;
         Capacity = capacity;
-        RulesetId = rulesetId;
-        ArrangementId = arrangementId;
+        Ruleset = ruleset;
+        Arrangement = arrangement;
         HostId = hostId;
-        Players = new List<ClientData>();
         AdvertisePublic = advertisePublic;
 
+        players = new List<ClientData>();
         jsonOptions = new JsonSerializerOptions()
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -44,11 +46,41 @@ public class Match
 
     public void AddPlayer(ClientData player)
     {
-        Players.Add(player);
-        if (Players.Count == Capacity)
+        players.Add(player);
+        if (players.Count == Capacity)
         {
             // Start match
             Started = true;
+            // Send match info
+            var matchInfo = new WriteablePacket();
+            matchInfo.WriteByte(0);
+            matchInfo.Write(Players.Count);
+            foreach (var client in players)
+            {
+                matchInfo.WriteInt(client.Account.Id);
+            }
+            matchInfo.WriteUInt((uint) Arrangement.Columns);
+            matchInfo.WriteUInt((uint) Arrangement.Rows);
+
+            foreach (var client in players)
+            {
+                _ = client.SendAsync(matchInfo, WebSocketMessageType.Binary);
+            }
+
+        }
+    }
+
+    public async Task RemovePlayer(ClientData player)
+    {
+        players.Remove(player);
+        if (Started)
+        {
+            // Stop match
+            foreach (var client in players)
+            {
+                await client.CloseAsync(WebSocketCloseStatus.NormalClosure,
+                    "Match ended - Other player disconnecteed");
+            }
         }
     }
 

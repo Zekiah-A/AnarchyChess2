@@ -18,7 +18,29 @@
     <script src="./profile-view.js"></script>
 </head>
 <body>
-    <ac-board id="board"></ac-board>
+    <ac-board id="board" data-x="500" data-y="500" data-z="0.8"
+        onmousedown="
+            this.dataset.dragging = true;
+            this.style.cursor = 'grabbing'
+            this.style.willChange = 'transform'
+        "
+        onmousemove="if (this.dataset.dragging === 'true') {
+            let x = +this.dataset.x
+            let y = +this.dataset.y
+            this.dataset.x = x = Math.max(0, Math.min(x - event.movementX, 1000))
+            this.dataset.y = y = Math.max(0, Math.min(y - event.movementY, 1000))
+            this.style.transform = `translate(${-x}px, ${-y}px) scale(${+this.dataset.z})`
+        }"
+        onmouseup="
+            this.dataset.dragging = false
+            this.style.cursor = 'default'
+            this.style.willChange = 'auto'
+        "
+        onwheel="
+            let z = +this.dataset.z
+            this.dataset.z = z = Math.max(0.5, Math.min(z + (event.deltaY < 0 ? 0.1 : -0.1), 1.5))
+            this.style.transform = `translate(${-this.dataset.x}px, ${-this.dataset.y}px) scale(${z})`
+        "></ac-board>
     <p class="copyright-notice">
         If you're seeing this, you probably moved the board offscreen. AnarchyChess, ©Zekiah-A
     </p>
@@ -47,14 +69,14 @@
     </div>
     <div id="settingsPanel" data-closed="true" class="info-panel">
         <h4 style="margin: 0px;">Sound effects:</h4>
-        <div style="display: flex;flex-direction: column;row-gap: 3px;" onclick="">
-            <input type="button" value="Enable sound">
-            <input type="button" value="Disable sound">
+        <div style="display: flex;flex-direction: column;row-gap: 3px;">
+            <input type="button" onclick="localStorage.soundEnabled = false" value="Enable sound">
+            <input type="button" onclick="localStorage.soundEnabled = false" value="Disable sound">
         </div>
         <h4 style="margin: 0px;">Graphics options:</h4>
-        <div style="display: flex;flex-direction: column;row-gap: 3px;" onclick="">
-            <input type="button" onclick="localstorage.effects = false" value="No effects">
-            <input type="button" onclick="localstorage.effects = true" value="All effects">
+        <div style="display: flex;flex-direction: column;row-gap: 3px;">
+            <input type="button" onclick="localStorage.effects = false" value="No effects">
+            <input type="button" onclick="localStorage.effects = true" value="All effects">
         </div>
     </div>
     <div id="turnPanel" class="info-panel">
@@ -115,13 +137,18 @@
             <div class="form-frame">
                 <input id="signupUsername" type="text" placeholder="Username" oninput="validateUsername(this)" maxlength="16" autocomplete="username">
                 <input id="signupEmail" type="email" maxlength="320" placeholder="Email" pattern="[^@\s]+@[^@\s]+\.[^@\s]+" autocomplete="email">
-                <input type="email" maxlength="320" placeholder="Confirm email" oninput="
+                <input id="signupConfirm" type="email" maxlength="320" placeholder="Confirm email" oninput="
                     this.setCustomValidity(signupEmail.value === this.value ? '' : 'Emails don\'t match!')
                     this.reportValidity()
                 " pattern="[^@\s]+@[^@\s]+\.[^@\s]+">
                 <input type="button" value="Create account" onclick="
                     if (signupUsername.value && signupEmail.value && signupEmail.validity.valid) {
-                        signup(signupUsername.value, signupEmail.value)
+                        if (signup(signupUsername.value, signupEmail.value)) {
+                            login(signupUsername.value,  signupEmail.value)
+                        }
+                        signupUsername.value = ''
+                        signupEmail.value = ''
+                        signupConfirm.value =  ''
                     }
                 ">
             </div>
@@ -364,7 +391,7 @@
                     </p>
                     <p>
                         <label for="siteThemeSelect">Site theme:</label>
-                        <select id="siteThemeSelect" onchange="localStorage.siteTheme = this.value">
+                        <select id="siteThemeSelect" disabled onchange="localStorage.siteTheme = this.value">
                             <option value="modernLight">Modern light</option>
                             <option value="modernDark">Modern dark</option>
                         </select>
@@ -794,11 +821,12 @@
         if (!res.ok) {
             const message = (await res.json())?.message
             alert("Signup failed - " + (message || "network error"))
-            return
+            return falsse
         }
 
         const data = await res.json()
         alert("Success - " + data.message)
+        return true
     }
 
     function signout() {
@@ -971,6 +999,7 @@
             configurePanel.close()
             matchPanel.close()
             mainMenu.style.display = "none"
+            board.setTheme(localStorage.boardTheme)
         }
         socket.onmessage = async function({data}) {
             if (data instanceof ArrayBuffer) {

@@ -88,19 +88,16 @@ class Board extends HTMLElement {
             .tile {
                 user-select: none;
                 aspect-ratio: 1/1;
-                transition: 0.1s background-color;
+                transition: 0.1s filter;
+            }
+            .tile:hover {
+                filter: brightness(1.5) contrast(0.6) invert(0.2);
             }
             .tile-black {
                 background: var(--black);
             }
-            .tile-black:hover {
-                background-color: #313131;
-            }
             .tile-white {
                 background: var(--white);
-            }
-            .tile-white:hover {
-                background-color: #d0cfcf;
             }
             .hilight {
                 background-color: #8bff6185;
