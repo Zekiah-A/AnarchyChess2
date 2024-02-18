@@ -97,15 +97,15 @@ void InsertDefaults()
     }
     // Insert default arrangement into database if does not already exist
     if (dbContext.Arrangements.Find(0) is null) {
-        dbContext.Database.ExecuteSqlRaw($$$"""
+        dbContext.Database.ExecuteSql($$$"""
             INSERT INTO Arrangements (Id, CreatorId, Rows, Columns, Data, Name)
             VALUES (
                 0,
                 NULL,
                 8,
                 8,
-                "[{"type":"rook","colour":"black"},{"type":"pawn","colour":"black"},null,null,null,null,{"type":"pawn","colour":"white"},{"type":"rook","colour":"white"},{"type":"knight","colour":"black"},null,null,null,null,null,{"type":"pawn","colour":"white"},{"type":"knight","colour":"white"},{"type":"bishop","colour":"black"},{"type":"pawn","colour":"black"},null,null,null,null,{"type":"pawn","colour":"white"},{"type":"bishop","colour":"white"},{"type":"king","colour":"black"},{"type":"pawn","colour":"black"},null,null,null,null,{"type":"pawn","colour":"white"},{"type":"king","colour":"white"},{"type":"queen","colour":"black"},{"type":"pawn","colour":"black"},null,null,null,null,{"type":"pawn","colour":"white"},{"type":"queen","colour":"white"},{"type":"bishop","colour":"black"},null,null,null,null,null,{"type":"pawn","colour":"white"},{"type":"bishop","colour":"white"},{"type":"knight","colour":"black"},null,null,null,null,null,{"type":"pawn","colour":"white"},{"type":"knight","colour":"white"},{"type":"rook","colour":"black"},{"type":"pawn","colour":"black"},null,null,null,null,{"type":"pawn","colour":"white"},{"type":"rook","colour":"white"}]",
-                "Default"
+                '[{"type":"rook","colour":"black"},{"type":"knight","colour":"black"},{"type":"bishop","colour":"black"},{"type":"king","colour":"black"},{"type":"queen","colour":"black"},{"type":"bishop","colour":"black"},{"type":"knight","colour":"black"},{"type":"rook","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"rook","colour":"white"},null,{"type":"bishop","colour":"white"},{"type":"king","colour":"white"},{"type":"queen","colour":"white"},{"type":"bishop","colour":"white"},{"type":"knight","colour":"white"},{"type":"rook","colour":"white"}]',
+                'Default'
             )
         """);
     }
@@ -116,7 +116,7 @@ void InsertDefaults()
             VALUES (
                 0,
                 NULL,
-                '{"condition":"matchStart","action":{"type":"setCurrentTurn","turnColour":"black"}}',
+                '[{"condition":"matchStart","action":{"type":"setCurrentTurn","turnColour":"black"}}]',
                 'Default'
             )
         """);
@@ -337,6 +337,26 @@ app.MapGet("/Users/{id}/Arrangements", async (int id, DatabaseContext dbContext)
     }
     var arrangements = dbContext.Arrangements.All(user => user.CreatorId == id);
     return Results.Ok(arrangements);
+});
+
+app.MapGet("/Rulesets/{id}", async (int id, DatabaseContext dbContext) =>
+{
+    var ruleset = await dbContext.Rulesets.FindAsync(id);
+    if (ruleset is null)
+    {
+        return Results.NotFound(new { Message = "Specified ruleset does not exist"});
+    }
+    return Results.Ok(ruleset);
+});
+
+app.MapGet("/Arrangements/{id}", async (int id, DatabaseContext dbContext) =>
+{
+    var arrangement = await dbContext.Arrangements.FindAsync(id);
+    if (arrangement is null)
+    {
+        return Results.NotFound(new { Message = "Specified arrangement does not exist"});
+    }
+    return Results.Ok(arrangement);
 });
 
 app.MapPost("/Rulesets", async([FromBody] RulesetRequest rulesetRequest, HttpContext context, DatabaseContext dbContext) =>

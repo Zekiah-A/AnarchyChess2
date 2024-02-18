@@ -28,10 +28,10 @@ class ProfileView extends HTMLElement {
                     <legend>About me</legend>
                     <p id="biography">This user has no biography...</p>
                     <div>
-                        <span class="profile-stat">Location</span><span id="location"></span>
+                        <span class="profile-stat">Location</span><span id="location">Unknown</span>
                     </div>
                     <div>
-                        <span class="profile-stat">Gender</span><span id="gender"></span>
+                        <span class="profile-stat">Gender</span><span id="gender">Unknown</span>
                     </div>
                 </fieldset>
                 <fieldset>
@@ -169,10 +169,10 @@ class ProfileView extends HTMLElement {
 
     loadFromData(user) {
         this.username.textContent = user.username
-        this.picture.src = `${serverAddress}/${user.profileImageUri}`
-        this.biography.textContent = user.biography
-        this.location.textContent = user.location
-        this.gender.textContent = this.getGenderFullName(user.gender)
+        if (user.profileImageUri) this.picture.src = `${serverAddress}/${user.profileImageUri}`
+        if (user.biography) this.biography.textContent = user.biography
+        if (user.location) this.location.textContent = user.location
+        if (user.gender) this.gender.textContent = this.getGenderFullName(user.gender)
         this.gamesPlayed.textContent = user.gamesPlayed
         this.matchesWon.textContent = user.matchesWon
         this.playTime.textContent = user.playTime

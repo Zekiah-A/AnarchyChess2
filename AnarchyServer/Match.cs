@@ -54,13 +54,15 @@ public class Match
             // Send match info
             var matchInfo = new WriteablePacket();
             matchInfo.WriteByte(0);
-            matchInfo.Write(Players.Count);
+            matchInfo.WriteByte((byte) Players.Count);
             foreach (var client in players)
             {
                 matchInfo.WriteInt(client.Account.Id);
             }
-            matchInfo.WriteUInt((uint) Arrangement.Columns);
-            matchInfo.WriteUInt((uint) Arrangement.Rows);
+            matchInfo.WriteByte((byte) Arrangement.Columns);
+            matchInfo.WriteByte((byte) Arrangement.Rows);
+            matchInfo.WriteInt(Ruleset.Id);
+            matchInfo.WriteInt(Arrangement.Id);
 
             foreach (var client in players)
             {
