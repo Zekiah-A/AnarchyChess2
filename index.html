@@ -859,7 +859,7 @@
         if (!res.ok) {
             const message = (await res.json())?.message
             alert("Signup failed - " + (message || "network error"))
-            return falsse
+            return false
         }
 
         const data = await res.json()
