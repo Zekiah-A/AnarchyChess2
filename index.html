@@ -141,7 +141,7 @@
                 <input id="signupConfirm" type="email" maxlength="320" placeholder="Confirm email" oninput="
                     this.setCustomValidity(signupEmail.value === this.value ? '' : 'Emails don\'t match!')
                     this.reportValidity()
-                " pattern="[^@\s]+@[^@\s]+\.[^@\s]+" onkeydown="maybeSelectNext(event)"
+                " pattern="[^@\s]+@[^@\s]+\.[^@\s]+" onkeydown="maybeSelectNext(event)">
                 <input type="button" value="Create account" onclick="
                     (async function() {
                         if (signupUsername.value && signupEmail.value && signupEmail.validity.valid) {
