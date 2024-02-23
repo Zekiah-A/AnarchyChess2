@@ -121,8 +121,8 @@
         <div class="main-menu-page" data-page="login">
             <h3 style="margin-top: 0;">Login with AnarchyChess account</h3>
             <div class="form-frame" id="loginForm">
-                <input id="loginUsername" type="text" placeholder="Username" oninput="validateUsername(this)" maxlength="16" autocomplete="username">
-                <input id="loginEmail" type="email" maxlength="320" placeholder="Email" pattern="[^@\s]+@[^@\s]+\.[^@\s]+" autocomplete="email">
+                <input id="loginUsername" type="text" placeholder="Username" oninput="validateUsername(this)" maxlength="16" autocomplete="username" onkeydown="maybeSelectNext(event)">
+                <input id="loginEmail" type="email" maxlength="320" placeholder="Email" pattern="[^@\s]+@[^@\s]+\.[^@\s]+" autocomplete="email" onkeydown="maybeSelectNext(event)">
                 <input type="button" value="Login" onclick="
                     if (loginUsername.value && loginEmail.value && loginEmail.validity.valid) {
                         login(loginUsername.value, loginEmail.value)
@@ -136,12 +136,12 @@
         <div class="main-menu-page" data-page="signup">
             <h3 style="margin-top: 0;">Sign up to AnarchyChess</h3>
             <div class="form-frame">
-                <input id="signupUsername" type="text" placeholder="Username" oninput="validateUsername(this)" maxlength="16" autocomplete="username">
-                <input id="signupEmail" type="email" maxlength="320" placeholder="Email" pattern="[^@\s]+@[^@\s]+\.[^@\s]+" autocomplete="email">
+                <input id="signupUsername" type="text" placeholder="Username" oninput="validateUsername(this)" maxlength="16" autocomplete="username" onkeydown="maybeSelectNext(event)">
+                <input id="signupEmail" type="email" maxlength="320" placeholder="Email" pattern="[^@\s]+@[^@\s]+\.[^@\s]+" autocomplete="email" onkeydown="maybeSelectNext(event)">
                 <input id="signupConfirm" type="email" maxlength="320" placeholder="Confirm email" oninput="
                     this.setCustomValidity(signupEmail.value === this.value ? '' : 'Emails don\'t match!')
                     this.reportValidity()
-                " pattern="[^@\s]+@[^@\s]+\.[^@\s]+">
+                " pattern="[^@\s]+@[^@\s]+\.[^@\s]+" onkeydown="maybeSelectNext(event)"
                 <input type="button" value="Create account" onclick="
                     (async function() {
                         if (signupUsername.value && signupEmail.value && signupEmail.validity.valid) {
@@ -155,7 +155,7 @@
                             signupConfirm.value =  ''
                         }
                     })()
-                ">
+                " onkeydown="maybeSelectNext(event)">
             </div>
             <div>
                 <a class="novisit" href="#login">Already have an account?</a>
@@ -770,10 +770,15 @@
     setHashPage(true)
 
     let token = null
-    const serverAddress = localStorage.serverHostname ? `${location.protocol}//${localStorage.serverHostname}` : "http://localhost:5068"
-    const socketAddress = localStorage.serverHostname ? `${location.protocol === "https:" ? "wss:" : "ws:"}//${localStorage.serverHostname}` : "ws://localhost:5068"
+    const serverAddress = localStorage.serverHostname ? `${location.protocol}//${localStorage.serverHostname}` : "https://server.rplace.tk/ac"
+    const socketAddress = localStorage.serverHostname ? `${location.protocol === "https:" ? "wss:" : "ws:"}//${localStorage.serverHostname}` : "wss://server.rplace.tk/ac"
     function validateUsername(input) {
         input.value = input.value.replace(/\W+/g, '').toLowerCase()
+    }
+    function maybeSelectNext(event) {
+        if (event.code === 'Enter') {
+            event.target.nextElementSibling.focus()
+        }
     }
     // Get login token
     async function login(username, email) {
