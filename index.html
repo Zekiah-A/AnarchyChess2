@@ -106,7 +106,7 @@
             })
         ">
             <div id="headerBranding" class="branding">
-                <img src="resources/logo.png" height="64" alt="logo">
+                <img src="resources/logo.png" class="icon-symbolic" height="64" alt="logo">
                 <h1>AnarchyChess</h1>
             </div>
             <nav id="headerNav" class="header-nav">
@@ -303,13 +303,13 @@
                         <legend><h3 style="margin: 0px;">Game options:</h3></legend>
                         <p>
                             Using ruleset: 
-                            <select id="createRuleset">
+                            <select id="createRuleset" onmousedown="updateCreateRuleset()">
                                 <option value="0">Default</option>
                             </select>
                         </p>
                         <p>
                             Using arrangement: 
-                            <select id="createArrangement">
+                            <select id="createArrangement" onmousedown="updateCreateArrangement()">
                                 <option value="0">Default</option>
                             </select>
                         </p>    
@@ -448,7 +448,7 @@
                     </p>
                     <p>
                         <label for="siteThemeSelect">Site theme:</label>
-                        <select id="siteThemeSelect" disabled onchange="localStorage.siteTheme = this.value">
+                        <select id="siteThemeSelect" onchange="setTheme(this.value)">
                             <option value="modernLight">Modern light</option>
                             <option value="modernDark">Modern dark</option>
                         </select>
@@ -505,7 +505,8 @@
     let arrangementCurType = null
     let arrangementSelC = null
     let arrangementSelR = null
-    ;(async function() { // Async initialisers
+    confetti.create(arrangementCanvas, { resize: true })
+    ;(async function() { // Async initialisers TODO: use .then() instead
         arrangementCanvas.confetti = await confetti.create(arrangementCanvas, { resize: true })
     })()
 
@@ -998,6 +999,39 @@
         }
     }
 
+    async function updateCreateRuleset() {
+        const res = await fetch(`${serverAddress}/Users/${localStorage.me}/Rulesets`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json", Authorization: token },
+        })
+        if (!res.ok) {
+            const message = (await res.json())?.message
+            alert("Failed to fetch rulesets - " + (message || "network error"))
+            return
+        }
+
+        const rulesets = await res.json()
+        console.log(rulesets)
+        createRuleset.innerHTML = ""
+        
+    }
+
+    async function updateCreateArrangement() {
+        const res = await fetch(`${serverAddress}/Users/${localStorage.me}/Arrangements`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json", Authorization: token },
+        })
+        if (!res.ok) {
+            const message = (await res.json())?.message
+            alert("Failed to fetch arrangements - " + (message || "network error"))
+            return
+        }
+
+        const arrangements = await res.json()
+        console.log(arrangements)
+        createArrangement.innerHTML = ""
+    }
+
     async function uploadArrangement(name, columns, rows, piecesArray) {
         const stats = getArrangementStats()
         if (!stats.valid) {
@@ -1300,6 +1334,11 @@
         globalActiveLabel.textContent = stats.activeMatches
     }
 
+    function setTheme(theme) {
+        document.documentElement.className = theme
+        localStorage.siteTheme = theme
+    }
+
     function setLocalSettings() {
         if (localStorage.soundEnabled == undefined) localStorage.soundEnabled = "true"
         if (localStorage.boardTheme == undefined) localStorage.boardTheme = "0"
@@ -1309,6 +1348,7 @@
         soundCheckbox.checked = localStorage.soundEnabled == "true"
         boardThemeSelect.value = localStorage.boardTheme
         siteThemeSelect.value = localStorage.siteTheme
+        setTheme(localStorage.siteTheme)
         serverInput.value = localStorage.serverHostname
     }
 

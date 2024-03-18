@@ -324,7 +324,7 @@ app.MapGet("/Users/{id}/Rulesets", async (int id, DatabaseContext dbContext) =>
     {
         return Results.NotFound(new { Message = "Specified user does not exist"});
     }
-    var rulesets = dbContext.Rulesets.All(user => user.CreatorId == id);
+    var rulesets = dbContext.Rulesets.Where(user => user.CreatorId == id);
     return Results.Ok(rulesets);
 });
 
@@ -335,7 +335,7 @@ app.MapGet("/Users/{id}/Arrangements", async (int id, DatabaseContext dbContext)
     {
         return Results.NotFound(new { Message = "Specified user does not exist"});
     }
-    var arrangements = dbContext.Arrangements.All(user => user.CreatorId == id);
+    var arrangements = dbContext.Arrangements.Where(user => user.CreatorId == id);
     return Results.Ok(arrangements);
 });
 
