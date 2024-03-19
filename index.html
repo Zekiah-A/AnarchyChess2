@@ -402,14 +402,14 @@
                     <legend><h3>About me</h3></legend>
                     <div class="profile-biography-section">
                         <textarea id="profileBiography" onfocus="this.oldvalue = this.value" maxlength="96" placeholder="Click to start editing your bio" class="profile-biography"></textarea>
-                        <button type="button" onclick="updateProfileBiography(profileBiography.value, profileBiography.oldvalue)">Save biography</button>
+                        <input type="button" class="profile-biography-button" onclick="updateProfileBiography(profileBiography.value, profileBiography.oldvalue)" value="Save biography">
                     </div>
                     <div class="profile-stat-section">
                         <div>
                             <span class="profile-stat">Location</span>
                             <input type="text" id="profileLocation" placeholder="Unknown"
                                 onfocus="this.oldValue = this.value;" maxlength="16">
-                            <button onclick="updateProfileLocation(profileLocation.value, profileLocation.oldValue)">Save location</button>
+                            <input type="button" onclick="updateProfileLocation(profileLocation.value, profileLocation.oldValue)" value="Save location">
                         </div>
                         <div>
                             <span class="profile-stat">Gender</span>
@@ -680,7 +680,7 @@
     function setHeaderWillChange() { // Optimisation
         headerBranding.style.willChange = "left, top, scale"
         headerNav.style.willChange = "left, top"
-        header.style.willChange = "height, box-shadow"
+        header.style.willChange = "top, height, box-shadow"
     }
     function clearHeaderWillChange() {
         headerBranding.style.willChange = "auto"
@@ -694,6 +694,7 @@
         const headerCentreX = header.offsetWidth / 2
         header.style.boxShadow = `0px 0px ${Math.min(8, mainMenu.scrollTop)}px gray`
         header.style.height = `${Math.max(100, 200 - mainMenu.scrollTop)}px`
+        header.style.top = `${mainMenu.scrollTop}px`
 
         if (portrait) {
             headerBranding.style.left = `${headerCentreX - headerBranding.offsetWidth / 2}px`
@@ -1011,9 +1012,15 @@
         }
 
         const rulesets = await res.json()
-        console.log(rulesets)
-        createRuleset.innerHTML = ""
-        
+        if (rulesets.length > 0) {
+            createRuleset.innerHTML = ""
+            for (const ruleset of rulesets) {
+                const rulesetOption = docment.createElement("option")
+                rulesetOption.textContent = ruleset.name
+                rulesetOption.value = ruleset.id
+                createRuleset.appendChild(rulesetOption)
+            }
+        }
     }
 
     async function updateCreateArrangement() {
@@ -1028,8 +1035,16 @@
         }
 
         const arrangements = await res.json()
-        console.log(arrangements)
-        createArrangement.innerHTML = ""
+        if (arrangements.length > 0) {
+            createArrangement.innerHTML = ""
+            for (const arrangement of arrangements) {
+                const arrangementOption = docment.createElement("option")
+                arrangementOption.textContent = ruleset.name
+                arrangementOption.value = ruleset.id
+                createArrangement.appendChild(arrangementOption)
+            }
+
+        }
     }
 
     async function uploadArrangement(name, columns, rows, piecesArray) {

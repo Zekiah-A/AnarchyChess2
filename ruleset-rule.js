@@ -125,8 +125,10 @@ class RulesetRule extends HTMLElement {
             case "setCurrentTurn": {
                 this.action1.innerHTML = html`
                     <select id="turnColour">
-                        <option value="black">Black</option>
-                        <option value="white">White</option>
+                        <option value="next">Next player</option>
+                        <option value="previous">Previous player</option>
+                        <option value="random">Random</option>
+                        <option vlaue="current">Current player</option>
                     </select>
                 `
                 defineAndInject(this, this.shadowRoot)

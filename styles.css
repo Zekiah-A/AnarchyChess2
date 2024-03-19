@@ -62,6 +62,7 @@ body {
 }
 
 select,
+textarea,
 input:not([type]),
 input[type="email"],
 input[type="number"],
@@ -75,6 +76,7 @@ input[type="text"] {
     color: var(--ui-text);
 }
 
+textarea:focus,
 input:not([type]):focus,
 input[type="email"]:focus,
 input[type="number"]:focus,
@@ -112,7 +114,7 @@ a {
 }
 
 header {
-    position: fixed;
+    position: absolute;
     width: 100%;
     top: 0;
     left: 0;
@@ -840,7 +842,7 @@ header {
     position: relative;
 }
 
-.profile-biography-section>button {
+.profile-biography-button {
     bottom: -4px;
     right: 8px;
     position: absolute;
@@ -853,8 +855,6 @@ header {
     height: 96px;
     font-size: 20px;
     border: 1px solid #d3d3d3;
-    border-radius: 8px;
-    padding: 4px;
     margin-bottom: 8px;
 }
 
