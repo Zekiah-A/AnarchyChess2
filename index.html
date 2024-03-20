@@ -108,7 +108,7 @@
             })
         ">
             <div id="headerBranding" class="branding">
-                <img src="resources/logo.png" height="64" alt="logo">
+                <img src="resources/logo.png" class="icon-symbolic" height="64" alt="logo">
                 <h1>AnarchyChess</h1>
             </div>
             <nav id="headerNav" class="header-nav">
@@ -123,8 +123,8 @@
         <div class="main-menu-page" data-page="login">
             <h3 style="margin-top: 0;">Login with AnarchyChess account</h3>
             <div class="form-frame" id="loginForm">
-                <input id="loginUsername" type="text" placeholder="Username" oninput="validateUsername(this)" maxlength="16" autocomplete="username">
-                <input id="loginEmail" type="email" maxlength="320" placeholder="Email" pattern="[^@\s]+@[^@\s]+\.[^@\s]+" autocomplete="email">
+                <input id="loginUsername" type="text" placeholder="Username" oninput="validateUsername(this)" maxlength="16" autocomplete="username" onkeydown="maybeSelectNext(event)">
+                <input id="loginEmail" type="email" maxlength="320" placeholder="Email" pattern="[^@\s]+@[^@\s]+\.[^@\s]+" autocomplete="email" onkeydown="maybeSelectNext(event)">
                 <input type="button" value="Login" onclick="
                     if (loginUsername.value && loginEmail.value && loginEmail.validity.valid) {
                         login(loginUsername.value, loginEmail.value)
@@ -138,12 +138,12 @@
         <div class="main-menu-page" data-page="signup">
             <h3 style="margin-top: 0;">Sign up to AnarchyChess</h3>
             <div class="form-frame">
-                <input id="signupUsername" type="text" placeholder="Username" oninput="validateUsername(this)" maxlength="16" autocomplete="username">
-                <input id="signupEmail" type="email" maxlength="320" placeholder="Email" pattern="[^@\s]+@[^@\s]+\.[^@\s]+" autocomplete="email">
+                <input id="signupUsername" type="text" placeholder="Username" oninput="validateUsername(this)" maxlength="16" autocomplete="username" onkeydown="maybeSelectNext(event)">
+                <input id="signupEmail" type="email" maxlength="320" placeholder="Email" pattern="[^@\s]+@[^@\s]+\.[^@\s]+" autocomplete="email" onkeydown="maybeSelectNext(event)">
                 <input id="signupConfirm" type="email" maxlength="320" placeholder="Confirm email" oninput="
                     this.setCustomValidity(signupEmail.value === this.value ? '' : 'Emails don\'t match!')
                     this.reportValidity()
-                " pattern="[^@\s]+@[^@\s]+\.[^@\s]+">
+                " pattern="[^@\s]+@[^@\s]+\.[^@\s]+" onkeydown="maybeSelectNext(event)">
                 <input type="button" value="Create account" onclick="
                     (async function() {
                         if (signupUsername.value && signupEmail.value && signupEmail.validity.valid) {
@@ -157,7 +157,7 @@
                             signupConfirm.value =  ''
                         }
                     })()
-                ">
+                " onkeydown="maybeSelectNext(event)">
             </div>
             <div>
                 <a class="novisit" href="#login">Already have an account?</a>
@@ -305,13 +305,13 @@
                         <legend><h3 style="margin: 0px;">Game options:</h3></legend>
                         <p>
                             Using ruleset: 
-                            <select id="createRuleset">
+                            <select id="createRuleset" onmousedown="updateCreateRuleset()">
                                 <option value="0">Default</option>
                             </select>
                         </p>
                         <p>
                             Using arrangement: 
-                            <select id="createArrangement">
+                            <select id="createArrangement" onmousedown="updateCreateArrangement()">
                                 <option value="0">Default</option>
                             </select>
                         </p>    
@@ -404,14 +404,14 @@
                     <legend><h3>About me</h3></legend>
                     <div class="profile-biography-section">
                         <textarea id="profileBiography" onfocus="this.oldvalue = this.value" maxlength="96" placeholder="Click to start editing your bio" class="profile-biography"></textarea>
-                        <button type="button" onclick="updateProfileBiography(profileBiography.value, profileBiography.oldvalue)">Save biography</button>
+                        <input type="button" class="profile-biography-button" onclick="updateProfileBiography(profileBiography.value, profileBiography.oldvalue)" value="Save biography">
                     </div>
                     <div class="profile-stat-section">
                         <div>
                             <span class="profile-stat">Location</span>
                             <input type="text" id="profileLocation" placeholder="Unknown"
                                 onfocus="this.oldValue = this.value;" maxlength="16">
-                            <button onclick="updateProfileLocation(profileLocation.value, profileLocation.oldValue)">Save location</button>
+                            <input type="button" onclick="updateProfileLocation(profileLocation.value, profileLocation.oldValue)" value="Save location">
                         </div>
                         <div>
                             <span class="profile-stat">Gender</span>
@@ -450,7 +450,7 @@
                     </p>
                     <p>
                         <label for="siteThemeSelect">Site theme:</label>
-                        <select id="siteThemeSelect" disabled onchange="localStorage.siteTheme = this.value">
+                        <select id="siteThemeSelect" onchange="setTheme(this.value)">
                             <option value="modernLight">Modern light</option>
                             <option value="modernDark">Modern dark</option>
                         </select>
@@ -507,7 +507,8 @@
     let arrangementCurType = null
     let arrangementSelC = null
     let arrangementSelR = null
-    ;(async function() { // Async initialisers
+    confetti.create(arrangementCanvas, { resize: true })
+    ;(async function() { // Async initialisers TODO: use .then() instead
         arrangementCanvas.confetti = await confetti.create(arrangementCanvas, { resize: true })
     })()
 
@@ -681,7 +682,7 @@
     function setHeaderWillChange() { // Optimisation
         headerBranding.style.willChange = "left, top, scale"
         headerNav.style.willChange = "left, top"
-        header.style.willChange = "height, box-shadow"
+        header.style.willChange = "top, height, box-shadow"
     }
     function clearHeaderWillChange() {
         headerBranding.style.willChange = "auto"
@@ -695,6 +696,7 @@
         const headerCentreX = header.offsetWidth / 2
         header.style.boxShadow = `0px 0px ${Math.min(8, mainMenu.scrollTop)}px gray`
         header.style.height = `${Math.max(100, 200 - mainMenu.scrollTop)}px`
+        header.style.top = `${mainMenu.scrollTop}px`
 
         if (portrait) {
             headerBranding.style.left = `${headerCentreX - headerBranding.offsetWidth / 2}px`
@@ -779,10 +781,15 @@
     setHashPage(true)
 
     let token = null
-    const serverAddress = localStorage.serverHostname ? `${location.protocol}//${localStorage.serverHostname}` : "http://localhost:5068"
-    const socketAddress = localStorage.serverHostname ? `${location.protocol === "https:" ? "wss:" : "ws:"}//${localStorage.serverHostname}` : "ws://localhost:5068"
+    const serverAddress = localStorage.serverHostname ? `${location.protocol}//${localStorage.serverHostname}` : "https://server.rplace.tk/ac"
+    const socketAddress = localStorage.serverHostname ? `${location.protocol === "https:" ? "wss:" : "ws:"}//${localStorage.serverHostname}` : "wss://server.rplace.tk/ac"
     function validateUsername(input) {
         input.value = input.value.replace(/\W+/g, '').toLowerCase()
+    }
+    function maybeSelectNext(event) {
+        if (event.code === 'Enter') {
+            event.target.nextElementSibling.focus()
+        }
     }
     // Get login token
     async function login(username, email) {
@@ -868,7 +875,7 @@
         if (!res.ok) {
             const message = (await res.json())?.message
             alert("Signup failed - " + (message || "network error"))
-            return falsse
+            return false
         }
 
         const data = await res.json()
@@ -999,6 +1006,53 @@
             "Failed to upload ruleset")
         if (success) {
             alert(`Sucessfully uploaded ruleset ${name}`)
+        }
+    }
+
+    async function updateCreateRuleset() {
+        const res = await fetch(`${serverAddress}/Users/${localStorage.me}/Rulesets`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json", Authorization: token },
+        })
+        if (!res.ok) {
+            const message = (await res.json())?.message
+            alert("Failed to fetch rulesets - " + (message || "network error"))
+            return
+        }
+
+        const rulesets = await res.json()
+        if (rulesets.length > 0) {
+            createRuleset.innerHTML = ""
+            for (const ruleset of rulesets) {
+                const rulesetOption = docment.createElement("option")
+                rulesetOption.textContent = ruleset.name
+                rulesetOption.value = ruleset.id
+                createRuleset.appendChild(rulesetOption)
+            }
+        }
+    }
+
+    async function updateCreateArrangement() {
+        const res = await fetch(`${serverAddress}/Users/${localStorage.me}/Arrangements`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json", Authorization: token },
+        })
+        if (!res.ok) {
+            const message = (await res.json())?.message
+            alert("Failed to fetch arrangements - " + (message || "network error"))
+            return
+        }
+
+        const arrangements = await res.json()
+        if (arrangements.length > 0) {
+            createArrangement.innerHTML = ""
+            for (const arrangement of arrangements) {
+                const arrangementOption = docment.createElement("option")
+                arrangementOption.textContent = ruleset.name
+                arrangementOption.value = ruleset.id
+                createArrangement.appendChild(arrangementOption)
+            }
+
         }
     }
 
@@ -1302,6 +1356,11 @@
         globalActiveLabel.textContent = stats.activeMatches
     }
 
+    function setTheme(theme) {
+        document.documentElement.className = theme
+        localStorage.siteTheme = theme
+    }
+
     function setLocalSettings() {
         if (localStorage.soundEnabled == undefined) localStorage.soundEnabled = "true"
         if (localStorage.boardTheme == undefined) localStorage.boardTheme = "0"
@@ -1311,6 +1370,7 @@
         soundCheckbox.checked = localStorage.soundEnabled == "true"
         boardThemeSelect.value = localStorage.boardTheme
         siteThemeSelect.value = localStorage.siteTheme
+        setTheme(localStorage.siteTheme)
         serverInput.value = localStorage.serverHostname
     }
 

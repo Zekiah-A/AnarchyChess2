@@ -19,9 +19,9 @@ class ProfileView extends HTMLElement {
                     <img src="./resources/close-icon.svg" alt="Close">
                 </button>
                 <h2 id="username" class="profile-username">
-                    <img alt="loading..." height="32" src="resources/loading-icon.gif">
+                    <img alt="loading..." draggable="false" height="32" src="resources/loading-icon.gif">
                 </h2>
-                <img id="picture" class="profile-picture" src="./resources/logo.png">
+                <img id="picture" draggable="false" class="profile-picture" src="./resources/logo.png">
             </div>
             <div class="profile-body">
                 <fieldset class="profile-bio-section">
@@ -151,6 +151,24 @@ class ProfileView extends HTMLElement {
         this.closeButton.onclick = function() {
             _this.remove()
         }
+        this.dragging = false
+        this.header.onmousedown = function(event) {
+            _this.dataset.dragging = "true"
+            _this.header.style.cursor = "grabbing"
+        }
+        this.header.onmousemove = function(event) {
+            if (_this.dataset.dragging !== "true") {
+                return
+            }
+            _this.style.left = Math.max(0, _this.offsetLeft + event.movementX) + "px"
+            _this.style.top = Math.max(0, _this.offsetTop + event.movementY) + "px"
+        }
+        function cancelDrag() {
+            _this.dataset.dragging = "false"
+            _this.header.style.cursor = "default"
+        }
+        this.header.onmouseup = cancelDrag
+        this.header.onmouseleave = cancelDrag
     }
 
     getGenderFullName(name) {

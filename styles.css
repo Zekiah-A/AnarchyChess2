@@ -1,6 +1,11 @@
-:root {
+/*https://webdesign.tutsplus.com/color-schemes-with-css-variables-and-javascript--cms-36989t*/
+:root, :root.modernLight {
     --ui-background: white;
     --ui-background-transparent: #ffffff80;
+    --ui-text: black;
+    --ui-link: #00f;
+    --ui-input-background: #fff;
+    --ui-button-background: #efefef;
     --ui-input: #e9e9ed;
     --ui-input-hover: #d2d2d5;
     --ui-hilight: #61a6ff;
@@ -10,6 +15,23 @@
     --ui-info-transparent: #0009;
 }
 
+:root.modernDark {
+    --ui-background: #141414;
+    --ui-background-transparent: #17171780;
+    --ui-text: #e0e0e0;
+    --ui-link: #61a6ff;
+    --ui-input: #8f8f8f;
+    --ui-input-background: #525252;
+    --ui-button-background: #252525;
+    --ui-input-hover:  #454444;
+    --ui-hilight: #61a6ff;
+    --ui-hilight-transparent: #61a6ff85;
+    --ui-special: #6eb84c;
+    --ui-special-transparent: #8bff6185;
+    --ui-info-transparent: #a3a3a399;
+    --icon-filter: invert(0.85);
+}
+
 body {
     position: absolute;
     overflow: hidden;
@@ -17,6 +39,7 @@ body {
     height: 100%;
     left: 0;
     top: 0;
+    color: var(--ui-text);
 }
 
 * {
@@ -38,16 +61,23 @@ body {
     font-size: 150%;
 }
 
+select,
+textarea,
+input:not([type]),
 input[type="email"],
 input[type="number"],
 input[type="text"] {
     padding: 12px;
     border-radius: 4px;
     outline: 0;
+    background: var(--ui-input-background);
     border: 1px solid var(--ui-input);
     transition: border 0.1s;
+    color: var(--ui-text);
 }
 
+textarea:focus,
+input:not([type]):focus,
 input[type="email"]:focus,
 input[type="number"]:focus,
 input[type="text"]:focus {
@@ -62,16 +92,29 @@ input[type="button"] {
     border: none;
     padding: 12px;
     border-radius: 4px;
-    background-color: var(--ui-input);
     transition: background-color 0.1s;
+    color: var(--ui-text);
+    background-color: var(--ui-button-background);
 }
 
 input[type="button"]:hover {
     background-color: var(--ui-input-hover);
 }
 
+a {
+    color: var(--ui-link);
+}
+
+.novisit:visited {
+    color: var(--ui-link);;
+}
+
+.icon-symbolic {
+    filter: var(--icon-filter);
+}
+
 header {
-    position: fixed;
+    position: absolute;
     width: 100%;
     top: 0;
     left: 0;
@@ -152,6 +195,7 @@ header {
     top: 0;
     left: 0;
     overflow-y: auto;
+    transition: .2s background-color;
 }
 
 .main-menu-page {
@@ -326,7 +370,6 @@ header {
     padding: 8px;
     top: 68px;
     position: absolute;
-    z-index: 5;
     height: auto;
     left: 8px;
     opacity: 1;
@@ -666,10 +709,6 @@ header {
     max-height: 42px;
 }
 
-.novisit:visited {
-    color: #00f;
-}
-
 .needs-login {
     display: flex;
     flex-direction: column;
@@ -803,7 +842,7 @@ header {
     position: relative;
 }
 
-.profile-biography-section>button {
+.profile-biography-button {
     bottom: -4px;
     right: 8px;
     position: absolute;
@@ -816,8 +855,6 @@ header {
     height: 96px;
     font-size: 20px;
     border: 1px solid #d3d3d3;
-    border-radius: 8px;
-    padding: 4px;
     margin-bottom: 8px;
 }
 

@@ -88,7 +88,6 @@ class Board extends HTMLElement {
                 grid-template-columns: repeat(var(--columns), 1fr);
                 grid-template-rows: repeat(var(--rows), 1fr);
                 width: 100%;
-                aspect-ratio: 1/1;
                 position: relative;
             }
             .tile {
@@ -200,11 +199,11 @@ class Board extends HTMLElement {
         this.#tileElements = new Array(this.#columns)
         this.#pieceElements = new Array(this.#columns)
         this.#pieces = new Array(this.#columns)
-        for (let r = 0; r < this.#rows; r++) {
-            this.#tiles[r] = new Array(this.#rows)
-            this.#tileElements[r] = new Array(this.#rows)
-            this.#pieceElements[r] = new Array(this.#rows)
-            this.#pieces[r] = new Array(this.#rows)
+        for (let c = 0; c < this.#columns; c++) {
+            this.#tiles[c] = new Array(this.#rows)
+            this.#tileElements[c] = new Array(this.#rows)
+            this.#pieceElements[c] = new Array(this.#rows)
+            this.#pieces[c] = new Array(this.#rows)
         }
     }
 
