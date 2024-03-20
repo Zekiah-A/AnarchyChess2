@@ -18,6 +18,7 @@ public class Match
     public Ruleset Ruleset;
     public Arrangement Arrangement;
 
+    private readonly Piece[,] board;
     private readonly List<ClientData> players;
     private readonly JsonSerializerOptions jsonOptions;
     private delegate void BinaryPacketHandler(ref ReadablePacket data);
@@ -42,6 +43,8 @@ public class Match
         {
             { 0, HandleMove }
         };
+
+        board = new Piece[arrangement.Columns,arrangement.Rows];
     }
 
     public void AddPlayer(ClientData player)
@@ -68,8 +71,12 @@ public class Match
             {
                 _ = client.SendAsync(matchInfo, WebSocketMessageType.Binary);
             }
-
         }
+    }
+
+    public void FindMovess(intint column, int row)
+    {
+        var board =
     }
 
     public async Task RemovePlayer(ClientData player)

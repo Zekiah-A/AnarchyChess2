@@ -19,76 +19,78 @@
     <script src="./profile-view.js"></script>
 </head>
 <body>
-    <ac-board id="board" data-x="500" data-y="500" data-z="0.8"
-        onmousedown="
-            this.dataset.dragging = true;
-            this.style.cursor = 'grabbing'
-            this.style.willChange = 'transform'
-        "
-        onmousemove="if (this.dataset.dragging === 'true') {
-            let x = +this.dataset.x
-            let y = +this.dataset.y
-            this.dataset.x = x = Math.max(0, Math.min(x - event.movementX, 1000))
-            this.dataset.y = y = Math.max(0, Math.min(y - event.movementY, 1000))
-            this.style.transform = `translate(${-x}px, ${-y}px) scale(${+this.dataset.z})`
-        }"
-        onmouseup="
-            this.dataset.dragging = false
-            this.style.cursor = 'default'
-            this.style.willChange = 'auto'
-        "
-        onwheel="
-            let z = +this.dataset.z
-            this.dataset.z = z = Math.max(0.5, Math.min(z + (event.deltaY < 0 ? 0.1 : -0.1), 1.5))
-            this.style.transform = `translate(${-this.dataset.x}px, ${-this.dataset.y}px) scale(${z})`
-        "></ac-board>
-    <p class="copyright-notice">
-        If you're seeing this, you probably moved the board offscreen. AnarchyChess, ©Zekiah-A
-    </p>
-    <div id="gamemodeTitle" class="hud" onclick="gamemodesPanel.toggleAttribute('data-closed');">
-        <p>AnarchyChess</p>
-    </div>
-    <div id="gamemodesPanel" class="info-panel" data-closed="">
-        <h4 style="margin: 0px;">Match options:</h4>
-        <input type="button" onclick="window.location.reload(true)" value="Exit match">
-    </div>
-    <div class="hud game-actions">
-        <p onclick="chatPanel.toggleAttribute('data-closed'); settingsPanel.setAttribute('data-closed', true);">Chat</p>
-        <p onclick="settingsPanel.toggleAttribute('data-closed'); chatPanel.setAttribute('data-closed', true);">Settings</p>
-        <p onclick="rulesetPanel.toggleAttribute('data-closed')">Ruleset</p>
-    </div>
-    <div id="chatPanel" data-closed="true" class="info-panel">
-        <div id="chatMessages">
-            <p>🢂 Chat messages will appear here</p>
+    <div id="gameScreen" style="display: none;">
+        <ac-board id="board" data-x="500" data-y="500" data-z="0.8"
+            onmousedown="
+                this.dataset.dragging = true;
+                this.style.cursor = 'grabbing'
+                this.style.willChange = 'transform'
+            "
+            onmousemove="if (this.dataset.dragging === 'true') {
+                let x = +this.dataset.x
+                let y = +this.dataset.y
+                this.dataset.x = x = Math.max(0, Math.min(x - event.movementX, 1000))
+                this.dataset.y = y = Math.max(0, Math.min(y - event.movementY, 1000))
+                this.style.transform = `translate(${-x}px, ${-y}px) scale(${+this.dataset.z})`
+            }"
+            onmouseup="
+                this.dataset.dragging = false
+                this.style.cursor = 'default'
+                this.style.willChange = 'auto'
+            "
+            onwheel="
+                let z = +this.dataset.z
+                this.dataset.z = z = Math.max(0.5, Math.min(z + (event.deltaY < 0 ? 0.1 : -0.1), 1.5))
+                this.style.transform = `translate(${-this.dataset.x}px, ${-this.dataset.y}px) scale(${z})`
+            "></ac-board>
+        <p class="copyright-notice">
+            If you're seeing this, you probably moved the board offscreen. AnarchyChess, ©Zekiah-A
+        </p>
+        <div id="gamemodeTitle" class="hud" onclick="gamemodesPanel.toggleAttribute('data-closed');">
+            <p>AnarchyChess</p>
         </div>
-        <input placeholder="Send chat message" type="text" maxlength="96" onkeydown="
-            if (event.key == 'Enter' && socket != null) {
-                socket.send(this.value)
-                this.value = ''
-            }
-        ">
-    </div>
-    <div id="settingsPanel" data-closed="true" class="info-panel">
-        <h4 style="margin: 0px;">Sound effects:</h4>
-        <div style="display: flex;flex-direction: column;row-gap: 3px;">
-            <input type="button" onclick="localStorage.soundEnabled = false" value="Enable sound">
-            <input type="button" onclick="localStorage.soundEnabled = false" value="Disable sound">
+        <div id="gamemodesPanel" class="info-panel" data-closed="">
+            <h4 style="margin: 0px;">Match options:</h4>
+            <input type="button" onclick="window.location.reload(true)" value="Exit match">
         </div>
-        <h4 style="margin: 0px;">Graphics options:</h4>
-        <div style="display: flex;flex-direction: column;row-gap: 3px;">
-            <input type="button" onclick="localStorage.effects = false" value="No effects">
-            <input type="button" onclick="localStorage.effects = true" value="All effects">
+        <div class="hud game-actions">
+            <p onclick="chatPanel.toggleAttribute('data-closed'); settingsPanel.setAttribute('data-closed', true);">Chat</p>
+            <p onclick="settingsPanel.toggleAttribute('data-closed'); chatPanel.setAttribute('data-closed', true);">Settings</p>
+            <p onclick="rulesetPanel.toggleAttribute('data-closed')">Ruleset</p>
         </div>
+        <div id="chatPanel" data-closed="true" class="info-panel">
+            <div id="chatMessages">
+                <p>🢂 Chat messages will appear here</p>
+            </div>
+            <input placeholder="Send chat message" type="text" maxlength="96" onkeydown="
+                if (event.key == 'Enter' && socket != null) {
+                    socket.send(this.value)
+                    this.value = ''
+                }
+            ">
+        </div>
+        <div id="settingsPanel" data-closed="true" class="info-panel">
+            <h4 style="margin: 0px;">Sound effects:</h4>
+            <div style="display: flex;flex-direction: column;row-gap: 3px;">
+                <input type="button" onclick="localStorage.soundEnabled = false" value="Enable sound">
+                <input type="button" onclick="localStorage.soundEnabled = false" value="Disable sound">
+            </div>
+            <h4 style="margin: 0px;">Graphics options:</h4>
+            <div style="display: flex;flex-direction: column;row-gap: 3px;">
+                <input type="button" onclick="localStorage.effects = false" value="No effects">
+                <input type="button" onclick="localStorage.effects = true" value="All effects">
+            </div>
+        </div>
+        <div id="turnPanel" class="info-panel">
+            <div id="turnProgress"></div>
+            <div id="turnLabel" style="white-space: pre;">Current turn: 1            (5s)</div>
+        </div>
+        <!--<div id="infoPanel" class="info-panel">
+            <p>Zoom: <span id="zoomIndicator">0.4</span>x</p>
+            <p>Board: <span id="boardIndicator">0, 0</span></p>
+            <p>Position: <span id="tileIndicator">A1</span></p>
+        </div>-->
     </div>
-    <div id="turnPanel" class="info-panel">
-        <div id="turnProgress"></div>
-        <div id="turnLabel" style="white-space: pre;">Current turn: 1            (5s)</div>
-    </div>
-    <!--<div id="infoPanel" class="info-panel">
-        <p>Zoom: <span id="zoomIndicator">0.4</span>x</p>
-        <p>Board: <span id="boardIndicator">0, 0</span></p>
-        <p>Position: <span id="tileIndicator">A1</span></p>
-    </div>-->
     <div id="deathMenu" data-closed="true" class="menu">
         <h1 style="margin-bottom: 8px;">♟️ BLUNDER</h1>
         <p>You were killed by another piece.</p>
@@ -218,12 +220,12 @@
                         }">
                             <div class="arrangement-section">Black</div>
                             <div class="arrangement-grid">
-                                <img src="resources/pawn-black.svg" data-colour="black" alt="" data-type="pawn">
-                                <img src="resources/rook-black.svg" data-colour="black" alt="" data-type="rook">
-                                <img src="resources/knight-black.svg" data-colour="black" alt="" data-type="knight">
-                                <img src="resources/bishop-black.svg" data-colour="black" alt="" data-type="bishop">
-                                <img src="resources/queen-black.svg" data-colour="black" alt="" data-type="queen">
-                                <img src="resources/king-black.svg" data-colour="black" alt="" data-type="king">
+                                <img src="resources/pawn-black.svg" data-colour="black" alt="pawn" data-type="pawn">
+                                <img src="resources/rook-black.svg" data-colour="black" alt="rook" data-type="rook">
+                                <img src="resources/knight-black.svg" data-colour="black" alt="knight" data-type="knight">
+                                <img src="resources/bishop-black.svg" data-colour="black" alt="bishop" data-type="bishop">
+                                <img src="resources/queen-black.svg" data-colour="black" alt="queen" data-type="queen">
+                                <img src="resources/king-black.svg" data-colour="black" alt="king" data-type="king">
                             </div>
                             <div class="arrangement-section">White</div>
                             <div class="arrangement-grid">
@@ -744,6 +746,13 @@
         modal.querySelector(`.modal-content[data-page="${pageName}"]`).style.display = "flex"
     }
 
+    function hideMainMenu() {
+        mainMenu.style.display = "none"
+        gameScreen.style.display = "block"
+        configurePanel.close()
+        matchPanel.close()
+    }
+
     function setMainMenuPage(pageName) {
         const page = mainMenu.querySelector(`.main-menu-page[data-page="${pageName}"]`)
         if (!page) return
@@ -1109,9 +1118,7 @@
         socket.binaryType = "arraybuffer"
         socket.onopen =  function() {
             console.log(`Connection to match instance ${matchId} opened`)
-            configurePanel.close()
-            matchPanel.close()
-            mainMenu.style.display = "none"
+            hideMainMenu()
             board.setTheme(localStorage.boardTheme)
         }
         socket.onmessage = async function({data}) {

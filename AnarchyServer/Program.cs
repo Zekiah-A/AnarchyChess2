@@ -389,7 +389,6 @@ app.MapPost("/Arrangements", async ([FromBody] ArrangementRequest arrangementReq
     return Results.Ok();
 });
 
-
 void AppendAuthCookie(string token, HttpContext context, IConfiguration config)
 {
     var domain = config.GetSection("AnarchyServer").GetValue<string?>("Origin");
