@@ -19,30 +19,35 @@
     <script src="./profile-view.js"></script>
 </head>
 <body>
-    <div id="gameScreen" style="display: none;">
-        <ac-board id="board" data-x="500" data-y="500" data-z="0.8"
-            onmousedown="
-                this.dataset.dragging = true;
-                this.style.cursor = 'grabbing'
-                this.style.willChange = 'transform'
-            "
-            onmousemove="if (this.dataset.dragging === 'true') {
-                let x = +this.dataset.x
-                let y = +this.dataset.y
-                this.dataset.x = x = Math.max(0, Math.min(x - event.movementX, 1000))
-                this.dataset.y = y = Math.max(0, Math.min(y - event.movementY, 1000))
-                this.style.transform = `translate(${-x}px, ${-y}px) scale(${+this.dataset.z})`
-            }"
-            onmouseup="
-                this.dataset.dragging = false
-                this.style.cursor = 'default'
-                this.style.willChange = 'auto'
-            "
-            onwheel="
-                let z = +this.dataset.z
-                this.dataset.z = z = Math.max(0.5, Math.min(z + (event.deltaY < 0 ? 0.1 : -0.1), 1.5))
-                this.style.transform = `translate(${-this.dataset.x}px, ${-this.dataset.y}px) scale(${z})`
-            "></ac-board>
+    <div id="gameScreen" class="game-screen"
+        onmousemove="if (board.dataset.dragging === 'true') {
+            let x = +board.dataset.x
+            let y = +board.dataset.y
+            let z = +board.dataset.z
+            board.dataset.x = x = Math.max(0, Math.min(x - event.movementX * (1 / z), 1000))
+            board.dataset.y = y = Math.max(0, Math.min(y - event.movementY * (1 / z), 1000))
+            const transformX = -(x * z + (1 - z) * 500)
+            const transformY = -(y * z + (1 - z) * 500)
+            board.style.transform = `translate(${transformX}px, ${transformY}px) scale(${z})`
+        }"
+        onmousedown="
+            board.dataset.dragging = true;
+            this.style.cursor = 'grabbing'
+            board.style.willChange = 'transform'
+        "
+        onmouseup="
+            board.dataset.dragging = false
+            this.style.cursor = 'default'
+            board.style.willChange = 'auto'
+        "
+        onwheel="
+            let z = +board.dataset.z
+            board.dataset.z = z = Math.max(0.5, Math.min(z + (event.deltaY < 0 ? 0.1 : -0.1), 1.5))
+            board.style.transform = `translate(${-board.dataset.x}px, ${-board.dataset.y}px) scale(${z})`
+        ">
+        <div style="position: fixed; left: 50%; height: 100%; border: 1px solid gray;"></div>
+        <div style="position: fixed; top: 50%; width: 100%; border: 1px solid gray;"></div>
+        <ac-board id="board" data-x="500" data-y="500" data-z="0.8"></ac-board>
         <p class="copyright-notice">
             If you're seeing this, you probably moved the board offscreen. AnarchyChess, ©Zekiah-A
         </p>
@@ -748,7 +753,7 @@
         modal.querySelector(`.modal-content[data-page="${pageName}"]`).style.display = "flex"
     }
 
-    function hideMainMenu() {
+    function switchToGameScreen() {
         mainMenu.style.display = "none"
         gameScreen.style.display = "block"
         configurePanel.close()
@@ -1172,7 +1177,7 @@
         socket.binaryType = "arraybuffer"
         socket.onopen =  function() {
             console.log(`Connection to match instance ${matchId} opened`)
-            hideMainMenu()
+            switchToGameScreen()
             board.setTheme(localStorage.boardTheme)
         }
         socket.onmessage = async function({data}) {

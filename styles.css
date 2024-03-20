@@ -8,6 +8,7 @@
     --ui-button-background: #efefef;
     --ui-input: #e9e9ed;
     --ui-input-hover: #d2d2d5;
+    --ui-input-disabled: #e1dede;
     --ui-hilight: #61a6ff;
     --ui-hilight-transparent: #61a6ff85;
     --ui-special: #6eb84c;
@@ -22,8 +23,9 @@
     --ui-link: #61a6ff;
     --ui-input: #8f8f8f;
     --ui-input-background: #525252;
-    --ui-button-background: #252525;
+    --ui-button-background: #525252;
     --ui-input-hover:  #454444;
+    --ui-input-disabled: #373737;
     --ui-hilight: #61a6ff;
     --ui-hilight-transparent: #61a6ff85;
     --ui-special: #6eb84c;
@@ -99,6 +101,10 @@ input[type="button"] {
 
 input[type="button"]:hover {
     background-color: var(--ui-input-hover);
+}
+
+input[type="button"]:disabled {
+    background-color: var(--ui-input-disabled);
 }
 
 a {
@@ -182,6 +188,12 @@ header {
 
 .menu>* {
     align-self: center;
+}
+
+.game-screen {
+    display: none;
+    height: 100%;
+    width: 100%
 }
 
 .main-menu {
@@ -843,7 +855,7 @@ header {
 }
 
 .profile-biography-button {
-    bottom: -4px;
+    bottom: -12px;
     right: 8px;
     position: absolute;
 }
