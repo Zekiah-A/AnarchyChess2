@@ -20,33 +20,17 @@
 </head>
 <body>
     <div id="gameScreen" class="game-screen"
-        onmousemove="if (board.dataset.dragging === 'true') {
-            let x = +board.dataset.x
-            let y = +board.dataset.y
-            let z = +board.dataset.z
-            board.dataset.x = x = Math.max(0, Math.min(x - event.movementX * (1 / z), 1000))
-            board.dataset.y = y = Math.max(0, Math.min(y - event.movementY * (1 / z), 1000))
-            const transformX = -(x * z + (1 - z) * 500)
-            const transformY = -(y * z + (1 - z) * 500)
-            board.style.transform = `translate(${transformX}px, ${transformY}px) scale(${z})`
-        }"
-        onmousedown="
-            board.dataset.dragging = true;
-            this.style.cursor = 'grabbing'
-            board.style.willChange = 'transform'
-        "
-        onmouseup="
-            board.dataset.dragging = false
-            this.style.cursor = 'default'
-            board.style.willChange = 'auto'
-        "
+        onmousemove="handleBoardDrag(event)"
+        onmousedown="handleBoardPress(event)"
+        onmouseup="handleBoardRelease(event)"
+        ontouchmove="handleBoardDrag(event)"
+        ontouchstart="handleBoardPress(event)"
+        ontouchend="handleBoardRelease(event)"
         onwheel="
             let z = +board.dataset.z
             board.dataset.z = z = Math.max(0.5, Math.min(z + (event.deltaY < 0 ? 0.1 : -0.1), 1.5))
             board.style.transform = `translate(${-board.dataset.x}px, ${-board.dataset.y}px) scale(${z})`
         ">
-        <div style="position: fixed; left: 50%; height: 100%; border: 1px solid gray;"></div>
-        <div style="position: fixed; top: 50%; width: 100%; border: 1px solid gray;"></div>
         <ac-board id="board" data-x="500" data-y="500" data-z="0.8"></ac-board>
         <p class="copyright-notice">
             If you're seeing this, you probably moved the board offscreen. AnarchyChess, ©Zekiah-A
@@ -1298,6 +1282,31 @@
         socket.onclose = function() {
             window.location.reload(true)
         }
+    }
+
+    function handleBoardDrag(event) {
+        if (board.dataset.dragging === 'true') {
+            let x = +board.dataset.x
+            let y = +board.dataset.y
+            let z = +board.dataset.z
+            board.dataset.x = x = Math.max(0, Math.min(x - event.movementX * (1 / z), 1000))
+            board.dataset.y = y = Math.max(0, Math.min(y - event.movementY * (1 / z), 1000))
+            const transformX = -(x * z + (1 - z) * 500)
+            const transformY = -(y * z + (1 - z) * 500)
+            board.style.transform = `translate(${transformX}px, ${transformY}px) scale(${z})`
+        }
+    }
+
+    function handleBoardPress(event) {
+        board.dataset.dragging = true;
+        gameScreen.style.cursor = 'grabbing'
+        board.style.willChange = 'transform'
+    }
+
+    function handleBoardRelease(event) {
+        board.dataset.dragging = false
+        gameScreen.style.cursor = 'default'
+        board.style.willChange = 'auto'
     }
 
     //  MatchId : Match
