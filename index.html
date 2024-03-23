@@ -26,11 +26,7 @@
         ontouchmove="handleBoardDrag(event)"
         ontouchstart="handleBoardPress(event)"
         ontouchend="handleBoardRelease(event)"
-        onwheel="
-            let z = +board.dataset.z
-            board.dataset.z = z = Math.max(0.5, Math.min(z + (event.deltaY < 0 ? 0.1 : -0.1), 1.5))
-            board.style.transform = `translate(${-board.dataset.x}px, ${-board.dataset.y}px) scale(${z})`
-        ">
+        onwheel="handleBoardZoom(event)">
         <ac-board id="board" data-x="500" data-y="500" data-z="0.8"></ac-board>
         <p class="copyright-notice">
             If you're seeing this, you probably moved the board offscreen. AnarchyChess, ©Zekiah-A
@@ -79,6 +75,16 @@
             <p>Board: <span id="boardIndicator">0, 0</span></p>
             <p>Position: <span id="tileIndicator">A1</span></p>
         </div>-->
+        <div id="meTurnPopup">It is now your turn!</div>
+        <div id="rulesetPanel" class="side-panel" data-closed="true">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0px;">Game rules:</h3>
+                <input type="button" value="Close" onclick="rulesetPanel.setAttribute('data-closed', true)">    
+            </div>
+            <div class="match-rules" id="matchRules">
+                <h5 style="margin-bottom: 0px;">Game events:</h5>
+            </div>
+        </div>    
     </div>
     <div id="deathMenu" data-closed="true" class="menu">
         <h1 style="margin-bottom: 8px;">♟️ BLUNDER</h1>
@@ -169,7 +175,7 @@
                             <div class="arrangement-button" tabindex="0" onclick="
                                 let rule = document.createElement('ac-ruleset-rule')
                                 rulesetRules.appendChild(rule)
-                            ">➕ Add Rule</div>
+                            "><img src="./resources/add-icon.svg" alt="+"> Add Rule</div>
                             <div class="arrangement-button" tabindex="0" onclick="
                                 let ruleDatas = []
                                 for (let rule of rulesetRules.children) {
@@ -225,7 +231,7 @@
                                 <img src="resources/queen-white.svg" data-colour="white" alt="" data-type="queen">
                                 <img src="resources/king-white.svg" data-colour="white" alt="" data-type="king">
                             </div>
-                            <div style="display: flex; position: relative;">
+                            <div style="display: flex; position: relative; column-gap: 4px;">
                                 <input id="arrangementColumns" data-oldvalue="8" onchange="
                                     if (confirm('Are you sure you want to resize the board? This will wipe all pieces')) {
                                         arrangementBoard.columns = this.value
@@ -286,12 +292,14 @@
                         <input id="matchIdInput" class="arrangement-input" type="number" placeholder="Match ID">
                         <div class="arrangement-button" tabindex="0" onclick="play(matchIdInput.value)">Join</div>
                         <div style="flex-grow: 1;"><!--spacer--></div>
-                        <div class="arrangement-button" tabindex="0" onclick="setModalPage(matchPanel, 'create')">➕ Create my own match</div>
+                        <div class="arrangement-button" tabindex="0" onclick="setModalPage(matchPanel, 'create')">
+                            <img src="./resources/add-icon.svg" alt="+"> Create my own match
+                        </div>
                     </div>
                 </div>
                 <div class="modal-content" data-page="create" style="display: none;">
                     <fieldset>
-                        <legend><h3 style="margin: 0px;">Game options:</h3></legend>
+                        <legend><h3 style="margin: 0px; color: var(--ui-text);">Game options:</h3></legend>
                         <p>
                             Using ruleset: 
                             <select id="createRuleset" onmousedown="updateCreateRuleset()">
@@ -306,7 +314,7 @@
                         </p>    
                     </fieldset>
                     <fieldset style="display: flex; flex-direction: column; row-gap: 8px;">
-                        <legend><h3 style="margin: 0px;">Lobby options:</h3></legend>
+                        <legend><h3 style="margin: 0px; color: var(--ui-text);">Lobby options:</h3></legend>
                         <input type="number" id="createLobbyCapacity" autocomplete="off" class="arrangement-input" placeholder="Lobby capacity" min="2" max="2">
                         <input type="text" id="createLobbyName" autocomplete="off" style="flex-shrink: 1;" class="arrangement-input" placeholder="Lobby name" maxlength="64">
                         <div>
@@ -471,23 +479,6 @@
                     <input type="button" onclick="if (confirm('Are you sure you want to delete your account?')) deleteAccount()" value="Delete my account">
                 </fieldset>
             </div>
-        </div>
-    </div>
-    <div id="spawnMenu" style="display: none;" class="menu spawn-menu">
-        <h2>Choose your spawn location</h2>
-        <div class="dual-options">
-            <input id="tokenSpawnButton" value="Continue from last location" type="button" onclick="">
-            <input value="Random location" type="button" onclick="">
-        </div>
-    </div>
-    <div id="meTurnPopup">It is now your turn!</div>
-    <div id="rulesetPanel" class="side-panel" data-closed="true">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="margin: 0px;">Game rules:</h3>
-            <input type="button" value="Close" onclick="rulesetPanel.setAttribute('data-closed', true)">    
-        </div>
-        <div class="match-rules" id="matchRules">
-            <h5 style="margin-bottom: 0px;">Game events:</h5>
         </div>
     </div>
 <script>
@@ -667,6 +658,7 @@
     function lerp(from, to, weight){
         return (1 - weight) * from + weight *to
     }
+
     let scrollAnim = null
     function setHeaderWillChange() { // Optimisation
         headerBranding.style.willChange = "left, top, scale"
@@ -1284,29 +1276,38 @@
         }
     }
 
+    function handleBoardZoom(event) {
+        let z = +board.dataset.z
+        board.dataset.z = z = Math.max(0.5, Math.min(z + (event.deltaY < 0 ? 0.1 : -0.1), 1.5))
+        board.style.transform = `translate(${-board.dataset.x}px, ${-board.dataset.y}px) scale(${z})`
+    }
+
     function handleBoardDrag(event) {
-        if (board.dataset.dragging === 'true') {
+        if (board.dataset.dragging === "true") {
             let x = +board.dataset.x
             let y = +board.dataset.y
             let z = +board.dataset.z
             board.dataset.x = x = Math.max(0, Math.min(x - event.movementX * (1 / z), 1000))
             board.dataset.y = y = Math.max(0, Math.min(y - event.movementY * (1 / z), 1000))
-            const transformX = -(x * z + (1 - z) * 500)
-            const transformY = -(y * z + (1 - z) * 500)
+            const offset = (1 - z) * 500
+            const transformX = -(x * z + offset)
+            const transformY = -(y * z + offset)
+            board.dataset.tx = transformX
+            board.dataset.ty = transformY
             board.style.transform = `translate(${transformX}px, ${transformY}px) scale(${z})`
         }
     }
 
     function handleBoardPress(event) {
         board.dataset.dragging = true;
-        gameScreen.style.cursor = 'grabbing'
-        board.style.willChange = 'transform'
+        gameScreen.style.cursor = "grabbing"
+        board.style.willChange = "transform"
     }
 
     function handleBoardRelease(event) {
         board.dataset.dragging = false
-        gameScreen.style.cursor = 'default'
-        board.style.willChange = 'auto'
+        gameScreen.style.cursor = "default"
+        board.style.willChange = "auto"
     }
 
     //  MatchId : Match

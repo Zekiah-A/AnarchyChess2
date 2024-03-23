@@ -1,6 +1,10 @@
 /*https://webdesign.tutsplus.com/color-schemes-with-css-variables-and-javascript--cms-36989t*/
 :root, :root.modernLight {
     --ui-background: white;
+    --ui-border: gray;
+    --ui-border-unfocused: #bdbdbd;
+    --ui-modal-background: #f1f1f1;
+    --ui-modal-background-unfocused: #fafafa;
     --ui-background-transparent: #ffffff80;
     --ui-text: black;
     --ui-link: #00f;
@@ -18,11 +22,15 @@
 
 :root.modernDark {
     --ui-background: #141414;
+    --ui-border: #555;
+    --ui-border-unfocused: #444343;
+    --ui-modal-background: #202020;
+    --ui-modal-background-unfocused: #3c3c3c;
     --ui-background-transparent: #17171780;
     --ui-text: #e0e0e0;
     --ui-link: #61a6ff;
     --ui-input: #8f8f8f;
-    --ui-input-background: #525252;
+    --ui-input-background: #141414;
     --ui-button-background: #525252;
     --ui-input-hover:  #454444;
     --ui-input-disabled: #373737;
@@ -581,12 +589,13 @@ header {
     background: 0 0;
     min-width: min(calc(100% - 32px), 800px);
     min-height: min(calc(100% - 32px), 600px);
+    color: var(--ui-text);
 }
 
 .modal-content {
     padding: 8px;
-    background: #f1f1f1;
-    border: 1px solid gray;
+    background: var(--ui-modal-background);
+    border: 1px solid var(--ui-border);
     flex-grow: 1;
     display: flex;
     flex-direction: column;
@@ -604,28 +613,39 @@ header {
 }
 
 .modal-title>div[data-selected] {
-    background: #f1f1f1;
-    border: 1px solid gray;
+    background: var(--ui-modal-background);
+    border: 1px solid var(--ui-border);
     border-bottom: none;
 }
 
 .modal-title>div {
     display: flex;
-    border: 1px solid #bdbdbd;
-    background: #fafafa;
+    border: 1px solid var(--ui-border-unfocused);
+    background: var(--ui-modal-background-unfocused);
     min-height: 32px;
     align-self: start;
     align-items: center;
     padding: 8px;
     border-bottom: none;
     font-weight: 700;
+    color: var(--ui-text);
 }
 
 .modal-title>button {
+    background: var(--ui-modal-background);
     margin-left: auto;
-    border: 1px solid gray;
+    border: 1px solid var(--ui-border);
     border-bottom: none;
     width: 64px;
+    color: var(--ui-text);
+}
+
+.modal-title>button:hover{
+    background: var(--ui-input-hover);
+}
+
+.modal-title>button>img {
+    filter: var(--icon-filter)
 }
 
 #arrangementStats {
@@ -665,11 +685,11 @@ header {
     position: absolute;
     z-index: 2;
     text-shadow:
-        -1px -1px 0 #fff,
-        1px -1px 0 #fff,
-        -1px 1px 0 #fff,
-        1px 1px 0 #fff;
-    opacity: 0.4;
+        -1px -1px 0 var(--ui-border),
+        1px -1px 0 var(--ui-border),
+        -1px 1px 0 var(--ui-border),
+        1px 1px 0 var(--ui-border);
+    opacity: 0.8;
     left: 50%;
     transform: translate(-50%, -50%);
 }
@@ -692,7 +712,7 @@ header {
 }
 
 .arrangement-input:focus {
-    border: 1px solid gray;
+    border: 1px solid var(--ui-border);
 }
 
 .arrangement-input:invalid {
@@ -700,14 +720,19 @@ header {
 }
 
 .arrangement-button {
+    display: flex;
     padding: 8px;
-    border: 1px solid #d3d3d3;
-    background: linear-gradient(to bottom, #d6d6d6, #e9e9e9);
+    border: 1px solid var(--ui-border-unfocused);
+    background: linear-gradient(to bottom, var(--ui-border-unfocused), var(--ui-input-background));
     cursor: default;
 }
 
+.arrangement-button>img {
+    filter: var(--icon-filter)
+}
+
 .arrangement-button:hover {
-    border: 1px solid gray;
+    border: 1px solid var(--ui-border);
 }
 
 .modal-list {
@@ -737,7 +762,7 @@ header {
 }
 
 .profile-header {
-    border: 1px solid gray;
+    border: 1px solid var(--ui-border);
     padding-left: 96px;
     background: linear-gradient(-45deg, #a9ff86, transparent);
     border-radius: 8px;
@@ -771,7 +796,7 @@ header {
     overflow: clip;
     position: relative;
     box-shadow: 0 2px 6px 0 #00000059;
-    border: 1px solid gray;
+    border: 1px solid var(--ui-border);
     background-color: #fff;
     cursor: pointer;
     transition: 0.2s background-color;
@@ -821,6 +846,7 @@ header {
     letter-spacing: 0.1em;
     text-align: center;
     flex-grow: 1;
+    color: black;
 }
 
 .profile-background-section {
@@ -837,11 +863,15 @@ header {
     gap: 4px;
 }
 
+.profile-background-section>legend {
+    color: black;
+}
+
 .profile-background-section>input[type="button"] {
     width: 48px;
     height: 48px;
     box-shadow: 0 2px 6px 0 #00000059;
-    border: 1px solid gray;
+    border: 1px solid var(--ui-border);
     border-radius: 48px;
     margin: 0;
     transition:
@@ -886,7 +916,6 @@ header {
     width: 92px;
     display: inline-block;
     border-radius: 32px;
-    border: 1px solid #d3d3d3;
     margin-right: 8px;
     text-align: center;
 }
