@@ -68,7 +68,7 @@
         </div>
         <div id="turnPanel" class="info-panel">
             <div id="turnProgress"></div>
-            <div id="turnLabel" style="white-space: pre;">Current turn: 1            (5s)</div>
+            <div id="turnLabel">Current turn: 1            (5s)</div>
         </div>
         <!--<div id="infoPanel" class="info-panel">
             <p>Zoom: <span id="zoomIndicator">0.4</span>x</p>
@@ -102,17 +102,19 @@
                 behavior: 'smooth'
             })
         ">
-            <div id="headerBranding" class="branding">
-                <img src="resources/logo.png" class="icon-symbolic" height="64" alt="logo">
-                <h1>AnarchyChess</h1>
+            <div id="headerContent" class="header-content">
+                <div id="headerBranding" class="branding">
+                    <img src="resources/logo.png" class="icon-symbolic" height="64" alt="logo">
+                    <h1>AnarchyChess</h1>
+                </div>
+                <nav id="headerNav" class="header-nav">
+                    <a class="novisit page-link" href="#login" data-page="login">Login</a> |
+                    <a class="novisit page-link" href="#signup" data-page="signup">Sign up</a> |
+                    <a class="novisit page-link" href="#main" data-page="main">Home</a> |
+                    <a class="novisit page-link" href="#profile" data-page="profile">My profile</a> |
+                    <a class="novisit page-link" href="#settings" data-page="settings">Settings</a>
+                </nav>
             </div>
-            <nav id="headerNav" class="header-nav">
-                <a class="novisit page-link" href="#login" data-page="login">Login</a> |
-                <a class="novisit page-link" href="#signup" data-page="signup">Sign up</a> |
-                <a class="novisit page-link" href="#main" data-page="main">Home</a> |
-                <a class="novisit page-link" href="#profile" data-page="profile">My profile</a> |
-                <a class="novisit page-link" href="#settings" data-page="settings">Settings</a>
-            </nav>
         </header>
         <div style="min-height: 200px;"><!--spacer--></div>
         <div class="main-menu-page" data-page="login">
@@ -152,7 +154,7 @@
                             signupConfirm.value =  ''
                         }
                     })()
-                " onkeydown="maybeSelectNext(event)">
+                ">
             </div>
             <div>
                 <a class="novisit" href="#login">Already have an account?</a>
@@ -172,11 +174,11 @@
                     <div class="modal-content-container">
                         <div id="rulesetRules" class="modal-list"><!--Ruleset list elements go here--></div>
                         <div class="modal-content-side" style="width: 192px;">
-                            <div class="arrangement-button" tabindex="0" onclick="
+                            <button class="arrangement-button" tabindex="0" onclick="
                                 let rule = document.createElement('ac-ruleset-rule')
                                 rulesetRules.appendChild(rule)
-                            "><img src="./resources/add-icon.svg" alt="+"> Add Rule</div>
-                            <div class="arrangement-button" tabindex="0" onclick="
+                            "><img src="./resources/add-icon.svg" alt="+"> Add Rule</button>
+                            <button class="arrangement-button" tabindex="0" onclick="
                                 let ruleDatas = []
                                 for (let rule of rulesetRules.children) {
                                     // Skip adding invalid rules
@@ -191,7 +193,7 @@
                                     return
                                 }
                                 uploadRulesetRules(rulesetName, ruleDatas)
-                            ">Save</div>
+                            ">Save</button>
                         </div>
                     </div>
                 </div>
@@ -252,13 +254,13 @@
                                 " type="number" style="width: 50%;" value="8" min="6" max="16">
                             </div>
                             <div style="flex-grow: 1;"><!--Spacer--></div>
-                            <div class="arrangement-button" tabindex="0" onclick="if (arrangementSelC != null && arrangementSelR != null) {
+                            <button class="arrangement-button" tabindex="0" onclick="if (arrangementSelC != null && arrangementSelR != null) {
                                 animateDestroyPiece(arrangementBoard, arrangementCanvas, arrangementSelC, arrangementSelR)
                                 arrangementSelC = null
                                 arrangementSelR = null
                                 updateArrangementStats()
-                            }">Delete piece 🗑️</div>
-                            <div class="arrangement-button" tabindex="0" onclick="
+                            }">Delete piece 🗑️</button>
+                            <button class="arrangement-button" tabindex="0" onclick="
                                 let arrangementName = prompt('Enter name for new arrangement', 'My arrangement')
                                 if (!arrangementName || arrangementName.length > 16) {
                                     alert('Could not create arrangement. Name length was not in valid range (1-16)')
@@ -271,7 +273,7 @@
                                     }
                                 }
                                 uploadArrangement(name, arrangementColumns.value, arrangementRows.value, piecesArray)
-                            ">Save</div>
+                            ">Save</button>
                     </div>
                         <canvas id="arrangementCanvas" style="position: absolute; bottom: 0; left: 0; height: 100%; pointer-events: none; width: 100%;"></canvas>
                     </div>
@@ -290,11 +292,11 @@
                     <div id="matchList" class="modal-list"><!--Match list elements go here--></div>
                     <div class="modal-list-buttons">
                         <input id="matchIdInput" class="arrangement-input" type="number" placeholder="Match ID">
-                        <div class="arrangement-button" tabindex="0" onclick="play(matchIdInput.value)">Join</div>
+                        <button class="arrangement-button" tabindex="0" onclick="play(matchIdInput.value)">Join</button>
                         <div style="flex-grow: 1;"><!--spacer--></div>
-                        <div class="arrangement-button" tabindex="0" onclick="setModalPage(matchPanel, 'create')">
+                        <button class="arrangement-button" tabindex="0" onclick="setModalPage(matchPanel, 'create')">
                             <img src="./resources/add-icon.svg" alt="+"> Create my own match
-                        </div>
+                        </button>
                     </div>
                 </div>
                 <div class="modal-content" data-page="create" style="display: none;">
@@ -323,10 +325,11 @@
                         </div>
                     </fieldset>
                     <div style="flex-grow: 1;"><!--spacer--></div>
-                    <div class="arrangement-button" tabindex="0" onclick="(async function() {
-                        const matchId = await createMatch(+createRuleset.value, +createArrangement.value, createLobbyName.value, createLobbyCapacity.value, createPublic.checked)
-                        play(matchId)
-                    })()">Create and join match</div>
+                    <button class="arrangement-button" tabindex="0" onclick="(async function() {
+                        const lobbyName = createLobbyName.value
+                        const matchId = await createMatch(+createRuleset.value, +createArrangement.value, lobbyName, createLobbyCapacity.value, createPublic.checked)
+                        play(matchId, lobbyName)
+                    })()">Create and join match</button>
                 </div>
             </dialog>
             <fieldset class="main-menu-field">
@@ -663,45 +666,54 @@
     function setHeaderWillChange() { // Optimisation
         headerBranding.style.willChange = "left, top, scale"
         headerNav.style.willChange = "left, top"
-        header.style.willChange = "top, height, box-shadow"
+        headerContent.style.willChange = "height, box-shadow"
     }
     function clearHeaderWillChange() {
         headerBranding.style.willChange = "auto"
         headerNav.style.willChange = "auto"
-        header.style.willChange = "auto"
+        headerContent.style.willChange = "auto"
     }
+    let headerPositionFrame = 0
     function calcHeaderPositioning() {
-        setHeaderWillChange()   
-        const portrait = window.innerWidth < window.innerHeight
-        const toCollapsed = Math.min(1, mainMenu.scrollTop / 100)
-        const headerCentreX = header.offsetWidth / 2
-        header.style.boxShadow = `0px 0px ${Math.min(8, mainMenu.scrollTop)}px gray`
-        header.style.height = `${Math.max(100, 200 - mainMenu.scrollTop)}px`
-        header.style.top = `${mainMenu.scrollTop}px`
+        setHeaderWillChange()
+        headerPositionFrame = requestAnimationFrame(positionHeader)
+        function positionHeader() {
+            if (headerPositionFrame !== 0) {
+                cancelAnimationFrame(headerPositionFrame)
+                headerPositionFrame = 0
+            }
+            const portrait = window.innerWidth < window.innerHeight
+            const toCollapsed = Math.min(1, mainMenu.scrollTop / 100)
+            const headerCentreX = header.offsetWidth / 2
+            headerContent.style.boxShadow = `0px 0px ${Math.min(8, mainMenu.scrollTop)}px gray`
+            headerContent.style.height = `${Math.max(100, 200 - mainMenu.scrollTop)}px`
 
-        if (portrait) {
-            headerBranding.style.left = `${headerCentreX - headerBranding.offsetWidth / 2}px`
-            headerBranding.style.top = `${lerp(0, -16, toCollapsed)}px`
-            headerBranding.style.scale = lerp(1, 0.6, toCollapsed)
+            if (portrait) {
+                headerBranding.style.left = `${headerCentreX - headerBranding.offsetWidth / 2}px`
+                headerBranding.style.top = `${lerp(0, -16, toCollapsed)}px`
+                headerBranding.style.scale = lerp(1, 0.6, toCollapsed)
 
-            headerNav.style.left = `${headerCentreX - headerNav.offsetWidth / 2}px`
-            headerNav.style.top = `${lerp(120, 60, toCollapsed)}px`
+                headerNav.style.left = `${headerCentreX - headerNav.offsetWidth / 2}px`
+                headerNav.style.top = `${lerp(120, 60, toCollapsed)}px`
+            }
+            else {
+                headerBranding.style.top = "0px"
+                headerBranding.style.left = `${lerp(headerCentreX - headerBranding.offsetWidth / 2, 16, toCollapsed)}px`
+                headerBranding.style.scale = lerp(1.2, 0.8, toCollapsed)
+
+                headerNav.style.left = `${lerp(headerCentreX - headerNav.offsetWidth / 2, header.offsetWidth - headerNav.offsetWidth - 16, toCollapsed)}px`
+                headerNav.style.top = `${lerp(120, 50 - headerNav.offsetHeight / 2, toCollapsed)}px`
+            }
+
+            clearHeaderWillChange()
         }
-        else {
-            headerBranding.style.top = "0px"
-            headerBranding.style.left = `${lerp(headerCentreX - headerBranding.offsetWidth / 2, 16, toCollapsed)}px`
-            headerBranding.style.scale = lerp(1.2, 0.8, toCollapsed)
-
-            headerNav.style.left = `${lerp(headerCentreX - headerNav.offsetWidth / 2, header.offsetWidth - headerNav.offsetWidth - 16, toCollapsed)}px`
-            headerNav.style.top = `${lerp(120, 50 - headerNav.offsetHeight / 2, toCollapsed)}px`
-        }
-        clearHeaderWillChange()
 
         if (scrollAnim) {
             clearTimeout(scrollAnim)
             scrollAnim = null
         }
         if (mainMenu.scrollTop < 100) {
+            const toCollapsed = Math.min(1, mainMenu.scrollTop / 100)
             let scrollTarget = toCollapsed < 0.5 ? 0 : 100
             setHeaderWillChange()
             scrollAnim = setTimeout(() => {
@@ -798,7 +810,7 @@
         const res = await fetch(`${serverAddress}/Login`, { method: "POST" })
         if (!res.ok) {
             const message = (await res.json())?.message
-            alert("Automatic login failed - " + (message || "network error"))
+            console.error("Automatic login failed - " + (message || "network error"))
             signout()
             return
         }
@@ -990,6 +1002,13 @@
         }
     }
 
+    function appendDefaultOption(select) {
+        const defaultOption = document.createElement("option")
+        defaultOption.value = 0
+        defaultOption.textContent = "Default"
+        select.appendChild(defaultOption)
+    }
+
     async function updateCreateRuleset() {
         const res = await fetch(`${serverAddress}/Users/${localStorage.me}/Rulesets`, {
             method: "GET",
@@ -1004,8 +1023,9 @@
         const rulesets = await res.json()
         if (rulesets.length > 0) {
             createRuleset.innerHTML = ""
+            appendDefaultOption(createRuleset)
             for (const ruleset of rulesets) {
-                const rulesetOption = docment.createElement("option")
+                const rulesetOption = document.createElement("option")
                 rulesetOption.textContent = ruleset.name
                 rulesetOption.value = ruleset.id
                 createRuleset.appendChild(rulesetOption)
@@ -1027,6 +1047,7 @@
         const arrangements = await res.json()
         if (arrangements.length > 0) {
             createArrangement.innerHTML = ""
+            appendDefaultOption(createArrangement)
             for (const arrangement of arrangements) {
                 const arrangementOption = docment.createElement("option")
                 arrangementOption.textContent = ruleset.name
@@ -1138,7 +1159,7 @@
 
     let socket = null
     const cachedProfiles = new Map()
-    async function play(matchId) {
+    async function play(matchId, matchName) {
         // Make HTTP request beforehand to check if the specified match exists / is authorised
         const res = await fetch(`${serverAddress}/Matches/${matchId}`, {
             method: "GET",
@@ -1149,6 +1170,7 @@
             alert("Could not join match - " + (message || "network error"))
             return
         }
+        turnLabel.textContent = `"${matchName}" | Match ID: ${matchId}`
         socket = new WebSocket(`${socketAddress}/Matches/${matchId}?authorization=${token}`)
         socket.binaryType = "arraybuffer"
         socket.onopen =  function() {

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace AnarchyServer.DataModel;
 
 // Bloblular data
@@ -10,6 +12,7 @@ public class Ruleset
     public string Data { get; set; } = null!;
 
     // Navigation property to creator
+    [JsonIgnore]
     public Account? Creator { get; set; } = null!;
 
     public Ruleset(int creatorId, string name, string data)

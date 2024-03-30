@@ -86,6 +86,7 @@ input[type="text"] {
     color: var(--ui-text);
 }
 
+select:focus,
 textarea:focus,
 input:not([type]):focus,
 input[type="email"]:focus,
@@ -128,13 +129,18 @@ a {
 }
 
 header {
-    position: absolute;
+    position: sticky;
     width: 100%;
     top: 0;
     left: 0;
+    z-index: 1;
+}
+
+.header-content {
+    position: absolute;
     backdrop-filter: blur(16px);
     height: 200px;
-    z-index: 1;
+    width: 100%;
 }
 
 .hud {
@@ -498,6 +504,12 @@ header {
     transition: 0.2s top;
 }
 
+#turnLabel {
+    width: min-content;
+    min-width: 256px;
+    white-space: pre;
+}
+
 #infoPanel {
     top: 68px;
     left: 0;
@@ -708,7 +720,7 @@ header {
     padding: 8px !important;
     border: 1px solid #d3d3d3 !important;
     border-radius: 0 !important;
-    background: #fff !important;
+    background: var(--ui-input-background) !important;
 }
 
 .arrangement-input:focus {
@@ -725,6 +737,8 @@ header {
     border: 1px solid var(--ui-border-unfocused);
     background: linear-gradient(to bottom, var(--ui-border-unfocused), var(--ui-input-background));
     cursor: default;
+    font-size: 18px;
+    color: var(--ui-text);
 }
 
 .arrangement-button>img {

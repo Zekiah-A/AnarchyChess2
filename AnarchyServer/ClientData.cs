@@ -30,6 +30,9 @@ public class ClientData
     public async Task CloseAsync(WebSocketCloseStatus closeStatus, string? closeReason, CancellationToken? cancelToken = null)
     {
         cancelToken ??= CancellationToken.None;
-        await Socket.CloseAsync(closeStatus, closeReason, cancelToken.Value);
+        if (Socket.State is not WebSocketState.Closed or WebSocketState.CloseReceived)
+        {
+            await Socket.CloseAsync(closeStatus, closeReason, cancelToken.Value);
+        }
     }
 }

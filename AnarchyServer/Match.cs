@@ -58,7 +58,7 @@ public class Match
             var matchInfo = new WriteablePacket();
             matchInfo.WriteByte(0);
             matchInfo.WriteByte((byte) Players.Count);
-            foreach (var client in players)
+            foreach (var client in players.ToList())
             {
                 matchInfo.WriteInt(client.Account.Id);
             }
@@ -67,16 +67,11 @@ public class Match
             matchInfo.WriteInt(Ruleset.Id);
             matchInfo.WriteInt(Arrangement.Id);
 
-            foreach (var client in players)
+            foreach (var client in players.ToList())
             {
                 _ = client.SendAsync(matchInfo, WebSocketMessageType.Binary);
             }
         }
-    }
-
-    public void FindMovess(intint column, int row)
-    {
-        var board =
     }
 
     public async Task RemovePlayer(ClientData player)
@@ -85,7 +80,7 @@ public class Match
         if (Started)
         {
             // Stop match
-            foreach (var client in players)
+            foreach (var client in players.ToList())
             {
                 await client.CloseAsync(WebSocketCloseStatus.NormalClosure,
                     "Match ended - Other player disconnecteed");

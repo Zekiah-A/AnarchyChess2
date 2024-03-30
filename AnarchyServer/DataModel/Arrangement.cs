@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace AnarchyServer.DataModel;
 
 public class Arrangement
@@ -11,6 +13,7 @@ public class Arrangement
     public string Data { get; set; }
 
     //  Navigation property to Account
+    [JsonIgnore]
     public Account? Creator { get; set; } = null!;
 
     public Arrangement(int creatorId, string name, int rows, int columns, string data)

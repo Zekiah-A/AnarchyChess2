@@ -104,7 +104,7 @@ void InsertDefaults()
                 NULL,
                 8,
                 8,
-                '[{"type":"rook","colour":"black"},{"type":"knight","colour":"black"},{"type":"bishop","colour":"black"},{"type":"king","colour":"black"},{"type":"queen","colour":"black"},{"type":"bishop","colour":"black"},{"type":"knight","colour":"black"},{"type":"rook","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"rook","colour":"white"},null,{"type":"bishop","colour":"white"},{"type":"king","colour":"white"},{"type":"queen","colour":"white"},{"type":"bishop","colour":"white"},{"type":"knight","colour":"white"},{"type":"rook","colour":"white"}]',
+                '[{"type":"rook","colour":"black"},{"type":"knight","colour":"black"},{"type":"bishop","colour":"black"},{"type":"king","colour":"black"},{"type":"queen","colour":"black"},{"type":"bishop","colour":"black"},{"type":"knight","colour":"black"},{"type":"rook","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"rook","colour":"white"},{"type":"knight","colour":"white"},{"type":"bishop","colour":"white"},{"type":"king","colour":"white"},{"type":"queen","colour":"white"},{"type":"bishop","colour":"white"},{"type":"knight","colour":"white"},{"type":"rook","colour":"white"}]',
                 'Default'
             )
         """);
@@ -116,7 +116,7 @@ void InsertDefaults()
             VALUES (
                 0,
                 NULL,
-                '[{"condition":"matchStart","action":{"type":"setCurrentTurn","turnColour":"black"}}]',
+                '[{"condition":"matchStart","action":{"type":"setCurrentTurn","turnColour":"white"}}]',
                 'Default'
             )
         """);
@@ -131,7 +131,7 @@ async IAsyncEnumerable<IReceiveResult> ReceiveDataAsync(ClientData client, [Enum
     var transportCompleted = false;
     while (true)
     {
-        IReceiveResult readLoopResult = null!;
+        IReceiveResult? readLoopResult = null!;
         try
         {
             if (token.IsCancellationRequested)
@@ -139,7 +139,11 @@ async IAsyncEnumerable<IReceiveResult> ReceiveDataAsync(ClientData client, [Enum
                 app.Logger.LogInformation(
                     "Terminating connection with websocket client {Ip} as per cancellation token request", client.Ip);
                 readLoopResult = new SocketCancellation(null);
-                await client.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                if (!transportCompleted && client.Socket.State != WebSocketState.Closed)
+                {
+                    await client.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", token);
+                }
+                readLoopResult = new SocketClosure(WebSocketCloseStatus.Empty, "Task cancelled");
                 transportCompleted = true;
             }
             else
@@ -159,7 +163,10 @@ async IAsyncEnumerable<IReceiveResult> ReceiveDataAsync(ClientData client, [Enum
                         resultStream.Flush();
                         app.Logger.LogTrace("Close received from websocket client {Ip}. Code {Code}, reason: {Reason}",
                             client.Ip, client.Socket.CloseStatus, client.Socket.CloseStatusDescription);
-                        await client.Socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                        if (!transportCompleted && client.Socket.State != WebSocketState.Closed)
+                        {
+                            await client.Socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", token);
+                        }
                         readLoopResult = new SocketClosure(client.Socket.CloseStatus, client.Socket.CloseStatusDescription);
                         transportCompleted = true;
                     }
@@ -177,20 +184,29 @@ async IAsyncEnumerable<IReceiveResult> ReceiveDataAsync(ClientData client, [Enum
         {
             app.Logger.LogError("Task cancelled connection with client {Ip}", client.Ip);
             readLoopResult = new SocketCancellation(cancelException);
-            await client.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+            if (!transportCompleted && client.Socket.State != WebSocketState.Closed)
+            {
+                await client.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", token);
+            }
             transportCompleted = true;
         }
         catch (OperationCanceledException cancelException)
         {
-            app.Logger.LogError("Task cancelled connection with client {Ip}", client.Ip);
+            app.Logger.LogError("Operation cancelled connection with client {Ip}", client.Ip);
             readLoopResult = new SocketCancellation(cancelException);
-            await client.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+            if (!transportCompleted && client.Socket.State != WebSocketState.Closed)
+            {
+                await client.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", token);
+            }
             transportCompleted = true;
         }
         catch (Exception exception)
         {
             app.Logger.LogError("Unexpected error in websocket connection with {Ip}: {Exception}", client.Ip, exception);
-            await client.Socket.CloseOutputAsync(WebSocketCloseStatus.InternalServerError, "", CancellationToken.None);
+            if (!transportCompleted && client.Socket.State != WebSocketState.Closed)
+            {
+                await client.Socket.CloseOutputAsync(WebSocketCloseStatus.InternalServerError, "", token);
+            }
             readLoopResult = new SocketError(exception);
             transportCompleted = true;
         }
@@ -324,7 +340,7 @@ app.MapGet("/Users/{id}/Rulesets", async (int id, DatabaseContext dbContext) =>
     {
         return Results.NotFound(new { Message = "Specified user does not exist"});
     }
-    var rulesets = dbContext.Rulesets.Where(user => user.CreatorId == id);
+    var rulesets = await dbContext.Rulesets.Where(user => user.CreatorId == id).ToListAsync();
     return Results.Ok(rulesets);
 });
 
@@ -335,7 +351,7 @@ app.MapGet("/Users/{id}/Arrangements", async (int id, DatabaseContext dbContext)
     {
         return Results.NotFound(new { Message = "Specified user does not exist"});
     }
-    var arrangements = dbContext.Arrangements.Where(user => user.CreatorId == id);
+    var arrangements = await dbContext.Arrangements.Where(user => user.CreatorId == id).ToListAsync();
     return Results.Ok(arrangements);
 });
 
