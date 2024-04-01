@@ -11,6 +11,7 @@ public class ClientData
     public WebSocket Socket { get; init; }
     public CancellationToken CancellationToken { get; init; }
     public Account Account { get; init; }
+    public string Colour { get; set; }
 
     public ClientData(IPAddress ip, int port, WebSocket socket, Account account, CancellationToken cancellationToken)
     {

@@ -47,7 +47,8 @@ builder.Services.AddDbContext<DatabaseContext>(options =>
 var app = builder.Build();
 var socketClients = new List<ClientData>();
 var matches = new Dictionary<int, AnarchyServer.Match>();
-var topMatchId = 0;
+var random = new Random();
+var usedMatchIds = new HashSet<int>();
 
 // app.UseHttpsRedirection();
 var webSocketOptions = new WebSocketOptions
@@ -258,13 +259,18 @@ app.MapPost("/Matches", async ([FromBody] MatchCreateInfo info, HttpContext cont
         return Results.BadRequest(new { Message = "Specified ruleset/arrangement does not exist" });
     }
 
-    var newId = ++topMatchId;
-    var match = new AnarchyServer.Match(userId, info.MatchName, info.Capacity, ruleset, arrangement, info.AdvertisePublic);
-    matches.Add(newId, match);
+    var matchId = random.Next();
+    while (usedMatchIds.Contains(matchId) || await dbContext.PastMatches.AnyAsync(match => match.Id == matchId))
+    {
+        matchId = random.Next();
+    }
+    var match = new AnarchyServer.Match(matchId, userId, info.MatchName, info.Capacity,
+        ruleset, arrangement, info.AdvertisePublic);
+    matches.Add(matchId, match);
 
     // TODO: Query DB for arrangement and ruleset ID to collect them. Cache both of these in an arrangement/ruleset pool.
     // TODO: Pass in host ID.
-    return Results.Ok(new { MatchId = newId });
+    return Results.Ok(new { MatchId = matchId });
 });
 
 app.MapGet("/Matches/{matchId}", async (int matchId, HttpContext context, DatabaseContext dbContext) =>
@@ -294,14 +300,17 @@ app.MapGet("/Matches/{matchId}", async (int matchId, HttpContext context, Databa
     }
     if (!context.WebSockets.IsWebSocketRequest)
     {
-        context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+        context.Response.StatusCode = StatusCodes.Status200OK;
+        var matchInfo = new MatchInfo(matchId, match.HostId, match.Name, match.Capacity,
+            match.Players.Count, match.Ruleset.Id, match.Arrangement.Id);
+        await context.Response.WriteAsJsonAsync(matchInfo);
         return;
     }
     // Block multiple matches at once
     if (socketClients.Any(client => client.Account.Id == account.Id))
     {
         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                await context.Response.WriteAsJsonAsync(new { Message = "You are already connected to a match" });
+        await context.Response.WriteAsJsonAsync(new { Message = "You are already connected to a match" });
         return;
     }
 

@@ -502,11 +502,11 @@ header {
     top: 10px;
     background: var(--ui-info-transparent);
     transition: 0.2s top;
+    width: min-content;
+    min-width: 256px;
 }
 
 #turnLabel {
-    width: min-content;
-    min-width: 256px;
     white-space: pre;
 }
 
@@ -545,6 +545,16 @@ header {
     z-index: 2;
     width: 1000px;
     height: 1000px;
+}
+
+#takenPiecesPanel {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(calc(100% - 32px), 648px);
+    background-color: var(--ui-info-transparent);
+    height: 128px;
 }
 
 #meTurnPopup {

@@ -70,6 +70,10 @@
             <div id="turnProgress"></div>
             <div id="turnLabel">Current turn: 1            (5s)</div>
         </div>
+        <div id="takenPiecesPanel" class="info-panel">
+            <h4 style="margin: 0px;">Taken pieces:</h4>
+            <div style="flex-grow: 1;overflow-x: auto;overflow-y: hidden;display: flex;"></div>
+        </div>
         <!--<div id="infoPanel" class="info-panel">
             <p>Zoom: <span id="zoomIndicator">0.4</span>x</p>
             <p>Board: <span id="boardIndicator">0, 0</span></p>
@@ -328,7 +332,7 @@
                     <button class="arrangement-button" tabindex="0" onclick="(async function() {
                         const lobbyName = createLobbyName.value
                         const matchId = await createMatch(+createRuleset.value, +createArrangement.value, lobbyName, createLobbyCapacity.value, createPublic.checked)
-                        play(matchId, lobbyName)
+                        play(matchId)
                     })()">Create and join match</button>
                 </div>
             </dialog>
@@ -1118,19 +1122,19 @@
         const conditionEl = document.createElement("span")
         switch (rule.condition) {
             case "matchStart":
-                conditionEl.textContent = "match starts "
+                conditionEl.textContent = "the match starts "
                 break
             case "pieceKilled":
-                conditionEl.textContent = "piece killed "
+                conditionEl.textContent = "a piece is killed "
                 break
             case "pawnPromoted":
-                conditionEl.textContent = "pawn is promoted "
+                conditionEl.textContent = "a pawn is promoted "
                 break
             case "blackInCheck":
-                conditionEl.textContent = "black is in check "
+                conditionEl.textContent = "a black is in check "
                 break
             case "whiteInCheck":
-                conditionEl.textContent = "white is in check "
+                conditionEl.textContent = "a white is in check "
                 break
         }
         conditionEl.dataset.layer = 1
@@ -1145,11 +1149,11 @@
                 break
             case "delete":
                 actionEl.textContent =
-                    `delete piece at ${rule.action.atPosition}`
+                    `the piece at ${rule.action.atPosition} will be deleted`
                 break
             case "setCurrentTurn":
                 actionEl.textContent =
-                    `set current turn to ${rule.action.turnColour}`
+                    `the current turn will be ${rule.action.turnColour}`
                 break
         }
         actionEl.dataset.layer = 2
@@ -1159,18 +1163,19 @@
 
     let socket = null
     const cachedProfiles = new Map()
-    async function play(matchId, matchName) {
+    async function play(matchId) {
         // Make HTTP request beforehand to check if the specified match exists / is authorised
-        const res = await fetch(`${serverAddress}/Matches/${matchId}`, {
+        const res = await fetch(`${serverAddress}/Matches/${matchId}?authorization=${token}`, {
             method: "GET",
             headers: { Authorization: token }
         })
-        if (!res.ok && res.status != 405) {
+        if (!res.ok) {
             const message = (await res.json())?.message
             alert("Could not join match - " + (message || "network error"))
             return
         }
-        turnLabel.textContent = `"${matchName}" | Match ID: ${matchId}`
+        const info = await res.json()
+        turnLabel.textContent = `"${info.name}" | Match ID: ${matchId}`
         socket = new WebSocket(`${socketAddress}/Matches/${matchId}?authorization=${token}`)
         socket.binaryType = "arraybuffer"
         socket.onopen =  function() {
@@ -1299,6 +1304,9 @@
     }
 
     function handleBoardZoom(event) {
+        if (event.target !== gameScreen && event.target !== board) {
+            return
+        }
         let z = +board.dataset.z
         board.dataset.z = z = Math.max(0.5, Math.min(z + (event.deltaY < 0 ? 0.1 : -0.1), 1.5))
         board.style.transform = `translate(${-board.dataset.x}px, ${-board.dataset.y}px) scale(${z})`
@@ -1321,6 +1329,9 @@
     }
 
     function handleBoardPress(event) {
+        if (event.target !== gameScreen && event.target !== board) {
+            return
+        }
         board.dataset.dragging = true;
         gameScreen.style.cursor = "grabbing"
         board.style.willChange = "transform"

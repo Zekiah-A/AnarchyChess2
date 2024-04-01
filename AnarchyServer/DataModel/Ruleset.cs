@@ -2,7 +2,6 @@ using System.Text.Json.Serialization;
 
 namespace AnarchyServer.DataModel;
 
-// Bloblular data
 public class Ruleset
 {
     public int Id { get; set; }
