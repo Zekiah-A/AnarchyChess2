@@ -98,7 +98,7 @@ void InsertDefaults()
     }
     // Insert default arrangement into database if does not already exist
     if (dbContext.Arrangements.Find(0) is null) {
-        dbContext.Database.ExecuteSql($$$"""
+        dbContext.Database.ExecuteSql($$"""
             INSERT INTO Arrangements (Id, CreatorId, Rows, Columns, Data, Name)
             VALUES (
                 0,
@@ -249,9 +249,9 @@ app.MapPost("/Matches", async ([FromBody] MatchCreateInfo info, HttpContext cont
     {
         return Results.BadRequest(new { Message = "Provided lobby name was longer than maximum allowed length (64)" });
     }
-    if (info.Capacity is < 2 or > 2) // TODO: Allow larger matches
+    if (info.Capacity is < 2 or > 4)
     {
-        return Results.BadRequest(new { Message = "Provided lobby capacity was outside of allowed range (2-2)" });
+        return Results.BadRequest(new { Message = "Provided lobby capacity was outside of allowed range (2-4)" });
     }
     if (await dbContext.Rulesets.FindAsync(info.RulesetId) is not Ruleset ruleset
         || await dbContext.Arrangements.FindAsync(info.ArrangementId) is not Arrangement arrangement)
@@ -268,8 +268,6 @@ app.MapPost("/Matches", async ([FromBody] MatchCreateInfo info, HttpContext cont
         ruleset, arrangement, info.AdvertisePublic);
     matches.Add(matchId, match);
 
-    // TODO: Query DB for arrangement and ruleset ID to collect them. Cache both of these in an arrangement/ruleset pool.
-    // TODO: Pass in host ID.
     return Results.Ok(new { MatchId = matchId });
 });
 

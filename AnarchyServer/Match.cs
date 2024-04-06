@@ -1,9 +1,11 @@
+using System.Timers;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Net.WebSockets;
 using System.Text;
 using AnarchyServer.DataModel;
 using DataProto;
+using Timer = System.Timers.Timer;
 
 namespace AnarchyServer;
 
@@ -21,15 +23,18 @@ public class Match
     public Arrangement Arrangement;
 
     private int currentTurn = -1;
+    private TimeSpan turnDuration;
+    private DateTimeOffset turnStart;
 
     private readonly Random random;
     private readonly Piece[,] board;
     private readonly JsonArray rulesJsonArray;
-    //private readonly 
     private readonly List<ClientData> players;
     private readonly JsonSerializerOptions jsonOptions;
-    private delegate void BinaryPacketHandler(ref ReadablePacket data);
+    private delegate void BinaryPacketHandler(ClientData fromClient, ref ReadablePacket data);
     private readonly Dictionary<int, BinaryPacketHandler> binaryPacketHandlers;
+    private readonly List<string> colours = [ "white", "black" ];
+    private readonly Timer turnTimer;
 
     public Match(int matchId, int hostId, string name, int capacity, Ruleset ruleset, Arrangement arrangement, bool advertisePublic)
     {
@@ -49,18 +54,48 @@ public class Match
         };
         binaryPacketHandlers = new Dictionary<int, BinaryPacketHandler>()
         {
-            { 0, HandleMove }
+            { 0, HandlePieceMoves },
+            { 1, HandleMove }
         };
-
-        board = new Piece[arrangement.Columns,arrangement.Rows];
         random = new Random();
+        board = new Piece[arrangement.Columns, arrangement.Rows];
+
+        var arrangementData = JsonNode.Parse(arrangement.Data);
+        if (arrangementData is not JsonArray arrangementColumns)
+        {
+            throw new InvalidDataException("Couldn't parse arrangement data (invalid columns data)");
+        }
+        for (var column = 0; column < arrangement.Columns; column++)
+        {
+            for (var row = 0; row < arrangement.Rows; row++)
+            {
+                var pieceData = arrangementData[row * arrangement.Columns + column];
+                if (pieceData is not JsonObject pieceObject)
+                {
+                    continue;
+                }
+                var type = pieceObject["type"]?.GetValue<string>();
+                var colour = pieceObject["colour"]?.GetValue<string>();
+                if (type is null || colour is null)
+                {
+                    continue;
+                }
+                var piece = new Piece(type, colour);
+                board[column, row] = piece;
+            }
+        }
         
-        var ruleData = JsonNode.Parse(Ruleset.Data)!;
+        var ruleData = JsonNode.Parse(Ruleset.Data);
         if (ruleData is not JsonArray ruleArray)
         {
             throw new InvalidDataException("Couldn't parse rules data");
         }
         rulesJsonArray = ruleArray;
+        
+        turnDuration = TimeSpan.FromSeconds(15);
+        turnTimer = new Timer(turnDuration.TotalMilliseconds);
+        turnTimer.AutoReset = false;
+        turnTimer.Elapsed += (_, _) => ProceedNextTurn();
     }
 
     public void AddPlayer(ClientData player)
@@ -72,33 +107,24 @@ public class Match
         }
     }
 
-    public void StartMatch()
+    private void StartMatch()
     {
         // Start match
         Started = true;
         // Send match info
         var matchInfo = new WriteablePacket();
         matchInfo.WriteByte(OutgoingCodes.MatchInfo);
-        matchInfo.WriteByte((byte) Players.Count);
-        foreach (var client in players.ToList())
-        {
-            matchInfo.WriteInt(client.Account.Id);
-        }
         matchInfo.WriteByte((byte) Arrangement.Columns);
         matchInfo.WriteByte((byte) Arrangement.Rows);
         matchInfo.WriteInt(Ruleset.Id);
         matchInfo.WriteInt(Arrangement.Id);
-
-        foreach (var client in players.ToList())
-        {
-            _ = client.SendAsync(matchInfo, WebSocketMessageType.Binary);
-        }
+        SendPacketToAll(ref matchInfo);
 
         // Setup and send player info
         var startingColour = "white";
         foreach (var ruleJson in rulesJsonArray)
         {
-            if (ruleJson is null || ruleJson["condition"]?.GetValue<string>() != "matchStart")
+            if (ruleJson is null || ruleJson["condixtion"]?.GetValue<string>() != "matchStart")
             {
                 continue;
             }
@@ -112,9 +138,23 @@ public class Match
         startingColour ??= "white";
         currentTurn = random.Next(0, Players.Count);
         players[currentTurn].Colour = startingColour;
-        var colours = new List<string>() { "white", "black" };
         colours.Remove(startingColour);
 
+        DistributePlayerInfos();
+        
+        // Send current turn and time remaining before skip turn
+        var turnInfo = new WriteablePacket();
+        turnInfo.WriteByte(OutgoingCodes.CurrentTurn);
+        turnInfo.WriteByte((byte) currentTurn);
+        
+        turnInfo.WriteUInt((uint) turnDuration.TotalMilliseconds);
+        SendPacketToAll(ref turnInfo);
+        
+        turnTimer.Start();
+    }
+    
+    private void DistributePlayerInfos()
+    {
         // Set up info for all other players
         var playerInfo = new WriteablePacket();
         playerInfo.WriteByte(OutgoingCodes.PlayerInfo);
@@ -133,16 +173,34 @@ public class Match
             playerInfo.WriteInt(player.Account.Id);
             playerInfo.WriteString(player.Colour);
         }
+        SendPacketToAll(ref playerInfo);
+    }
 
-        foreach (var client in Players.ToList())
+    private void ProceedNextTurn()
+    {
+        turnTimer.Stop();
+        currentTurn = (currentTurn + 1) % players.Count;
+        var turnInfo = new WriteablePacket();
+        turnInfo.WriteByte(OutgoingCodes.CurrentTurn);
+        turnInfo.WriteByte((byte) currentTurn);
+        turnDuration = TimeSpan.FromSeconds(15);
+        turnInfo.WriteUInt((uint) turnDuration.TotalMilliseconds);
+        SendPacketToAll(ref turnInfo);
+        
+        // Schedule a new turn change after turn period
+        turnTimer.Start();
+    }
+    
+    private void SendPacketToAll(ref WriteablePacket data)
+    {
+        var playerList = Players.ToList();
+        var sendTasks = new Task[playerList.Count];
+        for (var i = 0; i < playerList.Count; i++)
         {
-            _ = client.SendAsync(playerInfo, WebSocketMessageType.Binary);
+            var player = players[i];
+            sendTasks[i] = player.SendAsync(data, WebSocketMessageType.Binary);
         }
-
-        // Send current turn and time remaining before skip turn
-        var turnPacket = new WriteablePacket();
-        turnPacket.WriteByte(OutgoingCodes.CurrentTurn);
-        turnPacket.WriteByte((byte) currentTurn);
+        Task.WaitAll(sendTasks);
     }
 
     public async Task RemovePlayer(ClientData player)
@@ -150,11 +208,20 @@ public class Match
         players.Remove(player);
         if (Started)
         {
-            // Stop match 
-            foreach (var client in players.ToList())
+            if (players.Count < 2)
             {
-                await client.CloseAsync(WebSocketCloseStatus.NormalClosure,
-                    "Match ended - Other player disconnecteed");
+                // Game can not continue with less than 2 players - Stop match
+                foreach (var client in players.ToList())
+                {
+                    await client.CloseAsync(WebSocketCloseStatus.NormalClosure,
+                        "Match ended - Not enough players left to continue match");
+                }
+            }
+            else
+            {
+                // Game can continue but turns need to be amended
+                currentTurn %= players.Count;
+                DistributePlayerInfos();
             }
         }
     }
@@ -173,7 +240,7 @@ public class Match
 
         if (binaryPacketHandlers.TryGetValue(code, out var handler))
         {
-            handler(ref packet);
+            handler(fromClient, ref packet);
         }
     }
 
@@ -186,7 +253,8 @@ public class Match
             return;
         }
         var truncated = trimmed.Length > 96 ? trimmed[..96] : trimmed;
-        var formatted = JsonSerializer.Serialize(new { UserId = fromClient.Account.Id, Message = truncated }, jsonOptions);
+        var messageData = new { UserId = fromClient.Account.Id, Message = truncated };
+        var formatted = JsonSerializer.Serialize(messageData, jsonOptions);
         var encoded = Encoding.UTF8.GetBytes(formatted);
 
         // Iterate and send chat message to all other connected clients
@@ -196,8 +264,152 @@ public class Match
         }
     }
 
-    private void HandleMove(ref ReadablePacket packet)
+    private List<PieceLocation> FindAllRookMoves(int column, int row)
     {
+        var locations = new List<PieceLocation>();
+        for (var x = 0; x < board.GetLength(0); x++)
+        {
+            if (x != column)
+            {
+                locations.Add(new PieceLocation(x, row));
+            }
+        }
+        for (var y = 0; y < board.GetLength(1); y++)
+        {
+            if (y != row)
+            {
+                locations.Add(new PieceLocation(column, y));
+            }
+        }
+        return locations;
+    }
 
+    private List<PieceLocation> FindAllBishopMoves(int column, int row)
+    {
+        var locations = new List<PieceLocation>();
+        for (var x = 0; x < board.GetLength(0); x++)
+        {
+            if (x == column)
+            {
+                continue;
+            }
+
+            var diagonalDownY = row + (x - column);
+            locations.Add(new PieceLocation(x, diagonalDownY));
+            var diagonalUpY = row - (x - column);
+            locations.Add(new PieceLocation(x, diagonalUpY));
+        }
+        return locations;
+    }
+
+    private List<PieceLocation> FindAllPieceMoves(int column, int row, string type, string colour)
+    {
+        switch (type)
+        {
+            case "pawn":
+            {
+                if (colour == "white")
+                {
+                    var locations = new PieceLocation[]
+                    {
+                        new PieceLocation(column, row + 1),
+                        new PieceLocation(column, row + 2)
+                    };
+                    return locations.ToList();
+                }
+                else if (colour == "black")
+                {
+                    var locations = new PieceLocation[]
+                    {
+                        new PieceLocation(column, row - 1),
+                        new PieceLocation(column, row - 2)
+                    };
+                    return locations.ToList();
+                }
+                break;
+            }
+            case "bishop":
+            {
+                return FindAllBishopMoves(column, row);
+            }
+            case "king":
+            {
+                var locations = new PieceLocation[]
+                {
+                    // Top row:    x x x
+                    new PieceLocation(column - 1, row + 1),
+                    new PieceLocation(column, row + 1),
+                    new PieceLocation(column + 1, row + 1),
+                    // Middle row: x   x
+                    new PieceLocation(column - 1, row),
+                    new PieceLocation(column + 1, row),
+                    // Bottom row: x x x
+                    new PieceLocation(column - 1, row - 1),
+                    new PieceLocation(column, row - 1),
+                    new PieceLocation(column + 1, row - 1),
+                };
+                return locations.ToList();
+            }
+            case "knight":
+            {
+                var locations = new PieceLocation[]
+                {
+                    new PieceLocation(column + 1, row + 2),
+                    new PieceLocation(column + 2, row + 1),
+                    new PieceLocation(column + 2, row - 1),
+                    new PieceLocation(column + 1, row - 2),
+                    new PieceLocation(column - 1, row - 2),
+                    new PieceLocation(column - 2, row - 1),
+                    new PieceLocation(column - 2, row + 1),
+                    new PieceLocation(column - 1, row + 2)
+                };
+                return locations.ToList();
+            }
+            case "queen":
+            {
+                var locations = new List<PieceLocation>();
+                locations.AddRange(FindAllRookMoves(column, row));
+                locations.AddRange(FindAllBishopMoves(column, row));
+                return locations;
+            }
+            case "rook":
+            {
+                return FindAllRookMoves(column, row);
+            }
+        }
+
+        return new List<PieceLocation>();
+    }
+
+    private void HandlePieceMoves(ClientData fromClient, ref ReadablePacket packet)
+    {
+        var column = (int) packet.ReadByte();
+        var row = (int) packet.ReadByte();
+        // Client has sent some confusing data to trip up the server, ignore their request
+        if (column < 0 || column > board.GetLength(0) || row < 0 || row > board.GetLength(1))
+        {
+            return;
+        }
+
+        var piece = board[column, row];
+        if (piece is null || piece.Colour != fromClient.Colour)
+        {
+            return;
+        }
+        var pieceMoves = FindAllPieceMoves(column, row, piece.Type, piece.Colour);
+        var movesPacket = new WriteablePacket();
+        movesPacket.WriteByte(OutgoingCodes.PieceMoves);
+        movesPacket.WriteUShort((ushort) pieceMoves.Count);
+        foreach (var move in pieceMoves)
+        {
+            movesPacket.WriteByte((byte) move.Column);
+            movesPacket.WriteByte((byte) move.Row);
+        }
+        _ = fromClient.SendAsync(movesPacket);
+    }
+
+    private void HandleMove(ClientData fromClient, ref ReadablePacket packet)
+    {
+        ProceedNextTurn();
     }
 }

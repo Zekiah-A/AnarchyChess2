@@ -67,7 +67,9 @@
             </div>
         </div>
         <div id="turnPanel" class="info-panel">
-            <div id="turnProgress"></div>
+            <div class="turn-progress-container">
+                <div id="turnProgress"><!--Turn progress indicator rect--></div>
+            </div>
             <div id="turnLabel">Current turn: 1            (5s)</div>
         </div>
         <div id="takenPiecesPanel" class="info-panel">
@@ -321,7 +323,7 @@
                     </fieldset>
                     <fieldset style="display: flex; flex-direction: column; row-gap: 8px;">
                         <legend><h3 style="margin: 0px; color: var(--ui-text);">Lobby options:</h3></legend>
-                        <input type="number" id="createLobbyCapacity" autocomplete="off" class="arrangement-input" placeholder="Lobby capacity" min="2" max="2">
+                        <input type="number" id="createLobbyCapacity" autocomplete="off" class="arrangement-input" placeholder="Lobby capacity" min="2" max="8">
                         <input type="text" id="createLobbyName" autocomplete="off" style="flex-shrink: 1;" class="arrangement-input" placeholder="Lobby name" maxlength="64">
                         <div>
                             <input id="createPublic" type="checkbox" value="true">
@@ -468,7 +470,7 @@
                     <legend><h3 style="margin: 0px;">Advanced settings</h3></legend>
                     <p>
                         <label for="soundCheckbox">Server hostname:</label>
-                        <input id="serverInput" onchange="localStorage.serverHostname = this.value" placeholder="ip/domain:port" value="server.rplace.tk/ac">
+                        <input id="serverInput" onchange="localStorage.serverHostname = this.value" placeholder="ip/domain:port" value="server.rplace.live/ac">
                     </p>
                 </fieldset>
                 <input type="button" onclick="
@@ -745,11 +747,16 @@
         modal.querySelector(`.modal-content[data-page="${pageName}"]`).style.display = "flex"
     }
 
+    let globalStatsInterval = null
+    let matchListInterval = null
+
     function switchToGameScreen() {
         mainMenu.style.display = "none"
         gameScreen.style.display = "block"
         configurePanel.close()
         matchPanel.close()
+        clearInterval(matchListInterval)
+        clearInterval(globalStatsInterval)
     }
 
     function setMainMenuPage(pageName) {
@@ -777,9 +784,10 @@
     window.addEventListener("hashchange", (_) => setHashPage())
     setHashPage(true)
 
-    let token = null
-    const serverAddress = localStorage.serverHostname ? `${location.protocol}//${localStorage.serverHostname}` : "https://server.rplace.tk/ac"
-    const socketAddress = localStorage.serverHostname ? `${location.protocol === "https:" ? "wss:" : "ws:"}//${localStorage.serverHostname}` : "wss://server.rplace.tk/ac"
+    let myId = null
+    let myToken = null
+    const serverAddress = localStorage.serverHostname ? `${location.protocol}//${localStorage.serverHostname}` : "https://server.rplace.live/ac"
+    const socketAddress = localStorage.serverHostname ? `${location.protocol === "https:" ? "wss:" : "ws:"}//${localStorage.serverHostname}` : "wss://server.rplace.live/ac"
     function validateUsername(input) {
         input.value = input.value.replace(/\W+/g, '').toLowerCase()
     }
@@ -802,15 +810,16 @@
         }
 
         const data = await res.json()
-        token = data.token
-        // used to indicate to client that we are currently logged in & likely have a cookie
-        localStorage.me = data.id
+        myToken = data.token
+        myId = data.id
+        // Used to indicate to client that we are currently logged in & likely have a cookie
+        localStorage.me = myId
         applyLoginUi()
         updateUserInfo()
         setMainMenuPage("main")
     }
 
-    async function loginToken(token) {
+    async function loginToken() {
         const res = await fetch(`${serverAddress}/Login`, { method: "POST" })
         if (!res.ok) {
             const message = (await res.json())?.message
@@ -820,8 +829,10 @@
         }
 
         const data = await res.json()
-        // localStorage.me used to indicate if logged in
-        localStorage.me = data.id 
+        myToken = data.token
+        myId = data.id
+        // localStorage.me is used to indicate if logged in after site reload
+        localStorage.me = myId
         applyLoginUi()
         updateUserInfo()
     }
@@ -836,14 +847,14 @@
         createRulesetButton.removeAttribute("disabled")
         createArrangementButton.removeAttribute("disabled")
         updateMatchList()
-        setInterval(() => updateMatchList(), 5000)
+        matchListInterval = setInterval(() => updateMatchList(), 5000)
     }
 
     async function updateUserInfo() {
         // Fetch stats and profile
-        const userRes = await fetch(`${serverAddress}/Users/${localStorage.me}`, {
+        const userRes = await fetch(`${serverAddress}/Users/${myId}`, {
             method: "GET",
-            headers: { Authorization: token }
+            headers: { Authorization: myToken }
         })
         if (!userRes.ok) {
             const message = (await userRes.json())?.message
@@ -881,7 +892,7 @@
     }
 
     function signout() {
-        // TODO: Wipe token cookie
+        // Localstorage.me reminds the code that we are logged in on page reload, delete
         delete localStorage.me
         location.reload(true)
     }
@@ -890,7 +901,7 @@
         const res = await fetch(`${serverAddress}/${relativeUri}`, {
             method: "POST",
             headers: {
-                Authorization: token,
+                Authorization: myToken,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify(bodyObject)
@@ -921,7 +932,7 @@
         reader.onload = async function (event) {
             const resultBytes = new Uint8Array(event.target.result)
             let encodedResult = await bufferToBase64(resultBytes)
-            let success = await authedRequest(`Users/${localStorage.me}/ProfileImage`,
+            let success = await authedRequest(`Users/${myId}/ProfileImage`,
                 "POST", {
                     mimeType: file.type,
                     data: encodedResult
@@ -936,7 +947,7 @@
     }
 
     async function updateProfileBackground(name) {
-        let success = await authedRequest(`Users/${localStorage.me}`,
+        let success = await authedRequest(`Users/${myId}`,
             "POST", { profileBackground: name },
             "Update profile background failed")
         if (success) {
@@ -946,7 +957,7 @@
     }
 
     async function updateProfileBiography(biography, oldBiography) {
-        let success = await authedRequest(`Users/${localStorage.me}`,
+        let success = await authedRequest(`Users/${myId}`,
             "POST", { biography: biography },
             "Update profile biography failed")
         if (success) {
@@ -972,7 +983,7 @@
     }
 
     async function updateProfileGender(gender, oldGender) {
-        let success = await authedRequest(`Users/${localStorage.me}`,
+        let success = await authedRequest(`Users/${myId}`,
             "POST", { gender: gender },
             "Update profile gender failed")
         if (success) {
@@ -985,7 +996,7 @@
     }
 
     async function updateProfileLocation(location, oldLocation) {
-        let success = await authedRequest(`Users/${localStorage.me}`,
+        let success = await authedRequest(`Users/${myId}`,
             "POST", { location: location },
             "Update profile location failed")
         if (success) {
@@ -1014,9 +1025,9 @@
     }
 
     async function updateCreateRuleset() {
-        const res = await fetch(`${serverAddress}/Users/${localStorage.me}/Rulesets`, {
+        const res = await fetch(`${serverAddress}/Users/${myId}/Rulesets`, {
             method: "GET",
-            headers: { "Content-Type": "application/json", Authorization: token },
+            headers: { "Content-Type": "application/json", Authorization: myToken },
         })
         if (!res.ok) {
             const message = (await res.json())?.message
@@ -1038,9 +1049,9 @@
     }
 
     async function updateCreateArrangement() {
-        const res = await fetch(`${serverAddress}/Users/${localStorage.me}/Arrangements`, {
+        const res = await fetch(`${serverAddress}/Users/${myId}/Arrangements`, {
             method: "GET",
-            headers: { "Content-Type": "application/json", Authorization: token },
+            headers: { "Content-Type": "application/json", Authorization: myToken },
         })
         if (!res.ok) {
             const message = (await res.json())?.message
@@ -1078,9 +1089,9 @@
     }
 
     async function deleteAccount() {
-        const res = await fetch(`${serverAddress}/Users/${localStorage.me}`, {
+        const res = await fetch(`${serverAddress}/Users/${myId}`, {
             method: "DELETE",
-            headers: { Authorization: token }
+            headers: { Authorization: myToken }
         })
         if (!res.ok) {
             const message = (await res.json())?.message
@@ -1097,7 +1108,7 @@
         const res = await fetch(`${serverAddress}/Matches`, {
             method: "POST",
             headers: {
-                Authorization: token,
+                Authorization: myToken,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({ rulesetId, arrangementId, matchName, capacity, advertisePublic })
@@ -1161,109 +1172,204 @@
         return rulesetEl
     }
 
+    const outgoingCodes = {
+        pieceMoves: 0,
+
+    }
+
+    const incomingCodes = {
+        matchInfo: 0,
+        playerInfo: 1,
+        currentTurn: 2,
+        pieceMoves: 3,
+    }
+
+    class Player {
+        constructor(turnNumber, accountId, colour) {
+            this.turnNumber = turnNumber
+            this.accountId = accountId
+            this.colour = colour
+            this.profile = null
+        }
+    }
+
     let socket = null
     const cachedProfiles = new Map()
     async function play(matchId) {
         // Make HTTP request beforehand to check if the specified match exists / is authorised
-        const res = await fetch(`${serverAddress}/Matches/${matchId}?authorization=${token}`, {
+        const res = await fetch(`${serverAddress}/Matches/${matchId}?authorization=${myToken}`, {
             method: "GET",
-            headers: { Authorization: token }
+            headers: { Authorization: myToken }
         })
         if (!res.ok) {
             const message = (await res.json())?.message
             alert("Could not join match - " + (message || "network error"))
             return
         }
-        const info = await res.json()
-        turnLabel.textContent = `"${info.name}" | Match ID: ${matchId}`
-        socket = new WebSocket(`${socketAddress}/Matches/${matchId}?authorization=${token}`)
+
+        let myTurn = null
+        let currentTurn = null
+        let turnStart = null
+        let turnDuration = null
+        let playerCount = null
+        let players = null
+
+        // When a piece of ours is clicked, we need to ask the server for possible moves
+        board.onpiececlick = function(e, column, row, pieceElement) {
+            const myColour = players[myTurn].colour
+            const pieceData = board.pieces[column][row]
+            if (myColour !== pieceData.colour) {
+                return
+            }
+
+            const movesPacket = new DataWriter()
+            movesPacket.uint8(outgoingCodes.pieceMoves)
+            movesPacket.uint8(column)
+            movesPacket.uint8(row)
+            socket.send(movesPacket.build())
+        }
+
+        const matchInfo = await res.json()
+        turnLabel.textContent = `"${matchInfo.name}" | Match ID: ${matchId}`
+        socket = new WebSocket(`${socketAddress}/Matches/${matchId}?authorization=${myToken}`)
         socket.binaryType = "arraybuffer"
         socket.onopen =  function() {
             console.log(`Connection to match instance ${matchId} opened`)
             switchToGameScreen()
             board.setTheme(localStorage.boardTheme)
         }
-        socket.onmessage = async function({data}) {
+        socket.onmessage = function({data}) {
             if (data instanceof ArrayBuffer) {
                 const packet = new DataReader(data)
                 // Packet code
                 const code = packet.uint8()
                 switch (code) {
-                    case 0: {
-                        const playerCount = packet.uint8()
-                        for (let i = 0; i < playerCount; i++) {
-                            const userId = packet.int32()
-                            const profileResponse = await fetch(`${serverAddress}/Profiles/${userId}`, {
-                                method: "GET",
-                                headers: { "Content-Type": "application/json", },
-                            })
-                            if (!profileResponse.ok) {
-                                const message = (await profileResponse.json())?.message
-                                console.error(`Could not find profile for user ${userId}, ${message || "network error"}`)
-                            }
-                            else {
-                                const user = await profileResponse.json()
-                                cachedProfiles.set(userId, user)
-                            }
-                        }
-
+                    case incomingCodes.matchInfo: {
                         const columns = packet.uint8()
                         const rows = packet.uint8()
                         board.columns = columns
                         board.rows = rows
-        
                         const rulesetId = packet.uint32()
-                        const rulesetResponse = await fetch(`${serverAddress}/Rulesets/${rulesetId}`, {
-                            method: "GET",
-                            headers: { "Content-Type": "application/json", Authorization: token },
-                        })
-                        if (!rulesetResponse.ok) {
-                            const message = (await rulesetResponse.json())?.message
-                            alert(`Could not find match ruleset ${rulesetId}, ${message || "network error"}`)
-                            socket.close()
-                            return
-                        }
-                        else {
-                            const rulesetObject = await rulesetResponse.json()
-                            const rules = JSON.parse(rulesetObject.data)
-                            for (let rule of rules) {
-                                const ruleEl = createRulesetElement(rule)
-                                matchRules.appendChild(ruleEl)
-                            }
-                        }
-
                         const arrangementId = packet.uint32()
-                        const arrangementResponse = await fetch(`${serverAddress}/Arrangements/${arrangementId}`, {
-                            method: "GET",
-                            headers: { "Content-Type": "application/json", Authorization: token },
-                        })
-                        if (!arrangementResponse.ok) {
-                            const message = (await arrangementResponse.json())?.message
-                            alert(`Could not find match ruleset ${arrangementId}, ${message || "network error"}`)
-                            socket.close()
-                            return
-                        }
-                        else {
-                            const arrangementObject = await arrangementResponse.json()
-                            const arrangement = JSON.parse(arrangementObject.data)
+                        async function loadRulesetArrangement() {
+                            const rulesetResponse = await fetch(`${serverAddress}/Rulesets/${rulesetId}`, {
+                                method: "GET",
+                                headers: { "Content-Type": "application/json", Authorization: myToken },
+                            })
+                            if (!rulesetResponse.ok) {
+                                const message = (await rulesetResponse.json())?.message
+                                alert(`Could not find match ruleset ${rulesetId}, ${message || "network error"}`)
+                                socket.close()
+                                return
+                            }
+                            else {
+                                const rulesetObject = await rulesetResponse.json()
+                                const rules = JSON.parse(rulesetObject.data)
+                                for (let rule of rules) {
+                                    const ruleEl = createRulesetElement(rule)
+                                    matchRules.appendChild(ruleEl)
+                                }
+                            }
+                            const arrangementResponse = await fetch(`${serverAddress}/Arrangements/${arrangementId}`, {
+                                method: "GET",
+                                headers: { "Content-Type": "application/json", Authorization: myToken },
+                            })
+                            if (!arrangementResponse.ok) {
+                                const message = (await arrangementResponse.json())?.message
+                                alert(`Could not find match arrangement ${arrangementId}, ${message || "network error"}`)
+                                socket.close()
+                                return
+                            }
+                            else {
+                                const arrangementObject = await arrangementResponse.json()
+                                const arrangement = JSON.parse(arrangementObject.data)
 
-                            for (let r = 0; r < board.columns; r++) {
-                                for (let c = 0; c <  board.rows; c++) {
-                                    const index = r * board.columns + c
-                                    if (!arrangement[index]) {
-                                        continue
+                                for (let r = 0; r < board.columns; r++) {
+                                    for (let c = 0; c <  board.rows; c++) {
+                                        const index = r * board.columns + c
+                                        if (!arrangement[index]) {
+                                            continue
+                                        }
+                                        board.setPiece(c, r, arrangement[index])
                                     }
-                                    board.setPiece(c, r, arrangement[index])
                                 }
                             }
                         }
-                        break;
+                        loadRulesetArrangement()
+                        break
+                    }
+                    case incomingCodes.playerInfo: {
+                        playerCount = packet.uint8()
+                        players = []
+                        for (let i = 0; i < playerCount; i++) {
+                            const accountId = packet.uint32()
+                            const colour = packet.string()
+                            const player = new Player(i, accountId, colour)
+                            players.push(player)
+                            if (accountId == myId) {
+                                myTurn = i
+                            }
+                            async function loadPlayerProfile() {
+                                const profileResponse = await fetch(`${serverAddress}/Profiles/${accountId}`, {
+                                    method: "GET",
+                                    headers: { "Content-Type": "application/json", },
+                                })
+                                if (!profileResponse.ok) {
+                                    const message = (await profileResponse.json())?.message
+                                    console.error(`Could not find profile for user ${accountId}, ${message || "network error"}`)
+                                }
+                                else {
+                                    const user = await profileResponse.json()
+                                    player.profile = user
+                                }
+                            }
+                            loadPlayerProfile()
+                        }
+                        break
+                    }
+                    case incomingCodes.currentTurn: {
+                        currentTurn = packet.uint8()
+                        turnDuration = packet.uint32()
+                        turnStart = Date.now()
+                        const currentPlayer = players[currentTurn]
+                        const playerName = currentPlayer.profile?.username
+                            ? `(${currentPlayer.profile?.username}) `
+                            : ""
+                        if (currentTurn !== myTurn) {
+                            turnLabel.textContent = `Current turn: ${currentTurn + 1} ${playerName}| Your turn is ${myTurn + 1}`
+                        }
+                        else {
+                            turnLabel.textContent = `It's currently your turn (turn ${currentTurn + 1})`
+                        }
+                        turnProgress.animate([
+                            { width: "100%"},
+                            { width: "0%"}
+                            ], {
+                                duration: turnDuration,
+                                iterations: 1
+                            })
+                        break
+                    }
+                    case incomingCodes.pieceMoves : {
+                        const count = packet.uint16()
+                        for (let i = 0; i < count; i++) {
+                            const column = packet.uint8()
+                            const row = packet.uint8()
+                            console.log(column, row)
+                        }
+                        break
                     }
                 }
             }
             else if (typeof data === "string") {
                 const jsonData = JSON.parse(data)
-                let cachedProfile = cachedProfiles.get(jsonData.userId)
+                
+                let cachedProfile = null
+                for (const player of players) {
+                    if (player.accountId == jsonData.userId) {
+                        cachedProfile = player.profile
+                    }
+                }
                 let displayUsername = cachedProfile?.username || "#" + jsonData.userId
 
                 // Create chat message item and add to UI
@@ -1314,6 +1420,7 @@
 
     function handleBoardDrag(event) {
         if (board.dataset.dragging === "true") {
+            gameScreen.style.cursor = "grabbing"
             let x = +board.dataset.x
             let y = +board.dataset.y
             let z = +board.dataset.z
@@ -1332,8 +1439,7 @@
         if (event.target !== gameScreen && event.target !== board) {
             return
         }
-        board.dataset.dragging = true;
-        gameScreen.style.cursor = "grabbing"
+        board.dataset.dragging = true
         board.style.willChange = "transform"
     }
 
@@ -1348,7 +1454,7 @@
     async function updateMatchList() {
         const response = await fetch(`${serverAddress}/Matches`, {
             method: "GET",
-            headers: { Authorization: token }
+            headers: { Authorization: myToken }
         })
         if (!response.ok) {
             if (response.status != 401) {
@@ -1413,7 +1519,7 @@
         if (localStorage.soundEnabled == undefined) localStorage.soundEnabled = "true"
         if (localStorage.boardTheme == undefined) localStorage.boardTheme = "0"
         if (localStorage.siteTheme == undefined) localStorage.siteTheme = "modernLight"
-        if (localStorage.serverHostname == undefined) localStorage.serverHostname = "server.rplace.tk/ac"
+        if (localStorage.serverHostname == undefined) localStorage.serverHostname = "server.rplace.live/ac"
         if (localStorage.effects == undefined) localStorage.effects = true
         soundCheckbox.checked = localStorage.soundEnabled == "true"
         boardThemeSelect.value = localStorage.boardTheme
@@ -1422,7 +1528,7 @@
         serverInput.value = localStorage.serverHostname
     }
 
-    setInterval(updateGlobalStats, 1e4) // 10s
+    globalStatsInterval = setInterval(updateGlobalStats, 1e4) // 10s
     updateGlobalStats()
     setLocalSettings()
     if (localStorage.me) {

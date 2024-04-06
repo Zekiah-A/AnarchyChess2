@@ -207,6 +207,30 @@ class Board extends HTMLElement {
         }
     }
 
+    rotateBoard(playingSide) {
+        let boardRotation = 0
+        switch (playingSide) {
+            case "black":
+                boardRotation = 180
+                break
+            case "left":
+                boardRotation = -90
+                break
+            case "right":
+                boardRotation = 90
+        }
+        this.board.animate({ transform: `rotate(${boardRotation}deg)`},
+            { duration: 200, fill: "forwards" })
+        for (const column of this.#pieceElements) {
+            for (const piece of column) {
+                if (piece) {
+                    piece.animate({ transform: `rotate(${-boardRotation}deg)`},
+                        { duration: 200, fill: "forwards" })
+                }
+            }
+        }
+    }
+
     flushBoard() {
         this.board.innerHTML = ""
         this.board.style.setProperty("--columns", this.#columns)
