@@ -267,14 +267,16 @@ public class Match
     private List<PieceLocation> FindAllRookMoves(int column, int row)
     {
         var locations = new List<PieceLocation>();
-        for (var x = 0; x < board.GetLength(0); x++)
+        var columns = board.GetLength(0);
+        for (var x = column - columns; x < column + columns; x++)
         {
             if (x != column)
             {
                 locations.Add(new PieceLocation(x, row));
             }
         }
-        for (var y = 0; y < board.GetLength(1); y++)
+        var rows = board.GetLength(1);
+        for (var y = row - rows; y < row + rows; y++)
         {
             if (y != row)
             {
@@ -287,17 +289,48 @@ public class Match
     private List<PieceLocation> FindAllBishopMoves(int column, int row)
     {
         var locations = new List<PieceLocation>();
-        for (var x = 0; x < board.GetLength(0); x++)
+        var columns = board.GetLength(0);
+        for (var x = column - columns; x < column + columns; x++)
         {
             if (x == column)
             {
                 continue;
             }
-
             var diagonalDownY = row + (x - column);
             locations.Add(new PieceLocation(x, diagonalDownY));
             var diagonalUpY = row - (x - column);
             locations.Add(new PieceLocation(x, diagonalUpY));
+        }
+        return locations;
+    }
+
+    private List<PieceLocation> RemoveInvalidLocations(List<PieceLocation> locations)
+    {
+        var columns = board.GetLength(0);
+        var rows = board.GetLength(1);
+        foreach (var location in locations.ToList())
+        {
+            if (location.Column >= 0 && location.Column < columns
+                && location.Row >= 0 && location.Row < rows)
+            {
+                locations.Remove(location);
+            }
+        }
+        return locations;
+    }
+
+    private List<PieceLocation> RemoveInvalidLocations(PieceLocation[] locationsArray)
+    {
+        var locations = new List<PieceLocation>();
+        var columns = board.GetLength(0);
+        var rows = board.GetLength(1);
+        foreach (var location in locationsArray)
+        {
+            if (location.Column >= 0 && location.Column < columns
+                && location.Row >= 0 && location.Row < rows)
+            {
+                locations.Add(location);
+            }
         }
         return locations;
     }
@@ -308,29 +341,22 @@ public class Match
         {
             case "pawn":
             {
+                var locations = new PieceLocation[2];
                 if (colour == "white")
                 {
-                    var locations = new PieceLocation[]
-                    {
-                        new PieceLocation(column, row + 1),
-                        new PieceLocation(column, row + 2)
-                    };
-                    return locations.ToList();
+                    locations[0] = new PieceLocation(column, row - 1);
+                    locations[1] = new PieceLocation(column, row - 2);
                 }
                 else if (colour == "black")
                 {
-                    var locations = new PieceLocation[]
-                    {
-                        new PieceLocation(column, row - 1),
-                        new PieceLocation(column, row - 2)
-                    };
-                    return locations.ToList();
+                    locations[0] = new PieceLocation(column, row + 1);
+                    locations[1] = new PieceLocation(column, row + 2);
                 }
-                break;
+                return RemoveInvalidLocations(locations);
             }
             case "bishop":
             {
-                return FindAllBishopMoves(column, row);
+                return RemoveInvalidLocations(FindAllBishopMoves(column, row));
             }
             case "king":
             {
@@ -348,7 +374,7 @@ public class Match
                     new PieceLocation(column, row - 1),
                     new PieceLocation(column + 1, row - 1),
                 };
-                return locations.ToList();
+                return RemoveInvalidLocations(locations);
             }
             case "knight":
             {
@@ -363,18 +389,18 @@ public class Match
                     new PieceLocation(column - 2, row + 1),
                     new PieceLocation(column - 1, row + 2)
                 };
-                return locations.ToList();
+                return RemoveInvalidLocations(locations);
             }
             case "queen":
             {
                 var locations = new List<PieceLocation>();
                 locations.AddRange(FindAllRookMoves(column, row));
                 locations.AddRange(FindAllBishopMoves(column, row));
-                return locations;
+                return RemoveInvalidLocations(locations);
             }
             case "rook":
             {
-                return FindAllRookMoves(column, row);
+                return RemoveInvalidLocations(FindAllRookMoves(column, row));
             }
         }
 

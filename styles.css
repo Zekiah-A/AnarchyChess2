@@ -38,7 +38,7 @@
     --ui-hilight-transparent: #61a6ff85;
     --ui-special: #6eb84c;
     --ui-special-transparent: #8bff6185;
-    --ui-info-transparent: #a3a3a399;
+    --ui-info-transparent: #000000c4;
     --icon-filter: invert(0.85);
 }
 
@@ -592,18 +592,10 @@ header {
 }
 
 .match-rules span[data-layer] {
-    border-radius: 8px;
-    padding: 3px;
-}
-
-.match-rules span[data-layer="0"] {
-    background-color: #f1f1f1;
-}
-
-.match-rules span[data-layer="1"] {
-    background-color: #e7e7e7;
-    margin-top: 1px;
-    margin-bottom: 1px;
+  border: 2px solid #e7e7e7;
+  margin-top: 1px;
+  margin-bottom: 1px;
+  font-style: italic;
 }
 
 .modal[open] {

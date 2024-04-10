@@ -4,13 +4,20 @@ class Board extends HTMLElement {
     #pieces
     #pieceElements
     #columns
+    #playingSide
+    #moveElements
     #rows
+    #selectAudio
+    #deleteAudio
 
     constructor() {
         super()
         this.turn = 0
         this.#rows = parseInt(this.getAttribute("rows")) || 8
         this.#columns = parseInt(this.getAttribute("columns")) || 8
+        this.#playingSide = "white"
+        this.#selectAudio = new Audio("resources/select-pop.mp3")
+        this.#deleteAudio = new Audio("resources/delete-break.mp3")
         this.resetAll()
 
         this.ontilehover = null
@@ -30,6 +37,9 @@ class Board extends HTMLElement {
     }
     get pieces() {
         return this.#pieces
+    }
+    get moveElements() {
+        return this.#moveElements
     }
     static get observedAttributes() {
         return ["rows", "columns"]
@@ -110,6 +120,10 @@ class Board extends HTMLElement {
             .piece {
                 position: absolute;
             }
+            .move {
+                position: absolute;
+                background: radial-gradient(rgba(0, 255, 0, 0.4) 55%, transparent 57%);
+            }
         `
         this.shadowRoot.append(style)
         defineAndInject(this, this.shadowRoot)
@@ -150,6 +164,28 @@ class Board extends HTMLElement {
         return topLeft.offsetWidth
     }
 
+    clearMoveIndicators() {
+        for (let c = 0; c < this.#columns; c++) {
+            for (let r = 0; r < this.#rows; r++) {
+                this.#moveElements[c][r]?.remove()
+            }
+            this.moveElements[c].length = 0
+        }
+    }
+
+    addMoveIndicator(column, row) {
+        if (this.#moveElements[column][row]) {
+            return
+        }
+        const moveEl = document.createElement("div")
+        moveEl.classList.add("move")
+        moveEl.style.zIndex = "1"
+        this.#moveElements[column][row] = moveEl
+        this.setElementPosition(moveEl, column, row)
+        this.board.appendChild(moveEl)
+        return moveEl
+    }
+
     setPiece(column, row, pieceData) {
         this.#tiles[column][row] = pieceData
 
@@ -157,74 +193,98 @@ class Board extends HTMLElement {
         pieceEl.classList.add("piece")
         pieceEl.style.setProperty("--piece-fill", pieceData.colour)
         pieceEl.style.setProperty("--piece-stroke", pieceData.colour == "black" ? "white" : "black")
+        pieceEl.style.zIndex = "2"
 
         const _this = this
         pieceEl.addEventListener("click", function (event) {
+            if (localStorage.soundEnabled === "true") {
+                _this.#selectAudio.play()
+            }
             if (_this.onpiececlick)
                 _this.onpiececlick(event, column, row, pieceEl)
         })
 
         this.#pieceElements[column][row] = pieceEl
         this.#pieces[column][row] = pieceData
-        this.setPiecePosition(pieceEl, column, row)
+        this.setElementPosition(pieceEl, column, row)
         this.board.appendChild(pieceEl)
+
+        const pieceRotation = this.getSideRotation(this.#playingSide)
+        pieceEl.animate({ transform: `rotate(${pieceRotation}deg)`},
+            { duration: 30, fill: "forwards" })
     }
 
     clearPiece(column, row) {
         this.#tiles[column][row] = null
         this.#pieceElements[column][row].remove()
         this.#pieces[column].splice(row, 1)
+        if (localStorage.soundEnabled === "true") {
+            this.#deleteAudio.play()
+        }
     }
 
-    setPiecePosition(pieceEl, column, row) {
+    setElementPosition(el, column, row) {
         const tileSize = this.getTileSize()
-        pieceEl.style.left = (tileSize * column) + "px"
-        pieceEl.style.top = (tileSize * row) + "px"
-        pieceEl.style.width = tileSize + "px"
-        pieceEl.style.height = tileSize + "px"
+        el.style.left = (tileSize * column) + "px"
+        el.style.top = (tileSize * row) + "px"
+        el.style.width = tileSize + "px"
+        el.style.height = tileSize + "px"
     }
 
     renderPieces() {
         for (let c = 0; c < this.#columns; c++) {
             for (let r = 0; r < this.#rows; r++) {
+                const moveEl = this.#moveElements[c][r]
+                if (moveEl) {
+                    this.setElementPosition(moveEl, c, r)
+                }
                 const pieceEl = this.#pieceElements[c][r]
-                if (!pieceEl) continue
-                this.setPiecePosition(pieceEl, c, r)
+                if (pieceEl) {
+                    this.setElementPosition(pieceEl, c, r)
+                }
             }
         }
+        this.rotateBoard(this.#playingSide)
     }
 
     resetAll() {
         this.#tiles = new Array(this.#columns)
         this.#tileElements = new Array(this.#columns)
+        this.#moveElements = new Array(this.#columns)
         this.#pieceElements = new Array(this.#columns)
         this.#pieces = new Array(this.#columns)
         for (let c = 0; c < this.#columns; c++) {
             this.#tiles[c] = new Array(this.#rows)
             this.#tileElements[c] = new Array(this.#rows)
+            this.#moveElements[c] = new Array(this.#rows)
             this.#pieceElements[c] = new Array(this.#rows)
             this.#pieces[c] = new Array(this.#rows)
         }
     }
 
-    rotateBoard(playingSide) {
-        let boardRotation = 0
+    getSideRotation(playingSide) {
         switch (playingSide) {
             case "black":
-                boardRotation = 180
-                break
+                return -180
             case "left":
-                boardRotation = -90
-                break
+                return 90
             case "right":
-                boardRotation = 90
+                return -90
+            default:
+                return 0
         }
+    }
+
+    rotateBoard(playingSide) {
+        this.#playingSide = playingSide
+        const boardRotation = this.getSideRotation(playingSide)
+
         this.board.animate({ transform: `rotate(${boardRotation}deg)`},
             { duration: 200, fill: "forwards" })
         for (const column of this.#pieceElements) {
             for (const piece of column) {
                 if (piece) {
-                    piece.animate({ transform: `rotate(${-boardRotation}deg)`},
+                    piece.animate({ transform: `rotate(${boardRotation}deg)`},
                         { duration: 200, fill: "forwards" })
                 }
             }

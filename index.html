@@ -57,7 +57,7 @@
         <div id="settingsPanel" data-closed="true" class="info-panel">
             <h4 style="margin: 0px;">Sound effects:</h4>
             <div style="display: flex;flex-direction: column;row-gap: 3px;">
-                <input type="button" onclick="localStorage.soundEnabled = false" value="Enable sound">
+                <input type="button" onclick="localStorage.soundEnabled = true" value="Enable sound">
                 <input type="button" onclick="localStorage.soundEnabled = false" value="Disable sound">
             </div>
             <h4 style="margin: 0px;">Graphics options:</h4>
@@ -465,11 +465,15 @@
                         <label for="soundCheckbox">Enable sound:</label>
                         <input type="checkbox" id="soundCheckbox" onchange="localStorage.soundEnabled = this.checked" value="true" >
                     </p>
+                    <p>
+                        <label for="effectsCheckbox">Enable graphical effects:</label>
+                        <input type="checkbox" id="effectsCheckbox" onchange="localStorage.effects = this.checked" value="true" >
+                    </p>
                 </fieldset>
                 <fieldset class="main-menu-field">
                     <legend><h3 style="margin: 0px;">Advanced settings</h3></legend>
                     <p>
-                        <label for="soundCheckbox">Server hostname:</label>
+                        <label for="serverInput">Server hostname:</label>
                         <input id="serverInput" onchange="localStorage.serverHostname = this.value" placeholder="ip/domain:port" value="server.rplace.live/ac">
                     </p>
                 </fieldset>
@@ -557,28 +561,31 @@
     function updateArrangementStats() {
         const stats = getArrangementStats()
         if (stats.valid && !arrangementPrevValid) {
-            (async () => {
-                arrangementCanvas.confetti({
-                    spread: 100,
-                    particleCount: 85,
-                    startVelocity: 35,
-                    origin: { x: 0.35, y: 1 },
+            if (localStorage.effects === "true") {
+                (async () => {
+                    arrangementCanvas.confetti({
+                        spread: 100,
+                        particleCount: 85,
+                        startVelocity: 35,
+                        origin: { x: 0.35, y: 1 },
+                    })
+                })();
+                arrangementStats.animate([
+                    { transform: "scale(1)" },
+                    { opacity: 1 },
+                    { opacity: 0 },
+                    { transform: "scale(1.2)" },
+                ], {
+                    duration: 1000,
+                    iterations: 1,
                 })
-            })();
-            arrangementStats.animate([
-                { transform: "scale(1)" },
-                { opacity: 1 },
-                { opacity: 0 },
-                { transform: "scale(1.2)" },
-            ], {
-                duration: 1000,
-                iterations: 1,
-            })
-            setTimeout(function() {
-                if (getArrangementStats().valid) {
-                    arrangementStats.style.opacity = 1
-                }
-            }, 1000)
+
+                setTimeout(function() {
+                    if (getArrangementStats().valid) {
+                        arrangementStats.style.opacity = 1
+                    }
+                }, 1000)
+            }
         }
         else {
             arrangementStats.style.opacity = 0.6
@@ -603,7 +610,7 @@
             iterations: 1,
         })
         setTimeout(() => pieceClone.remove(), 1000)
-        if (canvasElement)
+        if (canvasElement && localStorage.effects === "true")
         {
             const canvBounds = canvasElement.getBoundingClientRect()
             const pieceBounds = pieceClone.getBoundingClientRect()
@@ -661,7 +668,7 @@
             }, (2e4 - 3000) / tileCount)
         }, 3000)
     }
-    setInterval(randomMainMenuBoard, 2e4)
+    let mainMenuBoardInterval = setInterval(randomMainMenuBoard, 2e4)
     randomMainMenuBoard()
 
     function lerp(from, to, weight){
@@ -755,6 +762,7 @@
         gameScreen.style.display = "block"
         configurePanel.close()
         matchPanel.close()
+        clearInterval(mainMenuBoardInterval)
         clearInterval(matchListInterval)
         clearInterval(globalStatsInterval)
     }
@@ -1148,7 +1156,7 @@
                 conditionEl.textContent = "a white is in check "
                 break
         }
-        conditionEl.dataset.layer = 1
+        conditionEl.dataset.layer = true
         rulesetEl.appendChild(conditionEl)
 
         // Action string part of ruleset rule
@@ -1167,7 +1175,6 @@
                     `the current turn will be ${rule.action.turnColour}`
                 break
         }
-        actionEl.dataset.layer = 2
         rulesetEl.appendChild(actionEl)
         return rulesetEl
     }
@@ -1222,6 +1229,7 @@
                 return
             }
 
+            board.clearMoveIndicators()
             const movesPacket = new DataWriter()
             movesPacket.uint8(outgoingCodes.pieceMoves)
             movesPacket.uint8(column)
@@ -1308,6 +1316,7 @@
                             players.push(player)
                             if (accountId == myId) {
                                 myTurn = i
+                                board.rotateBoard(colour)
                             }
                             async function loadPlayerProfile() {
                                 const profileResponse = await fetch(`${serverAddress}/Profiles/${accountId}`, {
@@ -1355,7 +1364,7 @@
                         for (let i = 0; i < count; i++) {
                             const column = packet.uint8()
                             const row = packet.uint8()
-                            console.log(column, row)
+                            board.addMoveIndicator(column, row)
                         }
                         break
                     }
@@ -1521,7 +1530,8 @@
         if (localStorage.siteTheme == undefined) localStorage.siteTheme = "modernLight"
         if (localStorage.serverHostname == undefined) localStorage.serverHostname = "server.rplace.live/ac"
         if (localStorage.effects == undefined) localStorage.effects = true
-        soundCheckbox.checked = localStorage.soundEnabled == "true"
+        soundCheckbox.checked = localStorage.soundEnabled === "true"
+        effectsCheckbox.checked = localStorage.effects === "true"
         boardThemeSelect.value = localStorage.boardTheme
         siteThemeSelect.value = localStorage.siteTheme
         setTheme(localStorage.siteTheme)
