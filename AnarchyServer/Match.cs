@@ -451,6 +451,23 @@ public class Match
         var row = packet.ReadByte();
         var toColumn = packet.ReadByte();
         var toRow = packet.ReadByte();
+
+        // Verify client is referincing an existing piece on the board
+        var piece = board[column, row];
+        if (piece is null)
+        {
+            return;
+        }
+
+        // Check if attempted move was a valid chess move for that piece
+        var validMoves = FindAllPieceMoves(column, row, piece.Type, piece.Colour);
+        validMoves = RemoveInvalidPieceMoves(column, row, piece.Type, piece.Colour, validMoves);
+        if (!validMoves.Any(location => location.Column == toColumn && location.Row == toRow))
+        {
+            return;
+        }
+
+        // Handle if piece is already at destination (take)
         var destinationPiece = board[toColumn, toRow];
         if (destinationPiece is not null)
         {
@@ -461,7 +478,6 @@ public class Match
             }
             else
             {
-                // Take piece
                 var takePacket = new WriteablePacket();
                 takePacket.WriteByte(OutgoingCodes.TakePiece);
                 takePacket.WriteByte(toColumn);

@@ -1394,8 +1394,8 @@
                             const pieceData = board.pieces[takenColumn][takenRow]
                             const pieceEl = document.createElement("img")
                             pieceEl.src = `resources/${pieceData.type}-${pieceData.colour}.svg`
-                            pieceEl.width = "64px"
-                            pieceEl.height = "64px"
+                            pieceEl.width = "72"
+                            pieceEl.height = "72"
                             takenPieces.appendChild(pieceEl)
                         }
                         animateDestroyPiece(board, boardCanvas, takenColumn, takenRow)
