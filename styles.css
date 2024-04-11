@@ -577,6 +577,30 @@ header {
     overflow-y: auto;
 }
 
+#promotionPanel {
+    position: absolute;
+    right: 16px;
+    width: 256px;
+    height: 512px;
+    top: 50%;
+    overflow-y: auto;
+    opacity: 1;
+    transform: translateY(-50%);
+    background-color: var(--ui-info-transparent);
+    transition: .2s right, .2s opacity;
+}
+
+#promotionPanel[data-closed] {
+    right: -256px;
+    opacity: 0;
+}
+
+.piece-draggable {
+    border: 2px solid darkgray;
+    background: #c6c6c669;
+    margin: 2px;
+}
+
 #meTurnPopup {
     position: absolute;
     top: 50%;

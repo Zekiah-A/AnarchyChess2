@@ -79,6 +79,10 @@
             <h4 style="margin: 0px;">Taken pieces:</h4>
             <div id="takenPieces"><!--Taken pieces will display here--></div>
         </div>
+        <div id="promotionPanel" class="info-panel" data-closed="">
+            <h4 style="margin: 0px;">Promote piece:</h4>
+            <div id="promotionPieces"><!--Potential pieces that can be promoted to will display here--></div>
+        </div>
         <div id="meTurnPopup">It is now your turn!</div>
         <div id="rulesetPanel" class="side-panel" data-closed="true">
             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1183,7 +1187,8 @@
         currentTurn: 2,
         pieceMoves: 3,
         move: 4,
-        take: 5
+        take: 5,
+        promotion: 6
     }
 
     class Player {
@@ -1366,6 +1371,8 @@
                                 duration: turnDuration,
                                 iterations: 1
                             })
+                        board.clearHighlights()
+                        promotionPanel.dataset.closed = "true"
                         break
                     }
                     case incomingCodes.pieceMoves: {
@@ -1393,12 +1400,35 @@
                         if (takerTurn === myTurn) {
                             const pieceData = board.pieces[takenColumn][takenRow]
                             const pieceEl = document.createElement("img")
+                            pieceEl.classList.add("piece-draggable")
                             pieceEl.src = `resources/${pieceData.type}-${pieceData.colour}.svg`
                             pieceEl.width = "72"
                             pieceEl.height = "72"
                             takenPieces.appendChild(pieceEl)
                         }
                         animateDestroyPiece(board, boardCanvas, takenColumn, takenRow)
+                        break
+                    }
+                    case incomingCodes.promotion: {
+                        const promotedColumn = packet.uint8()
+                        const promotedRow = packet.uint8()
+                        board.addHighlight(promotedColumn, promotedRow)
+
+                        // Show promotion panel with all promotable pieces
+                        delete promotionPanel.dataset.closed
+                        while (promotionPieces.lastElementChild) {
+                            promotionPieces.removeChild(promotionPieces.lastElementChild)
+                        }
+                        const myColour = players[myTurn].colour
+                        const possiblePromotions = ["rook", "knight", "bishop", "queen"]
+                        for (const type of possiblePromotions) {
+                            const pieceEl = document.createElement("img")
+                            pieceEl.classList.add("piece-draggable")
+                            pieceEl.src = `resources/${type}-${myColour}.svg`
+                            pieceEl.width = "72"
+                            pieceEl.height = "72"
+                            promotionPieces.appendChild(pieceEl)
+                        }
                         break
                     }
                 }

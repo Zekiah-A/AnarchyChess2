@@ -453,6 +453,8 @@ public class Match
         var toRow = packet.ReadByte();
 
         // Verify client is referincing an existing piece on the board
+        var columns = board.GetLength(0);
+        var rows = board.GetLength(1);
         var piece = board[column, row];
         if (piece is null)
         {
@@ -467,7 +469,7 @@ public class Match
             return;
         }
 
-        // Handle if piece is already at destination (take)
+        // Handle if another piece is already at destination (take)
         var destinationPiece = board[toColumn, toRow];
         if (destinationPiece is not null)
         {
@@ -496,6 +498,18 @@ public class Match
         movePacket.WriteByte(toColumn);
         movePacket.WriteByte(toRow);
         SendPacketToAll(ref movePacket);
+
+        // Pawn promotion
+        if (piece.Type == "pawn" && (piece.Colour == "white" && toRow == 0)
+            || (piece.Colour == "black" && toRow == rows - 1))
+        {
+            var promotionPacket = new WriteablePacket();
+            promotionPacket.WriteByte(OutgoingCodes.Promotion);
+            promotionPacket.WriteByte(toColumn);
+            promotionPacket.WriteByte(toRow);
+            _ = fromClient.SendAsync(promotionPacket);
+        }
+
         ProceedNextTurn();
     }
 }

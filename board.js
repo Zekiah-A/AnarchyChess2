@@ -9,6 +9,7 @@ class Board extends HTMLElement {
     #rows
     #selectAudio
     #deleteAudio
+    #highlightElements
 
     constructor() {
         super()
@@ -131,6 +132,11 @@ class Board extends HTMLElement {
             .move:active {
                 background: radial-gradient(rgba(108, 115, 108, 0.76) 55%, transparent 57%);
             }
+            .highlight {
+                position: absolute;
+                border: 8px dashed #fffb009c;
+                z-index: 3;
+            }
         `
         this.shadowRoot.append(style)
         defineAndInject(this, this.shadowRoot)
@@ -171,13 +177,28 @@ class Board extends HTMLElement {
         return topLeft.offsetWidth
     }
 
-    clearMoveIndicators() {
+    #clearBoardElements(boardElements) {
         for (let c = 0; c < this.#columns; c++) {
             for (let r = 0; r < this.#rows; r++) {
-                this.#moveElements[c][r]?.remove()
+                boardElements[c][r]?.remove()
+                delete boardElements[c][r]
             }
-            this.moveElements[c].length = 0
         }
+    }
+
+    addHighlight(column, row) {
+        if (this.#highlightElements[column][row]) {
+            return
+        }
+        const highlightEl = document.createElement("div")
+        highlightEl.classList.add("highlight")
+        this.#highlightElements[column][row] = highlightEl
+        this.setElementPosition(highlightEl, column, row)
+        this.board.appendChild(highlightEl)
+    }
+
+    clearHighlights() {
+        this.#clearBoardElements(this.#highlightElements)
     }
 
     addMoveIndicator(column, row) {
@@ -196,6 +217,10 @@ class Board extends HTMLElement {
         this.setElementPosition(moveEl, column, row)
         this.board.appendChild(moveEl)
         return moveEl
+    }
+
+    clearMoveIndicators() {
+        this.#clearBoardElements(this.#moveElements)
     }
 
     setPiece(column, row, pieceData) {
@@ -276,11 +301,13 @@ class Board extends HTMLElement {
     resetAll() {
         this.#tileElements = new Array(this.#columns)
         this.#moveElements = new Array(this.#columns)
+        this.#highlightElements = new Array(this.#columns)
         this.#pieceElements = new Array(this.#columns)
         this.#pieces = new Array(this.#columns)
         for (let c = 0; c < this.#columns; c++) {
             this.#tileElements[c] = new Array(this.#rows)
             this.#moveElements[c] = new Array(this.#rows)
+            this.#highlightElements[c] = new Array(this.#rows)
             this.#pieceElements[c] = new Array(this.#rows)
             this.#pieces[c] = new Array(this.#rows)
         }
