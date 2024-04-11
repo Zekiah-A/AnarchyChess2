@@ -12,6 +12,7 @@ public class ClientData
     public CancellationToken CancellationToken { get; init; }
     public Account Account { get; init; }
     public string Colour { get; set; }
+    public List<Piece> TakenPieces { get; set; }
 
     public ClientData(IPAddress ip, int port, WebSocket socket, Account account, CancellationToken cancellationToken)
     {
@@ -20,6 +21,7 @@ public class ClientData
         Socket = socket;
         CancellationToken = cancellationToken;
         Account = account;
+        TakenPieces = new List<Piece>();
     }
 
     public async Task SendAsync(byte[] data, WebSocketMessageType type = WebSocketMessageType.Binary, CancellationToken? cancelToken = null)

@@ -27,7 +27,10 @@
         ontouchstart="handleBoardPress(event)"
         ontouchend="handleBoardRelease(event)"
         onwheel="handleBoardZoom(event)">
-        <ac-board id="board" data-x="500" data-y="500" data-z="0.8"></ac-board>
+        <div id="boardPosition" data-x="500" data-y="500" data-z="0.8">
+            <ac-board id="board"></ac-board>
+            <canvas id="boardCanvas" width="1000" height="1000">
+        </div>
         <p class="copyright-notice">
             If you're seeing this, you probably moved the board offscreen. AnarchyChess, ©Zekiah-A
         </p>
@@ -36,7 +39,7 @@
         </div>
         <div id="gamemodesPanel" class="info-panel" data-closed="">
             <h4 style="margin: 0px;">Match options:</h4>
-            <input type="button" onclick="window.location.reload(true)" value="Exit match">
+            <input type="button" onclick="socket.close()" value="Exit match">
         </div>
         <div class="hud game-actions">
             <p onclick="chatPanel.toggleAttribute('data-closed'); settingsPanel.setAttribute('data-closed', true);">Chat</p>
@@ -74,13 +77,8 @@
         </div>
         <div id="takenPiecesPanel" class="info-panel">
             <h4 style="margin: 0px;">Taken pieces:</h4>
-            <div style="flex-grow: 1;overflow-x: auto;overflow-y: hidden;display: flex;"></div>
+            <div id="takenPieces"><!--Taken pieces will display here--></div>
         </div>
-        <!--<div id="infoPanel" class="info-panel">
-            <p>Zoom: <span id="zoomIndicator">0.4</span>x</p>
-            <p>Board: <span id="boardIndicator">0, 0</span></p>
-            <p>Position: <span id="tileIndicator">A1</span></p>
-        </div>-->
         <div id="meTurnPopup">It is now your turn!</div>
         <div id="rulesetPanel" class="side-panel" data-closed="true">
             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -500,10 +498,6 @@
     let arrangementCurType = null
     let arrangementSelC = null
     let arrangementSelR = null
-    confetti.create(arrangementCanvas, { resize: true })
-    ;(async function() { // Async initialisers TODO: use .then() instead
-        arrangementCanvas.confetti = await confetti.create(arrangementCanvas, { resize: true })
-    })()
 
     arrangementBoard.ontilehover = function(e, column, row, tile) {
         tile.classList.add("hilight")
@@ -543,7 +537,7 @@
 
         for (let c = 0; c < arrangementBoard.columns; c++) {
             for (let r = 0; r < arrangementBoard.rows; r++) {
-                const pieceData = arrangementBoard.tiles[c][r]
+                const pieceData = arrangementBoard.pieces[c][r]
                 if (!pieceData) continue
                 if (pieceData.colour === "black") {
                     blackCount++
@@ -599,19 +593,18 @@
     updateArrangementStats()
 
     function animateDestroyPiece(boardElement, canvasElement = null, column = 0, row = 0) {
-        const pieceClone = boardElement.pieceElements[column][row].cloneNode(true)
-        boardElement.board.appendChild(pieceClone)
-        pieceClone.style.setProperty('--piece-fill', 'red')
-        pieceClone.animate([
-            { transform: 'scale(1.8) rotate(10deg)', opacity: 0 },
-        ], {
-            duration: 1000,
-            fill: 'forwards',
-            iterations: 1,
-        })
-        setTimeout(() => pieceClone.remove(), 1000)
-        if (canvasElement && localStorage.effects === "true")
-        {
+        if (canvasElement && localStorage.effects === "true") {
+            const pieceClone = boardElement.pieceElements[column][row].cloneNode(true)
+            boardElement.board.appendChild(pieceClone)
+            pieceClone.style.setProperty('--piece-fill', 'red')
+            pieceClone.animate([
+                { transform: 'scale(1.8) rotate(10deg)', opacity: 0 },
+            ], {
+                duration: 1000,
+                fill: 'forwards',
+                iterations: 1,
+            })
+            setTimeout(() => pieceClone.remove(), 1000)
             const canvBounds = canvasElement.getBoundingClientRect()
             const pieceBounds = pieceClone.getBoundingClientRect()
             const tileSize = boardElement.getTileSize()
@@ -630,7 +623,7 @@
                     y: (pieceBounds.top - canvBounds.top + tileSize / 2) / canvasElement.offsetHeight },
             })
         }
-        
+
         boardElement.clearPiece(column, row)
     }
 
@@ -1181,7 +1174,7 @@
 
     const outgoingCodes = {
         pieceMoves: 0,
-
+        move: 1
     }
 
     const incomingCodes = {
@@ -1189,6 +1182,8 @@
         playerInfo: 1,
         currentTurn: 2,
         pieceMoves: 3,
+        move: 4,
+        take: 5
     }
 
     class Player {
@@ -1235,6 +1230,19 @@
             movesPacket.uint8(column)
             movesPacket.uint8(row)
             socket.send(movesPacket.build())
+        }
+
+        board.onmoveclick = function(e, column, row, moveElement) {
+            if (!board.selected) {
+                return
+            }
+            const movePacket = new DataWriter()
+            movePacket.uint8(outgoingCodes.move)
+            movePacket.uint8(board.selected.column)
+            movePacket.uint8(board.selected.row)
+            movePacket.uint8(column)
+            movePacket.uint8(row)
+            socket.send(movePacket.build())
         }
 
         const matchInfo = await res.json()
@@ -1346,6 +1354,7 @@
                             : ""
                         if (currentTurn !== myTurn) {
                             turnLabel.textContent = `Current turn: ${currentTurn + 1} ${playerName}| Your turn is ${myTurn + 1}`
+                            board.clearMoveIndicators()
                         }
                         else {
                             turnLabel.textContent = `It's currently your turn (turn ${currentTurn + 1})`
@@ -1359,13 +1368,37 @@
                             })
                         break
                     }
-                    case incomingCodes.pieceMoves : {
+                    case incomingCodes.pieceMoves: {
                         const count = packet.uint16()
                         for (let i = 0; i < count; i++) {
                             const column = packet.uint8()
                             const row = packet.uint8()
                             board.addMoveIndicator(column, row)
                         }
+                        break
+                    }
+                    case incomingCodes.move: {
+                        const pieceColumn = packet.uint8()
+                        const pieceRow = packet.uint8()
+                        const toColumn = packet.uint8()
+                        const toRow = packet.uint8()
+                        board.movePiece(pieceColumn, pieceRow, toColumn, toRow)
+                        board.clearMoveIndicators()
+                        break
+                    }
+                    case incomingCodes.take: {
+                        const takenColumn = packet.uint8()
+                        const takenRow = packet.uint8()
+                        const takerTurn = packet.uint8()
+                        if (takerTurn === myTurn) {
+                            const pieceData = board.pieces[takenColumn][takenRow]
+                            const pieceEl = document.createElement("img")
+                            pieceEl.src = `resources/${pieceData.type}-${pieceData.colour}.svg`
+                            pieceEl.width = "64px"
+                            pieceEl.height = "64px"
+                            takenPieces.appendChild(pieceEl)
+                        }
+                        animateDestroyPiece(board, boardCanvas, takenColumn, takenRow)
                         break
                     }
                 }
@@ -1413,49 +1446,53 @@
                 }
             }
         }
-        socket.onclose = function() {
+        socket.onclose = function(event) {
+            alert(event.reason || "Match ended")
             window.location.reload(true)
         }
     }
 
+    const boardPointerTargets = [gameScreen, board, boardPosition]
     function handleBoardZoom(event) {
-        if (event.target !== gameScreen && event.target !== board) {
+        if (!boardPointerTargets.includes(event.target)) {
             return
         }
-        let z = +board.dataset.z
-        board.dataset.z = z = Math.max(0.5, Math.min(z + (event.deltaY < 0 ? 0.1 : -0.1), 1.5))
-        board.style.transform = `translate(${-board.dataset.x}px, ${-board.dataset.y}px) scale(${z})`
+        let z = +boardPosition.dataset.z
+        boardPosition.dataset.z = z = Math.max(0.5, Math.min(z + (event.deltaY < 0 ? 0.1 : -0.1), 1.5))
+        const transformX = -boardPosition.dataset.x
+        const transformY = -boardPosition.dataset.y
+        boardPosition.style.transform = `translate(${transformX}px, ${transformY}px) scale(${z})`
     }
 
     function handleBoardDrag(event) {
-        if (board.dataset.dragging === "true") {
+        if (boardPosition.dataset.dragging === "true") {
             gameScreen.style.cursor = "grabbing"
-            let x = +board.dataset.x
-            let y = +board.dataset.y
-            let z = +board.dataset.z
-            board.dataset.x = x = Math.max(0, Math.min(x - event.movementX * (1 / z), 1000))
-            board.dataset.y = y = Math.max(0, Math.min(y - event.movementY * (1 / z), 1000))
+            let x = +boardPosition.dataset.x
+            let y = +boardPosition.dataset.y
+            let z = +boardPosition.dataset.z
+            boardPosition.dataset.x = x = Math.max(0, Math.min(x - event.movementX * (1 / z), 1000))
+            boardPosition.dataset.y = y = Math.max(0, Math.min(y - event.movementY * (1 / z), 1000))
             const offset = (1 - z) * 500
             const transformX = -(x * z + offset)
             const transformY = -(y * z + offset)
-            board.dataset.tx = transformX
-            board.dataset.ty = transformY
-            board.style.transform = `translate(${transformX}px, ${transformY}px) scale(${z})`
+            boardPosition.dataset.tx = transformX
+            boardPosition.dataset.ty = transformY
+            boardPosition.style.transform = `translate(${transformX}px, ${transformY}px) scale(${z})`
         }
     }
 
     function handleBoardPress(event) {
-        if (event.target !== gameScreen && event.target !== board) {
+        if (!boardPointerTargets.includes(event.target)) {
             return
         }
-        board.dataset.dragging = true
-        board.style.willChange = "transform"
+        boardPosition.dataset.dragging = true
+        boardPosition.style.willChange = "transform"
     }
 
     function handleBoardRelease(event) {
-        board.dataset.dragging = false
+        boardPosition.dataset.dragging = false
         gameScreen.style.cursor = "default"
-        board.style.willChange = "auto"
+        boardPosition.style.willChange = "auto"
     }
 
     //  MatchId : Match
@@ -1538,6 +1575,12 @@
         serverInput.value = localStorage.serverHostname
     }
 
+    confetti.create(arrangementCanvas, { resize: true }).then(confetti => {
+        arrangementCanvas.confetti = confetti
+    })
+    confetti.create(boardCanvas, { resize: true }).then(confetti => {
+        boardCanvas.confetti = confetti
+    })
     globalStatsInterval = setInterval(updateGlobalStats, 1e4) // 10s
     updateGlobalStats()
     setLocalSettings()

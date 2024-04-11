@@ -544,14 +544,23 @@ header {
         linear-gradient(to bottom, #eee, #999);
 }
 
-#board {
+#boardPosition {
     position: absolute;
     left: 50%;
     top: 50%;
     transform: translate(-500px, -500px) scale(0.8);
-    z-index: 2;
+    z-index: 1;
     width: 1000px;
     height: 1000px;
+}
+
+#boardCanvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1000px;
+    height: 1000px;
+    pointer-events: none;
 }
 
 #takenPiecesPanel {
@@ -562,6 +571,10 @@ header {
     width: min(calc(100% - 32px), 648px);
     background-color: var(--ui-info-transparent);
     height: 128px;
+}
+
+#takenPieces {
+    overflow-y: auto;
 }
 
 #meTurnPopup {

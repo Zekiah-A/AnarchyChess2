@@ -1,5 +1,5 @@
-// var(--piece-fill) - Determines fill inner of piece
-// var(--piece-stroke) - Determines stroke outer colour of piece
+// var(--piece-fill) -> Fill inner of piece
+// var(--piece-stroke) -> Stroke outer colour of piece
 function createSvg(innerHTML) {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
     svg.setAttribute("version", "1.1")
@@ -74,7 +74,11 @@ const pieceSvgElements = {
         </g>
     `)
 }
-function createPieceSvgElement(type) {
-    const element = pieceSvgElements[type]
-    return element?.cloneNode(true)
+
+function createPieceSvgElement(type, colour) {
+    const svg = pieceSvgElements[type]
+    const element = svg?.cloneNode(true)
+    element?.style.setProperty("--piece-fill", colour)
+    element?.style.setProperty("--piece-stroke", colour == "black" ? "white" : "black")
+    return element
 }

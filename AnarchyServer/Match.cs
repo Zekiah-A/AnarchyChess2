@@ -304,63 +304,32 @@ public class Match
         return locations;
     }
 
-    private List<PieceLocation> RemoveInvalidLocations(List<PieceLocation> locations)
-    {
-        var columns = board.GetLength(0);
-        var rows = board.GetLength(1);
-        foreach (var location in locations.ToList())
-        {
-            if (location.Column >= 0 && location.Column < columns
-                && location.Row >= 0 && location.Row < rows)
-            {
-                locations.Remove(location);
-            }
-        }
-        return locations;
-    }
-
-    private List<PieceLocation> RemoveInvalidLocations(PieceLocation[] locationsArray)
-    {
-        var locations = new List<PieceLocation>();
-        var columns = board.GetLength(0);
-        var rows = board.GetLength(1);
-        foreach (var location in locationsArray)
-        {
-            if (location.Column >= 0 && location.Column < columns
-                && location.Row >= 0 && location.Row < rows)
-            {
-                locations.Add(location);
-            }
-        }
-        return locations;
-    }
-
     private List<PieceLocation> FindAllPieceMoves(int column, int row, string type, string colour)
     {
         switch (type)
         {
             case "pawn":
             {
-                var locations = new PieceLocation[2];
+                var locations = new List<PieceLocation>();
                 if (colour == "white")
                 {
-                    locations[0] = new PieceLocation(column, row - 1);
-                    locations[1] = new PieceLocation(column, row - 2);
+                    locations.Add(new PieceLocation(column, row - 1));
+                    locations.Add(new PieceLocation(column, row - 2));
                 }
                 else if (colour == "black")
                 {
-                    locations[0] = new PieceLocation(column, row + 1);
-                    locations[1] = new PieceLocation(column, row + 2);
+                    locations.Add(new PieceLocation(column, row + 1));
+                    locations.Add(new PieceLocation(column, row + 2));
                 }
-                return RemoveInvalidLocations(locations);
+                return locations;
             }
             case "bishop":
             {
-                return RemoveInvalidLocations(FindAllBishopMoves(column, row));
+                return FindAllBishopMoves(column, row);
             }
             case "king":
             {
-                var locations = new PieceLocation[]
+                var locations = new List<PieceLocation>()
                 {
                     // Top row:    x x x
                     new PieceLocation(column - 1, row + 1),
@@ -374,11 +343,11 @@ public class Match
                     new PieceLocation(column, row - 1),
                     new PieceLocation(column + 1, row - 1),
                 };
-                return RemoveInvalidLocations(locations);
+                return locations;
             }
             case "knight":
             {
-                var locations = new PieceLocation[]
+                var locations = new List<PieceLocation>()
                 {
                     new PieceLocation(column + 1, row + 2),
                     new PieceLocation(column + 2, row + 1),
@@ -389,22 +358,58 @@ public class Match
                     new PieceLocation(column - 2, row + 1),
                     new PieceLocation(column - 1, row + 2)
                 };
-                return RemoveInvalidLocations(locations);
+                return locations;
             }
             case "queen":
             {
                 var locations = new List<PieceLocation>();
                 locations.AddRange(FindAllRookMoves(column, row));
                 locations.AddRange(FindAllBishopMoves(column, row));
-                return RemoveInvalidLocations(locations);
+                return locations;
             }
             case "rook":
             {
-                return RemoveInvalidLocations(FindAllRookMoves(column, row));
+                return FindAllRookMoves(column, row);
             }
         }
 
         return new List<PieceLocation>();
+    }
+
+    private List<PieceLocation> RemoveInvalidPieceMoves(int column, int row, string type, string colour, List<PieceLocation> locations)
+    {
+        var columns = board.GetLength(0);
+        var rows = board.GetLength(1);
+        switch (type)
+        {
+            case "pawn":
+            {
+                if ((colour == "white" && row == 1) || (colour == "black" && row == rows - 3))
+                {
+                    for (var i = locations.Count - 1; i >= 0; i--)
+                    {
+                        if (locations[i].Row == 1 || locations[i].Row == 3)
+                        {
+                            locations.RemoveAt(i);
+                        }
+                    }
+                }
+                break;
+            }
+        }
+
+        // Remove locations outside of board
+        for (var i = locations.Count - 1; i >= 0; i--)
+        {
+            var location = locations[i];
+            if (location.Column < 0 || location.Column >= columns
+                || location.Row < 0 || location.Row >= rows)
+            {
+                locations.RemoveAt(i);
+                continue;
+            }
+        }
+        return locations;
     }
 
     private void HandlePieceMoves(ClientData fromClient, ref ReadablePacket packet)
@@ -412,7 +417,8 @@ public class Match
         var column = (int) packet.ReadByte();
         var row = (int) packet.ReadByte();
         // Client has sent some confusing data to trip up the server, ignore their request
-        if (column < 0 || column > board.GetLength(0) || row < 0 || row > board.GetLength(1))
+        if (column < 0 || column > board.GetLength(0) || row < 0
+            || row > board.GetLength(1) || fromClient != players[currentTurn])
         {
             return;
         }
@@ -423,6 +429,7 @@ public class Match
             return;
         }
         var pieceMoves = FindAllPieceMoves(column, row, piece.Type, piece.Colour);
+        pieceMoves = RemoveInvalidPieceMoves(column, row, piece.Type, piece.Colour, pieceMoves);
         var movesPacket = new WriteablePacket();
         movesPacket.WriteByte(OutgoingCodes.PieceMoves);
         movesPacket.WriteUShort((ushort) pieceMoves.Count);
@@ -436,6 +443,43 @@ public class Match
 
     private void HandleMove(ClientData fromClient, ref ReadablePacket packet)
     {
+        if (fromClient != players[currentTurn])
+        {
+            return;
+        }
+        var column = packet.ReadByte();
+        var row = packet.ReadByte();
+        var toColumn = packet.ReadByte();
+        var toRow = packet.ReadByte();
+        var destinationPiece = board[toColumn, toRow];
+        if (destinationPiece is not null)
+        {
+            if (destinationPiece.Colour == fromClient.Colour
+                || destinationPiece.Type == "king")
+            {
+                return;
+            }
+            else
+            {
+                // Take piece
+                var takePacket = new WriteablePacket();
+                takePacket.WriteByte(OutgoingCodes.TakePiece);
+                takePacket.WriteByte(toColumn);
+                takePacket.WriteByte(toRow);
+                takePacket.WriteByte((byte) currentTurn);
+                SendPacketToAll(ref takePacket);
+                fromClient.TakenPieces.Add(destinationPiece);
+            }
+        }
+        board[toColumn, toRow] = board[column, row];
+
+        var movePacket = new WriteablePacket();
+        movePacket.WriteByte(OutgoingCodes.MovePiece);
+        movePacket.WriteByte(column);
+        movePacket.WriteByte(row);
+        movePacket.WriteByte(toColumn);
+        movePacket.WriteByte(toRow);
+        SendPacketToAll(ref movePacket);
         ProceedNextTurn();
     }
 }

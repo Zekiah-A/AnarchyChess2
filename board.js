@@ -18,6 +18,7 @@ class Board extends HTMLElement {
         this.#playingSide = "white"
         this.#selectAudio = new Audio("resources/select-pop.mp3")
         this.#deleteAudio = new Audio("resources/delete-break.mp3")
+        this.selected = null // { row: , column: }
         this.resetAll()
 
         this.ontilehover = null
@@ -26,9 +27,6 @@ class Board extends HTMLElement {
         this.attachShadow({ mode: "open" })
     }
 
-    get tiles() {
-        return this.#tiles
-    }
     get tileElements() {
         return this.#tileElements
     }
@@ -119,10 +117,19 @@ class Board extends HTMLElement {
             }
             .piece {
                 position: absolute;
+                z-index: 1;
             }
             .move {
                 position: absolute;
                 background: radial-gradient(rgba(0, 255, 0, 0.4) 55%, transparent 57%);
+                cursor: pointer;
+                z-index: 2;
+            }
+            .move:hover {
+                background: radial-gradient(rgba(157, 255, 154, 0.76) 55%, transparent 57%);
+            }
+            .move:active {
+                background: radial-gradient(rgba(108, 115, 108, 0.76) 55%, transparent 57%);
             }
         `
         this.shadowRoot.append(style)
@@ -179,7 +186,12 @@ class Board extends HTMLElement {
         }
         const moveEl = document.createElement("div")
         moveEl.classList.add("move")
-        moveEl.style.zIndex = "1"
+        const _this = this
+        moveEl.addEventListener("click", function(event) {
+            if (_this.onmoveclick) {
+                _this.onmoveclick(event, column, row, moveEl)
+            }
+        })
         this.#moveElements[column][row] = moveEl
         this.setElementPosition(moveEl, column, row)
         this.board.appendChild(moveEl)
@@ -187,21 +199,24 @@ class Board extends HTMLElement {
     }
 
     setPiece(column, row, pieceData) {
-        this.#tiles[column][row] = pieceData
-
-        const pieceEl = createPieceSvgElement(pieceData.type)
+        const pieceEl = createPieceSvgElement(pieceData.type, pieceData.colour)
         pieceEl.classList.add("piece")
-        pieceEl.style.setProperty("--piece-fill", pieceData.colour)
-        pieceEl.style.setProperty("--piece-stroke", pieceData.colour == "black" ? "white" : "black")
-        pieceEl.style.zIndex = "2"
+        pieceEl.dataset.column = column
+        pieceEl.dataset.row = row
 
         const _this = this
-        pieceEl.addEventListener("click", function (event) {
+        pieceEl.addEventListener("click", function(event) {
+            event.stopPropagation()
+            const pieceColumn = +pieceEl.dataset.column
+            const pieceRow = +pieceEl.dataset.row
+            _this.selected = { column: pieceColumn, row: pieceRow }
+
             if (localStorage.soundEnabled === "true") {
                 _this.#selectAudio.play()
             }
-            if (_this.onpiececlick)
-                _this.onpiececlick(event, column, row, pieceEl)
+            if (_this.onpiececlick) {
+                _this.onpiececlick(event, pieceColumn, pieceRow, pieceEl)
+            }
         })
 
         this.#pieceElements[column][row] = pieceEl
@@ -214,10 +229,21 @@ class Board extends HTMLElement {
             { duration: 30, fill: "forwards" })
     }
 
+    movePiece(column, row, toColumn, toRow) {
+        this.#pieces[toColumn][toRow] = this.#pieces[column][row]
+        this.#pieces[column][row] = null
+        const pieceElement = this.#pieceElements[toColumn][toRow] = this.#pieceElements[column][row]
+        this.#pieceElements[column][row] = null
+        pieceElement.dataset.column = toColumn
+        pieceElement.dataset.row = toRow
+
+        this.setElementPosition(pieceElement, toColumn, toRow)
+    }
+
     clearPiece(column, row) {
-        this.#tiles[column][row] = null
         this.#pieceElements[column][row].remove()
-        this.#pieces[column].splice(row, 1)
+        this.#pieceElements[column][row] = null
+        this.#pieces[column][row] = null
         if (localStorage.soundEnabled === "true") {
             this.#deleteAudio.play()
         }
@@ -248,13 +274,11 @@ class Board extends HTMLElement {
     }
 
     resetAll() {
-        this.#tiles = new Array(this.#columns)
         this.#tileElements = new Array(this.#columns)
         this.#moveElements = new Array(this.#columns)
         this.#pieceElements = new Array(this.#columns)
         this.#pieces = new Array(this.#columns)
         for (let c = 0; c < this.#columns; c++) {
-            this.#tiles[c] = new Array(this.#rows)
             this.#tileElements[c] = new Array(this.#rows)
             this.#moveElements[c] = new Array(this.#rows)
             this.#pieceElements[c] = new Array(this.#rows)
@@ -315,18 +339,24 @@ class Board extends HTMLElement {
 
             // Capture from component scope, otherwise this will be element scope
             const _this = this
-            tileEl.addEventListener("dragover", function (event) {
+            tileEl.addEventListener("dragover", function(event) {
                 event.preventDefault()
-                if (typeof _this.ontilehover === "function")
+                if (typeof _this.ontilehover === "function") {
                     _this.ontilehover(event, column, row, tileEl)
+                }
             })
-            tileEl.addEventListener("drop", function (event) {
-                if (typeof _this.ontiledrop === "function")
-                    _this.ontiledrop(event, column, row, tileEl)
+            tileEl.addEventListener("drop", function(event) {
+                if (typeof _this.ontiledrop === "function") {
+                        _this.ontiledrop(event, column, row, tileEl)
+                }
             })
-            tileEl.addEventListener("dragleave", function (event) {
-                if (typeof _this.ontileleave === "function")
+            tileEl.addEventListener("dragleave", function(event) {
+                if (typeof _this.ontileleave === "function") {
                     _this.ontileleave(event, column, row, tileEl)
+                }
+            })
+            tileEl.addEventListener("click", function() {
+                _this.clearMoveIndicators()
             })
 
             if ((column + shift) % 2 == 0) {
