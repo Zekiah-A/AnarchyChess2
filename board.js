@@ -266,7 +266,7 @@ class Board extends HTMLElement {
     }
 
     clearPiece(column, row) {
-        this.#pieceElements[column][row].remove()
+        this.#pieceElements[column][row]?.remove()
         this.#pieceElements[column][row] = null
         this.#pieces[column][row] = null
         if (localStorage.soundEnabled === "true") {

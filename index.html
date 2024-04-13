@@ -1178,7 +1178,8 @@
 
     const outgoingCodes = {
         pieceMoves: 0,
-        move: 1
+        move: 1,
+        promote: 2
     }
 
     const incomingCodes = {
@@ -1188,7 +1189,8 @@
         pieceMoves: 3,
         move: 4,
         take: 5,
-        promotion: 6
+        availablePromotion: 6,
+        promote: 7
     }
 
     class Player {
@@ -1409,7 +1411,7 @@
                         animateDestroyPiece(board, boardCanvas, takenColumn, takenRow)
                         break
                     }
-                    case incomingCodes.promotion: {
+                    case incomingCodes.availablePromotion: {
                         const promotedColumn = packet.uint8()
                         const promotedRow = packet.uint8()
                         board.addHighlight(promotedColumn, promotedRow)
@@ -1422,13 +1424,33 @@
                         const myColour = players[myTurn].colour
                         const possiblePromotions = ["rook", "knight", "bishop", "queen"]
                         for (const type of possiblePromotions) {
+                            const pieceButton = document.createElement("button")
+                            pieceButton.addEventListener("click", function() {
+                                const promotePacket = new DataWriter()
+                                promotePacket.uint8(outgoingCodes.promote)
+                                promotePacket.uint8(promotedColumn)
+                                promotePacket.uint8(promotedRow)
+                                promotePacket.string(type)
+                                socket.send(promotePacket.build())
+                            })
                             const pieceEl = document.createElement("img")
-                            pieceEl.classList.add("piece-draggable")
                             pieceEl.src = `resources/${type}-${myColour}.svg`
                             pieceEl.width = "72"
                             pieceEl.height = "72"
-                            promotionPieces.appendChild(pieceEl)
+                            pieceButton.appendChild(pieceEl)
+                            promotionPieces.appendChild(pieceButton)
                         }
+                        break
+                    }
+                    case incomingCodes.promote: {
+                        const column = packet.uint8()
+                        const row = packet.uint8()
+                        const toType = packet.string()
+                        const pieceData = board.pieces[column][row]
+                        // Replace piece with promoted type
+                        board.clearPiece(column, row)
+                        pieceData.type = toType
+                        board.setPiece(column, row, pieceData)
                         break
                     }
                 }

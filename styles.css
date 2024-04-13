@@ -590,6 +590,11 @@ header {
     transition: .2s right, .2s opacity;
 }
 
+#promotionPieces {
+    display: grid;
+    grid-template-columns: auto auto;
+}
+
 #promotionPanel[data-closed] {
     right: -256px;
     opacity: 0;

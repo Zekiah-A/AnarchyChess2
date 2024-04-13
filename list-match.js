@@ -19,7 +19,7 @@ class ListMatch extends HTMLElement {
 
     connectedCallback() {
         this.shadowRoot.innerHTML = html`
-            <div class="name-container" style="flex-grow: 1; max-width: 256px;">
+            <div class="name-container">
                 <span class="name" id="name">Unknown</span>
                 <sub class="match-id">(Match ID: <span id="matchId">0</span>)</sub>
             </div>
@@ -38,7 +38,6 @@ class ListMatch extends HTMLElement {
         style.innerHTML = css`
             :host {
                 border: 1px solid lightgray;
-                border-radius: 8px;
                 display: flex;
                 padding: 4px;
                 cursor: default;
@@ -49,6 +48,9 @@ class ListMatch extends HTMLElement {
             }
             .name-container {
                 display: flex;
+                flex-grow: 1;
+                max-width: 256px;
+                column-gap: 4px;
             }
             .name {
                 max-width: 96px;

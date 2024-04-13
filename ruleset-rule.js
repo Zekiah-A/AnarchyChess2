@@ -40,7 +40,6 @@ class RulesetRule extends HTMLElement {
                 min-height: 128px;
                 position: relative;
                 border: 1px solid lightgray;
-                border-radius: 8px;
                 row-gap: 24px;
                 display: flex;
                 flex-direction: column;

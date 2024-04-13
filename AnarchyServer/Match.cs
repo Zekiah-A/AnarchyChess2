@@ -27,13 +27,14 @@ public class Match
     private DateTimeOffset turnStart;
 
     private readonly Random random;
-    private readonly Piece[,] board;
+    private readonly Piece?[,] board;
     private readonly JsonArray rulesJsonArray;
     private readonly List<ClientData> players;
     private readonly JsonSerializerOptions jsonOptions;
     private delegate void BinaryPacketHandler(ClientData fromClient, ref ReadablePacket data);
     private readonly Dictionary<int, BinaryPacketHandler> binaryPacketHandlers;
     private readonly List<string> colours = [ "white", "black" ];
+    private readonly List<string> validPromotions = ["rook", "knight", "bishop", "queen"];
     private readonly Timer turnTimer;
 
     public Match(int matchId, int hostId, string name, int capacity, Ruleset ruleset, Arrangement arrangement, bool advertisePublic)
@@ -55,7 +56,8 @@ public class Match
         binaryPacketHandlers = new Dictionary<int, BinaryPacketHandler>()
         {
             { 0, HandlePieceMoves },
-            { 1, HandleMove }
+            { 1, HandleMove },
+            { 2, HandlePromote }
         };
         random = new Random();
         board = new Piece[arrangement.Columns, arrangement.Rows];
@@ -92,7 +94,7 @@ public class Match
         }
         rulesJsonArray = ruleArray;
         
-        turnDuration = TimeSpan.FromSeconds(15);
+        turnDuration = TimeSpan.FromSeconds(30);
         turnTimer = new Timer(turnDuration.TotalMilliseconds);
         turnTimer.AutoReset = false;
         turnTimer.Elapsed += (_, _) => ProceedNextTurn();
@@ -180,10 +182,12 @@ public class Match
     {
         turnTimer.Stop();
         currentTurn = (currentTurn + 1) % players.Count;
+
+        // Send new turn to all players
         var turnInfo = new WriteablePacket();
         turnInfo.WriteByte(OutgoingCodes.CurrentTurn);
         turnInfo.WriteByte((byte) currentTurn);
-        turnDuration = TimeSpan.FromSeconds(15);
+        turnDuration = TimeSpan.FromSeconds(30);
         turnInfo.WriteUInt((uint) turnDuration.TotalMilliseconds);
         SendPacketToAll(ref turnInfo);
         
@@ -304,24 +308,40 @@ public class Match
         return locations;
     }
 
-    private List<PieceLocation> FindAllPieceMoves(int column, int row, string type, string colour)
+    /// <summary>
+    /// Returns a list of all possible locations a piece could move to, regardless of
+    /// the validity of such a location. This includes locations that could possibly
+    /// fall outside the bounds of the chess board.
+    /// </summary>
+    private List<PieceLocation> FindAllPieceMoves(int column, int row, Piece piece)
     {
-        switch (type)
+        switch (piece.Type)
         {
             case "pawn":
             {
-                var locations = new List<PieceLocation>();
-                if (colour == "white")
+                if (piece.Colour == "white")
                 {
-                    locations.Add(new PieceLocation(column, row - 1));
-                    locations.Add(new PieceLocation(column, row - 2));
+                    var locations = new List<PieceLocation>()
+                    {
+                        new PieceLocation(column - 1, row - 1),
+                        new PieceLocation(column + 1, row - 1),
+                        new PieceLocation(column, row - 1),
+                        new PieceLocation(column, row - 2)
+                    };
+                    return locations;
                 }
-                else if (colour == "black")
+                else if (piece.Colour == "black")
                 {
-                    locations.Add(new PieceLocation(column, row + 1));
-                    locations.Add(new PieceLocation(column, row + 2));
+                    var locations = new List<PieceLocation>()
+                    {
+                        new PieceLocation(column - 1, row + 1),
+                        new PieceLocation(column + 1, row + 1),
+                        new PieceLocation(column, row + 1),
+                        new PieceLocation(column, row + 2)
+                    };
+                    return locations;
                 }
-                return locations;
+                break;
             }
             case "bishop":
             {
@@ -376,39 +396,141 @@ public class Match
         return new List<PieceLocation>();
     }
 
-    private List<PieceLocation> RemoveInvalidPieceMoves(int column, int row, string type, string colour, List<PieceLocation> locations)
+    /// <summary>
+    /// Gets a list of all pieces currently putting the king in check,
+    /// assuming the king at it's current location (cooluumn, row) were
+    /// moved to a specified location (withColuumn, withRow).
+    /// </summary>
+    private List<PieceInfo> GetKingCheckers(int kingColumn, int kingRow, int withColumn, int withRow)
     {
         var columns = board.GetLength(0);
         var rows = board.GetLength(1);
-        switch (type)
+        var checkers = new List<PieceInfo>();
+
+        // Copy over the board to WithBoard to ensure that pieces will see the king with the
+        // correct location given in the arguments when checking for possible moves
+        var withLocation = new PieceLocation(kingColumn, kingRow);
+        var withBoard = new Piece?[columns, rows];
+        Array.Copy(board, withBoard, withBoard.Length);
+        var kingPiece = withBoard[withColumn, withRow] = withBoard[kingColumn, kingRow];
+        withBoard[kingColumn, kingRow] = null;
+        ArgumentNullException.ThrowIfNull(kingPiece, nameof(kingPiece));
+
+        // Get all pieces that would put king in check if king were at specified location
+        for (var ac = 0; ac < columns; ac++)
+        {
+            for (var ar = 0; ar < rows; ar++)
+            {
+                if (ac != kingColumn && ar != kingRow && withBoard[ac, ar] is Piece attackingPiece
+                    && attackingPiece.Colour != kingPiece.Colour && attackingPiece.Type != "king")
+                {
+                    var attackerLocation = new PieceLocation(ac, ar);
+                    var attackerMoves = FindAllPieceMoves(ac, ar, attackingPiece);
+                    attackerMoves = RemoveInvalidPieceMoves(ac, ar, attackingPiece, attackerMoves, withBoard);
+
+                    // This piece could possibly move to take the king at this location
+                    if (attackerMoves.Contains(withLocation))
+                    {
+                        checkers.Add(new PieceInfo(new PieceLocation(ac, ar), attackingPiece, attackerMoves));
+                    }
+                }
+            }
+        }
+
+        return checkers;
+    }
+
+    /// <summary>
+    /// Based on absolutely everything going on around the piece on the board,
+    /// this method will eliminate invalid moves for that piece. For example, removing
+    /// moves that would land upon pieces of the same colour, etc.
+    /// </summary>
+    private List<PieceLocation> RemoveInvalidPieceMoves(int column, int row,
+        Piece piece, List<PieceLocation> locations, Piece?[,]? checkingBoard = null)
+    {
+        checkingBoard ??= board;
+        var columns = board.GetLength(0);
+        var rows = board.GetLength(1);
+
+        // Remove locations outside of board and all locations
+        // that fall upon a piece of the same colour (can not take own piece)
+        for (var i = locations.Count - 1; i >= 0; i--)
+        {
+            var location = locations[i];
+            if ((location.Column < 0 || location.Column >= columns
+                    || location.Row < 0 || location.Row >= rows)
+                || checkingBoard[location.Column, location.Row]?.Colour == piece.Colour)
+            {
+                locations.RemoveAt(i);
+            }
+        }
+
+        // Remove invalid locations depending on piece
+        switch (piece.Type)
         {
             case "pawn":
             {
-                if ((colour == "white" && row == 1) || (colour == "black" && row == rows - 3))
+                for (var i = locations.Count - 1; i >= 0; i--)
                 {
-                    for (var i = locations.Count - 1; i >= 0; i--)
+                    var location = locations[i];
+                    if (location.Column != column && checkingBoard[location.Column, location.Row] is null
+                        || (piece.Disturbed && ((piece.Colour == "black" && location.Row == row + 2)
+                            || (piece.Colour == "white" && location.Row == row - 2))))
                     {
-                        if (locations[i].Row == 1 || locations[i].Row == 3)
-                        {
-                            locations.RemoveAt(i);
-                        }
+                        locations.RemoveAt(i);
+                    }
+                }
+                break;
+            }
+            case "king":
+            {
+                for (var i = locations.Count - 1; i >= 0; i--)
+                {
+                    // Any move that will put king in check is invalid
+                    var kingMove = locations[i];
+                    var checkers = GetKingCheckers(column, row, kingMove.Column, kingMove.Row);
+                    if (checkers.Count != 0)
+                    {
+                        locations.RemoveAt(i);
                     }
                 }
                 break;
             }
         }
 
-        // Remove locations outside of board
-        for (var i = locations.Count - 1; i >= 0; i--)
+        // If a king for this colour is in check, then this non king piece is not allowed to move
+        if (piece.Type != "king")
         {
-            var location = locations[i];
-            if (location.Column < 0 || location.Column >= columns
-                || location.Row < 0 || location.Row >= rows)
+            var kingLocations = GetPieceLocations("king", piece.Colour);
+            foreach (var kingLocation in kingLocations)
             {
-                locations.RemoveAt(i);
-                continue;
+                var checkers = GetKingCheckers(column, row, kingLocation.Column, kingLocation.Row);
+                if (checkers.Count != 0)
+                {
+                    locations.Clear();
+                }
             }
         }
+
+        return locations;
+    }
+
+    private List<PieceLocation> GetPieceLocations(string type, string colour)
+    {
+        var columns = board.GetLength(0);
+        var rows = board.GetLength(1);
+        var locations = new List<PieceLocation>();
+        for (var column = 0; column < columns; column++)
+        {
+            for (var row = 0; row < rows; row++)
+            {
+                if (board[column, row]?.Type == type && board[column, row]?.Colour == colour)
+                {
+                    locations.Add(new PieceLocation(column, row));
+                }
+            }
+        }
+
         return locations;
     }
 
@@ -428,8 +550,10 @@ public class Match
         {
             return;
         }
-        var pieceMoves = FindAllPieceMoves(column, row, piece.Type, piece.Colour);
-        pieceMoves = RemoveInvalidPieceMoves(column, row, piece.Type, piece.Colour, pieceMoves);
+
+        var pieceMoves = FindAllPieceMoves(column, row, piece);
+        pieceMoves = RemoveInvalidPieceMoves(column, row, piece, pieceMoves);
+
         var movesPacket = new WriteablePacket();
         movesPacket.WriteByte(OutgoingCodes.PieceMoves);
         movesPacket.WriteUShort((ushort) pieceMoves.Count);
@@ -462,8 +586,8 @@ public class Match
         }
 
         // Check if attempted move was a valid chess move for that piece
-        var validMoves = FindAllPieceMoves(column, row, piece.Type, piece.Colour);
-        validMoves = RemoveInvalidPieceMoves(column, row, piece.Type, piece.Colour, validMoves);
+        var validMoves = FindAllPieceMoves(column, row, piece);
+        validMoves = RemoveInvalidPieceMoves(column, row, piece, validMoves);
         if (!validMoves.Any(location => location.Column == toColumn && location.Row == toRow))
         {
             return;
@@ -490,6 +614,8 @@ public class Match
             }
         }
         board[toColumn, toRow] = board[column, row];
+        board[column, row] = null;
+        piece.Disturbed = true;
 
         var movePacket = new WriteablePacket();
         movePacket.WriteByte(OutgoingCodes.MovePiece);
@@ -503,13 +629,44 @@ public class Match
         if (piece.Type == "pawn" && (piece.Colour == "white" && toRow == 0)
             || (piece.Colour == "black" && toRow == rows - 1))
         {
+            piece.Promotable = true;
+
             var promotionPacket = new WriteablePacket();
-            promotionPacket.WriteByte(OutgoingCodes.Promotion);
+            promotionPacket.WriteByte(OutgoingCodes.AvailablePromotion);
             promotionPacket.WriteByte(toColumn);
             promotionPacket.WriteByte(toRow);
             _ = fromClient.SendAsync(promotionPacket);
         }
+        else
+        {
+            ProceedNextTurn();
+        }
+    }
 
+    private void HandlePromote(ClientData fromClient, ref ReadablePacket packet)
+    {
+        if (fromClient != players[currentTurn])
+        {
+            return;
+        }
+        var column = packet.ReadByte();
+        var row = packet.ReadByte();
+        var toType = packet.ReadString();
+
+        var piece = board[column, row];
+        if (piece is null || piece.Colour != fromClient.Colour
+            || !piece.Promotable || !validPromotions.Contains(toType))
+        {
+            return;
+        }
+        piece.Promotable = false;
+        piece.Type = toType;
+        var promotePacket = new WriteablePacket();
+        promotePacket.WriteByte(OutgoingCodes.Promote);
+        promotePacket.WriteByte(column);
+        promotePacket.WriteByte(row);
+        promotePacket.WriteString(toType);
+        SendPacketToAll(ref promotePacket);
         ProceedNextTurn();
     }
 }
