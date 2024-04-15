@@ -1,6 +1,6 @@
 namespace AnarchyServer;
 
-public struct SocketCancellation : IReceiveResult
+public struct SocketCancellation
 {
     public Exception? Exception;
 

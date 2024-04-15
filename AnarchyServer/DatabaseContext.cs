@@ -8,8 +8,6 @@ public class DatabaseContext : DbContext
     public DbSet<Account> Accounts { get; set; }
     public DbSet<Arrangement> Arrangements { get; set; }
     public DbSet<Ruleset> Rulesets { get; set; }
-    public DbSet<PastMatch> PastMatches { get; set; }
-    public DbSet<AccountPastMatch> AccountPastMatches { get; set; }
 
     public DatabaseContext() { }
     public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options) { }
@@ -35,15 +33,9 @@ public class DatabaseContext : DbContext
             .HasIndex(account => account.Token)
             .IsUnique();
 
-        // Many to many Account : Past Match, using linker table  AccountPastMatch
-        modelBuilder.Entity<Account>()
-            .HasMany(account => account.PastMatches)
-            .WithMany(pastMatch => pastMatch.Players)
-            .UsingEntity<AccountPastMatch>();
-
         // Primary key for Arrangement
         modelBuilder.Entity<Arrangement>()
-            .HasKey(arragement => arragement.Id);
+            .HasKey(arrangement => arrangement.Id);
         // Many to one ruleset : Account
         modelBuilder.Entity<Arrangement>()
             .HasOne(arrangement => arrangement.Creator)

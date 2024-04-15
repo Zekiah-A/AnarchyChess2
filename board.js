@@ -76,11 +76,11 @@ class Board extends HTMLElement {
     }
 
     connectedCallback() {
-        this.shadowRoot.innerHTML = html`
+        this.shadowRoot.innerHTML = `
             <div id="board" class="board-container"></div>
         `
         const style = document.createElement("style")
-        style.innerHTML = css`
+        style.innerHTML = `
             :host {
                 width: 100%;
                 --columns: 8;

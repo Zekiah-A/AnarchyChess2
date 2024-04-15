@@ -1,7 +1,7 @@
 namespace AnarchyServer;
 
-public class LoginRequest
-{
-    public string Username { get; set; }
-    public string Email { get; set; }
-}
+public record LoginRequest
+(
+    string Username,
+    string Email
+);

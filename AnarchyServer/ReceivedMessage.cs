@@ -1,9 +1,8 @@
 using System.Net.WebSockets;
-using DataProto;
 
 namespace AnarchyServer;
 
-public struct ReceivedMessage : IReceiveResult
+public struct ReceivedMessage
 {
     public byte[] Data;
     public WebSocketMessageType MessageType;

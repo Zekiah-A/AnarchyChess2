@@ -1,4 +1,3 @@
-using System.Timers;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Net.WebSockets;
@@ -182,6 +181,32 @@ public class Match
     {
         turnTimer.Stop();
         currentTurn = (currentTurn + 1) % players.Count;
+        
+        // If all of new turn's kings are in check & can't make any more moves, then checkmate
+        var currentColour = players[currentTurn].Colour;
+        if (AllKingsInCheck(currentColour))
+        {
+            var colourKingCanMove = true;
+            foreach (var location in GetPieceLocations("king", currentColour))
+            {
+                var kingPiece = board[location.Column, location.Row]!;
+                var kingMoves = FindAllPieceMoves(location.Column, location.Row, kingPiece);
+                if (kingMoves.Count > 0)
+                {
+                    colourKingCanMove = true;
+                }
+            }
+            // None of our colour's kings can move - checkmate
+            if (!colourKingCanMove)
+            {
+                foreach (var client in players.ToList())
+                {
+                    _ =  client.CloseAsync(WebSocketCloseStatus.NormalClosure,
+                        $"Match ended - {currentColour} was checkmated.");
+                }
+                return;
+            }
+        }
 
         // Send new turn to all players
         var turnInfo = new WriteablePacket();
@@ -457,8 +482,8 @@ public class Match
         for (var i = locations.Count - 1; i >= 0; i--)
         {
             var location = locations[i];
-            if ((location.Column < 0 || location.Column >= columns
-                    || location.Row < 0 || location.Row >= rows)
+            if (location.Column < 0 || location.Column >= columns
+                || location.Row < 0 || location.Row >= rows
                 || checkingBoard[location.Column, location.Row]?.Colour == piece.Colour)
             {
                 locations.RemoveAt(i);
@@ -466,48 +491,35 @@ public class Match
         }
 
         // Remove invalid locations depending on piece
-        switch (piece.Type)
+        if (piece.Type == "pawn")
         {
-            case "pawn":
+            for (var i = locations.Count - 1; i >= 0; i--)
             {
-                for (var i = locations.Count - 1; i >= 0; i--)
+                var location = locations[i];
+                if (location.Column != column && checkingBoard[location.Column, location.Row] is null)
                 {
-                    var location = locations[i];
-                    if (location.Column != column && checkingBoard[location.Column, location.Row] is null
-                        || (piece.Disturbed && ((piece.Colour == "black" && location.Row == row + 2)
-                            || (piece.Colour == "white" && location.Row == row - 2))))
+                    locations.RemoveAt(i);
+                }
+                else if (piece.Disturbed)
+                {
+                    if ((piece.Colour == "black" && location.Row == row + 2) 
+                        || (piece.Colour == "white" && location.Row == row - 2))
                     {
                         locations.RemoveAt(i);
                     }
                 }
-                break;
-            }
-            case "king":
-            {
-                for (var i = locations.Count - 1; i >= 0; i--)
-                {
-                    // Any move that will put king in check is invalid
-                    var kingMove = locations[i];
-                    var checkers = GetKingCheckers(column, row, kingMove.Column, kingMove.Row);
-                    if (checkers.Count != 0)
-                    {
-                        locations.RemoveAt(i);
-                    }
-                }
-                break;
             }
         }
-
-        // If a king for this colour is in check, then this non king piece is not allowed to move
-        if (piece.Type != "king")
+        else if (piece.Type == "king")
         {
-            var kingLocations = GetPieceLocations("king", piece.Colour);
-            foreach (var kingLocation in kingLocations)
+            for (var i = locations.Count - 1; i >= 0; i--)
             {
-                var checkers = GetKingCheckers(column, row, kingLocation.Column, kingLocation.Row);
+                // Any move that will put king in check is invalid
+                var kingMove = locations[i];
+                var checkers = GetKingCheckers(column, row, kingMove.Column, kingMove.Row);
                 if (checkers.Count != 0)
                 {
-                    locations.Clear();
+                    locations.RemoveAt(i);
                 }
             }
         }
@@ -534,6 +546,22 @@ public class Match
         return locations;
     }
 
+    private bool AllKingsInCheck(string colour)
+    {
+        var kingLocations = GetPieceLocations("king", colour);
+        foreach (var kingLocation in kingLocations)
+        {
+            var checkers = GetKingCheckers(kingLocation.Column, kingLocation.Row,
+                kingLocation.Column, kingLocation.Row);
+            if (checkers.Count != 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void HandlePieceMoves(ClientData fromClient, ref ReadablePacket packet)
     {
         var column = (int) packet.ReadByte();
@@ -553,6 +581,11 @@ public class Match
 
         var pieceMoves = FindAllPieceMoves(column, row, piece);
         pieceMoves = RemoveInvalidPieceMoves(column, row, piece, pieceMoves);
+        // If a king for this colour is in check, then this non king piece is not allowed to move
+        if (piece.Type != "king" && AllKingsInCheck(piece.Colour))
+        {
+            pieceMoves.Clear();
+        }
 
         var movesPacket = new WriteablePacket();
         movesPacket.WriteByte(OutgoingCodes.PieceMoves);
@@ -597,21 +630,19 @@ public class Match
         var destinationPiece = board[toColumn, toRow];
         if (destinationPiece is not null)
         {
-            if (destinationPiece.Colour == fromClient.Colour
-                || destinationPiece.Type == "king")
+            // Can't take piece if colour is same
+            if (destinationPiece.Colour == fromClient.Colour || destinationPiece.Type == "king")
             {
                 return;
             }
-            else
-            {
-                var takePacket = new WriteablePacket();
-                takePacket.WriteByte(OutgoingCodes.TakePiece);
-                takePacket.WriteByte(toColumn);
-                takePacket.WriteByte(toRow);
-                takePacket.WriteByte((byte) currentTurn);
-                SendPacketToAll(ref takePacket);
-                fromClient.TakenPieces.Add(destinationPiece);
-            }
+            
+            var takePacket = new WriteablePacket();
+            takePacket.WriteByte(OutgoingCodes.TakePiece);
+            takePacket.WriteByte(toColumn);
+            takePacket.WriteByte(toRow);
+            takePacket.WriteByte((byte) currentTurn);
+            SendPacketToAll(ref takePacket);
+            fromClient.TakenPieces.Add(destinationPiece);
         }
         board[toColumn, toRow] = board[column, row];
         board[column, row] = null;
@@ -624,10 +655,10 @@ public class Match
         movePacket.WriteByte(toColumn);
         movePacket.WriteByte(toRow);
         SendPacketToAll(ref movePacket);
-
+        
         // Pawn promotion
-        if (piece.Type == "pawn" && (piece.Colour == "white" && toRow == 0)
-            || (piece.Colour == "black" && toRow == rows - 1))
+        if (piece is { Type: "pawn", Colour: "white" } && toRow == 0
+            || (piece is { Type: "pawn", Colour: "black" } && toRow == rows - 1))
         {
             piece.Promotable = true;
 

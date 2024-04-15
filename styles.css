@@ -1,4 +1,3 @@
-/*https://webdesign.tutsplus.com/color-schemes-with-css-variables-and-javascript--cms-36989t*/
 :root, :root.modernLight {
     --ui-background: white;
     --ui-border: gray;
@@ -17,9 +16,8 @@
     --ui-hilight-transparent: #61a6ff85;
     --ui-special: #6eb84c;
     --ui-special-transparent: #8bff6185;
-    --ui-info-transparent: #0009;
+    --ui-info-transparent: #0009
 }
-
 :root.modernDark {
     --ui-background: #141414;
     --ui-border: #555;
@@ -32,16 +30,15 @@
     --ui-input: #8f8f8f;
     --ui-input-background: #141414;
     --ui-button-background: #525252;
-    --ui-input-hover:  #454444;
+    --ui-input-hover: #454444;
     --ui-input-disabled: #373737;
     --ui-hilight: #61a6ff;
     --ui-hilight-transparent: #61a6ff85;
     --ui-special: #6eb84c;
     --ui-special-transparent: #8bff6185;
     --ui-info-transparent: #000000c4;
-    --icon-filter: invert(0.85);
+    --icon-filter: invert(0.85)
 }
-
 body {
     position: absolute;
     overflow: hidden;
@@ -49,100 +46,75 @@ body {
     height: 100%;
     left: 0;
     top: 0;
-    color: var(--ui-text);
+    color: var(--ui-text)
 }
-
 * {
-    box-sizing: border-box;
+    box-sizing: border-box
 }
-
 html {
     font-size: 14px;
     font-family: bold;
     -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
+    -webkit-touch-callout: none
 }
-
 body {
-    transition: background-color 0.3s;
+    transition: background-color .3s;
     background-color: #333;
     margin: 0;
     font-family: Arial, sans-serif;
-    font-size: 150%;
+    font-size: 150%
 }
-
-select,
-textarea,
-input:not([type]),
-input[type="email"],
-input[type="number"],
-input[type="text"] {
+input:not([type]), input[type=email], input[type=number], input[type=text], select, textarea {
     padding: 12px;
     border-radius: 4px;
     outline: 0;
     background: var(--ui-input-background);
     border: 1px solid var(--ui-input);
-    transition: border 0.1s;
-    color: var(--ui-text);
+    transition: border .1s;
+    color: var(--ui-text)
 }
-
-select:focus,
-textarea:focus,
-input:not([type]):focus,
-input[type="email"]:focus,
-input[type="number"]:focus,
-input[type="text"]:focus {
-    border: 1px solid var(--ui-hilight);
+input:not([type]):focus, input[type=email]:focus, input[type=number]:focus, input[type=text]:focus, select:focus, textarea:focus {
+    border: 1px solid var(--ui-hilight)
 }
-
-input[type="email"]:invalid {
-    border: 1px solid red;
+input[type=email]:invalid {
+    border: 1px solid red
 }
-
-input[type="button"] {
+input[type=button] {
     border: none;
     padding: 12px;
     border-radius: 4px;
-    transition: background-color 0.1s;
+    transition: background-color .1s;
     color: var(--ui-text);
-    background-color: var(--ui-button-background);
+    background-color: var(--ui-button-background)
 }
-
-input[type="button"]:hover {
-    background-color: var(--ui-input-hover);
+input[type=button]:hover {
+    background-color: var(--ui-input-hover)
 }
-
-input[type="button"]:disabled {
-    background-color: var(--ui-input-disabled);
+input[type=button]:disabled {
+    background-color: var(--ui-input-disabled)
 }
-
 a {
-    color: var(--ui-link);
+    color: var(--ui-link)
 }
-
 .novisit:visited {
-    color: var(--ui-link);;
+    color: var(--ui-link)
 }
-
 .icon-symbolic {
-    filter: var(--icon-filter);
+    filter: var(--icon-filter)
 }
-
 header {
     position: sticky;
     width: 100%;
     top: 0;
     left: 0;
-    z-index: 1;
+    z-index: 1
 }
-
 .header-content {
     position: absolute;
     backdrop-filter: blur(16px);
     height: 200px;
-    width: 100%;
+    width: 100%
 }
-
 .hud {
     z-index: 2;
     position: absolute;
@@ -152,23 +124,20 @@ header {
     width: 140px;
     height: 60px;
     user-select: none;
-    overflow: hidden;
+    overflow: hidden
 }
-
 .hud>p {
     align-self: center;
     text-align: center;
     font-size: 18px;
-    flex-grow: 1;
+    flex-grow: 1
 }
-
 .game-actions {
     right: 0;
     top: 0;
     border-radius: 0 0 0 8px;
-    width: min(60%, 300px);
+    width: min(60%, 300px)
 }
-
 .game-actions>p {
     flex-grow: 1;
     text-align: center;
@@ -176,15 +145,11 @@ header {
     margin: 0;
     padding-top: 19px;
     padding-bottom: 19px;
-    transition:
-        background-color 0.1s,
-        border 0.1s;
+    transition: background-color .1s, border .1s
 }
-
 .game-actions>p:hover {
-    background-color: var(--ui-input-hover);
+    background-color: var(--ui-input-hover)
 }
-
 .menu {
     z-index: 2;
     position: absolute;
@@ -197,13 +162,11 @@ header {
     display: flex;
     flex-direction: column;
     padding: 8px;
-    user-select: none;
+    user-select: none
 }
-
 .menu>* {
-    align-self: center;
+    align-self: center
 }
-
 .game-screen {
     display: none;
     position: absolute;
@@ -211,9 +174,8 @@ header {
     left: 0;
     height: 100%;
     width: 100%;
-    overflow: hidden;
+    overflow: hidden
 }
-
 .main-menu {
     background-color: var(--ui-background);
     display: flex;
@@ -225,50 +187,39 @@ header {
     top: 0;
     left: 0;
     overflow-y: auto;
-    transition: .2s background-color;
+    transition: .2s background-color
 }
-
 .main-menu-page {
     display: none;
     flex-direction: column;
-    row-gap: 8px;
+    row-gap: 8px
 }
-
 .main-menu .branding {
     display: flex;
     align-items: center;
     column-gap: 8px;
-    position: absolute;
+    position: absolute
 }
-
 .main-menu .header-nav {
     text-align: center;
-    white-space: nowrap;
+    white-space: nowrap
 }
-
 .main-menu nav {
-    position: absolute;
+    position: absolute
 }
-
 .main-menu>div {
     display: flex;
-    flex-direction: column;
+    flex-direction: column
 }
-
 .main-menu>div>* {
-    align-self: center;
+    align-self: center
 }
-
 .main-menu-field {
-    width: 40%;
+    width: 40%
 }
-
 .page-link {
-    transition:
-        0.2s padding,
-        0.2s background-color;
+    transition: .2s padding, .2s background-color
 }
-
 .page-link-current {
     display: initial;
     transform: translateX(-50%);
@@ -276,17 +227,15 @@ header {
     padding-left: 4px;
     padding-right: 4px;
     border-radius: 2px;
-    text-decoration: none;
+    text-decoration: none
 }
-
 .main-menu-page-content {
     display: flex;
     flex-direction: column;
     row-gap: 8px;
     align-items: center;
-    width: 100%;
+    width: 100%
 }
-
 .form-frame {
     display: flex;
     flex-direction: column;
@@ -294,14 +243,12 @@ header {
     width: min(400px, calc(100% - 16px));
     border: 1px solid #d3d3d3;
     padding: 16px;
-    border-radius: 4px;
+    border-radius: 4px
 }
-
 .form-frame[data-disabled]>* {
     pointer-events: none;
-    opacity: 0.8;
+    opacity: .8
 }
-
 .side-panel {
     position: absolute;
     left: 0;
@@ -314,37 +261,31 @@ header {
     box-shadow: 0 0 12px #000;
     display: flex;
     flex-direction: column;
-    transition: 0.2s transform;
+    transition: .2s transform
 }
-
 .side-panel[data-closed] {
     transform: translateX(-100%);
-    box-shadow: none;
+    box-shadow: none
 }
-
 .spawn-menu {
     background-color: var(--ui-background-transparent);
     width: min(calc(100% - 28px), 500px);
-    top: 25%;
+    top: 25%
 }
-
 .dual-options {
     display: flex;
     flex-direction: row;
     column-gap: 8px;
-    width: 100%;
+    width: 100%
 }
-
 .dual-options>* {
     flex-grow: 1;
     border: 2px solid transparent;
-    transition: border 0.1s;
+    transition: border .1s
 }
-
 .dual-options>[selected] {
-    border: 2px solid var(--ui-hilight);
+    border: 2px solid var(--ui-hilight)
 }
-
 .black-white {
     height: 60px;
     border-radius: 8px;
@@ -352,9 +293,8 @@ header {
     line-height: 60px;
     box-shadow: 0 0 2px #000;
     position: relative;
-    z-index: 0;
+    z-index: 0
 }
-
 .black-white>div {
     position: absolute;
     height: calc(100% + 4px);
@@ -364,10 +304,9 @@ header {
     border-radius: 8px;
     z-index: -1;
     width: 0%;
-    transition: 0.2s width;
-    pointer-events: none;
+    transition: .2s width;
+    pointer-events: none
 }
-
 .info-panel {
     z-index: 2;
     position: absolute;
@@ -376,13 +315,11 @@ header {
     padding: 8px;
     display: flex;
     flex-direction: column;
-    border-radius: 8px;
+    border-radius: 8px
 }
-
 .info-panel * {
-    margin: 0;
+    margin: 0
 }
-
 .copyright-notice {
     position: absolute;
     pointer-events: none;
@@ -391,9 +328,8 @@ header {
     width: 100%;
     font-size: x-small;
     color: #a9a9a9;
-    user-select: none;
+    user-select: none
 }
-
 #gamemodesPanel {
     background-color: var(--ui-info-transparent);
     border-radius: 8px;
@@ -404,40 +340,30 @@ header {
     left: 8px;
     opacity: 1;
     row-gap: 8px;
-    transition:
-        0.2s left,
-        0.2s opacity;
+    transition: .2s left, .2s opacity
 }
-
 #gamemodesPanel[data-closed] {
     left: -272px;
-    opacity: 0;
+    opacity: 0
 }
-
 #gamemodeTitle {
     border-radius: 0 0 8px;
-    transition:
-        0.2s box-shadow,
-        0.2s transform;
-    cursor: pointer;
+    transition: .2s box-shadow, .2s transform;
+    cursor: pointer
 }
-
 #gamemodeTitle:hover {
     box-shadow: 0 0 8px 4px var(--ui-hilight);
-    background-color: var(--ui-input-hover);
+    background-color: var(--ui-input-hover)
 }
-
 #deathMenu {
-    transition: 0.2s transform ease-out;
-    transition-delay: 0.2s;
+    transition: .2s transform ease-out;
+    transition-delay: .2s
 }
-
 #deathMenu[data-closed] {
     transform: translate(-50%, -50%) scale(0);
     pointer-events: none;
-    visibility: hidden;
+    visibility: hidden
 }
-
 #chatPanel,
 #settingsPanel {
     top: 68px;
@@ -445,40 +371,32 @@ header {
     background: var(--ui-info-transparent);
     width: 340px;
     row-gap: 4px;
-    transition:
-        0.2s right,
-        0.2s opacity;
+    transition: .2s right, .2s opacity
 }
-
 #chatPanel {
-    min-height: 172px;
+    min-height: 172px
 }
-
 #chatPanel[data-closed],
 #settingsPanel[data-closed] {
     right: -340px;
-    opacity: 0;
+    opacity: 0
 }
-
 #chatPanel>div {
     flex-grow: 1;
     overflow-y: scroll;
-    max-height: 178px;
+    max-height: 178px
 }
-
 #chatPanel>div>p[data-spawnevent] {
     background-color: var(--ui-hilight-transparent);
-    display: block;
+    display: block
 }
-
 #chatPanel>div>p[data-spawnevent] {
     background-color: var(--ui-special-transparent);
-    display: block;
+    display: block
 }
-
 .chat-name-button {
-    background: none;
-    color: white;
+    background: 0 0;
+    color: #fff;
     margin: 0;
     padding: 0;
     font-size: 12pt;
@@ -487,82 +405,61 @@ header {
     cursor: pointer;
     border-radius: 4px;
     padding: 2px;
-    transition: 0.2s background-color, 0.2s color;
+    transition: .2s background-color, .2s color
 }
-
-.chat-name-button:hover, .chat-name-button:focus, .chat-name-button:active {
+.chat-name-button:active, .chat-name-button:focus, .chat-name-button:hover {
     text-decoration: underline;
     background-color: var(--ui-input-hover);
-    color: black;
+    color: #000
 }
-
 #turnPanel {
     left: 50%;
     transform: translateX(-50%);
     top: 10px;
     background: var(--ui-info-transparent);
-    transition: 0.2s top;
+    transition: .2s top;
     width: min-content;
-    min-width: 256px;
+    min-width: 256px
 }
-
 #turnLabel {
-    text-shadow: 0px 0px 8px black;
-    white-space: pre;
+    text-shadow: 0 0 8px #000;
+    white-space: pre
 }
-
-#infoPanel {
-    top: 68px;
-    left: 0;
-    transition: 0.2s top;
-}
-
-@media screen and (orientation: portrait) {
+@media screen and (orientation:portrait) {
     #turnPanel {
-        top: 68px;
-    }
-
-    #infoPanel {
-        top: calc(100% - 90px);
-    }
-}
-
+        top: 68px
+    }}
 .turn-progress-container {
     position: absolute;
     top: 8px;
     left: 8px;
     width: calc(100% - 16px);
-    height: calc(100% - 16px);
+    height: calc(100% - 16px)
 }
-
 #turnProgress {
     position: absolute;
     height: 100%;
     width: 0%;
     z-index: -1;
-    background: repeating-linear-gradient(-45deg, transparent, transparent 10px, #ccc 10px, #ccc 20px),
-        linear-gradient(to bottom, #eee, #999);
+    background: repeating-linear-gradient(-45deg, transparent, transparent 10px, #ccc 10px, #ccc 20px), linear-gradient(to bottom, #eee, #999)
 }
-
 #boardPosition {
     position: absolute;
     left: 50%;
     top: 50%;
-    transform: translate(-500px, -500px) scale(0.8);
+    transform: translate(-500px, -500px) scale(.8);
     z-index: 1;
     width: 1000px;
-    height: 1000px;
+    height: 1000px
 }
-
 #boardCanvas {
     position: absolute;
     left: 0;
     top: 0;
     width: 1000px;
     height: 1000px;
-    pointer-events: none;
+    pointer-events: none
 }
-
 #takenPiecesPanel {
     position: absolute;
     bottom: 8px;
@@ -570,13 +467,11 @@ header {
     transform: translateX(-50%);
     width: min(calc(100% - 32px), 648px);
     background-color: var(--ui-info-transparent);
-    height: 128px;
+    height: 128px
 }
-
 #takenPieces {
-    overflow-y: auto;
+    overflow-y: auto
 }
-
 #promotionPanel {
     position: absolute;
     right: 16px;
@@ -587,25 +482,21 @@ header {
     opacity: 1;
     transform: translateY(-50%);
     background-color: var(--ui-info-transparent);
-    transition: .2s right, .2s opacity;
+    transition: .2s right, .2s opacity
 }
-
 #promotionPieces {
     display: grid;
-    grid-template-columns: auto auto;
+    grid-template-columns: auto auto
 }
-
 #promotionPanel[data-closed] {
     right: -256px;
-    opacity: 0;
+    opacity: 0
 }
-
 .piece-draggable {
-    border: 2px solid darkgray;
+    border: 2px solid #a9a9a9;
     background: #c6c6c669;
-    margin: 2px;
+    margin: 2px
 }
-
 #meTurnPopup {
     position: absolute;
     top: 50%;
@@ -617,44 +508,37 @@ header {
     transform: translateY(-50%);
     text-shadow: 2px 2px #fff;
     background: var(--ui-hilight-transparent);
-    pointer-events: none;
+    pointer-events: none
 }
-
 #chatMessages>p {
-    margin: 0;
+    margin: 0
 }
-
 .match-rules {
     box-sizing: border-box;
-    line-height: 24pt;
+    line-height: 24pt
 }
-
-.match-rules span[data-kind="keyword"] {
-    font-weight: 700;
+.match-rules span[data-kind=keyword] {
+    font-weight: 700
 }
-
 .match-rules span[data-layer] {
-  border: 2px solid #e7e7e7;
-  margin-top: 1px;
-  margin-bottom: 1px;
-  font-style: italic;
+    border: 2px solid #e7e7e7;
+    margin-top: 1px;
+    margin-bottom: 1px;
+    font-style: italic
 }
-
 .modal[open] {
     display: flex;
     flex-direction: column;
-    z-index: 1;
+    z-index: 1
 }
-
 .modal {
     padding: 0;
     border: none;
     background: 0 0;
     min-width: min(calc(100% - 32px), 800px);
     min-height: min(calc(100% - 32px), 600px);
-    color: var(--ui-text);
+    color: var(--ui-text)
 }
-
 .modal-content {
     padding: 8px;
     background: var(--ui-modal-background);
@@ -665,22 +549,19 @@ header {
     row-gap: 8px;
     overflow: hidden auto;
     max-height: 800px;
-    position: relative;
+    position: relative
 }
-
 .modal-title {
     margin: 0;
     display: flex;
     padding: 0;
-    cursor: default;
+    cursor: default
 }
-
 .modal-title>div[data-selected] {
     background: var(--ui-modal-background);
     border: 1px solid var(--ui-border);
-    border-bottom: none;
+    border-bottom: none
 }
-
 .modal-title>div {
     display: flex;
     border: 1px solid var(--ui-border-unfocused);
@@ -691,72 +572,57 @@ header {
     padding: 8px;
     border-bottom: none;
     font-weight: 700;
-    color: var(--ui-text);
+    color: var(--ui-text)
 }
-
 .modal-title>button {
     background: var(--ui-modal-background);
     margin-left: auto;
     border: 1px solid var(--ui-border);
     border-bottom: none;
     width: 64px;
-    color: var(--ui-text);
+    color: var(--ui-text)
 }
-
-.modal-title>button:hover{
-    background: var(--ui-input-hover);
+.modal-title>button:hover {
+    background: var(--ui-input-hover)
 }
-
 .modal-title>button>img {
     filter: var(--icon-filter)
 }
-
 #arrangementStats {
-    opacity: 0.6;
+    opacity: .6;
     font-size: 14px;
-    width: fit-content;
+    width: fit-content
 }
-
 .modal-content-container {
-    display: flex;
+    display: flex
 }
-
 .arrangement-section {
     padding: 8px;
-    border: 1px solid #d3d3d3;
+    border: 1px solid #d3d3d3
 }
-
 .arrangement-grid {
     display: grid;
     grid-gap: 4px;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, 1fr)
 }
-
 .arrangement-grid>img {
     width: 100%;
     border: 1px solid #d3d3d3;
     grid-gap: 4px;
-    transition: 0.1s border;
+    transition: .1s border
 }
-
 .arrangement-board-container {
     position: relative;
-    width: 100%;
+    width: 100%
 }
-
 .arrangement-side-label {
     position: absolute;
     z-index: 2;
-    text-shadow:
-        -1px -1px 0 var(--ui-border),
-        1px -1px 0 var(--ui-border),
-        -1px 1px 0 var(--ui-border),
-        1px 1px 0 var(--ui-border);
-    opacity: 0.8;
+    text-shadow: -1px -1px 0 var(--ui-border), 1px -1px 0 var(--ui-border), -1px 1px 0 var(--ui-border), 1px 1px 0 var(--ui-border);
+    opacity: .8;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%)
 }
-
 .modal-content-side {
     display: flex;
     flex-direction: column;
@@ -764,24 +630,20 @@ header {
     padding: 8px;
     padding-bottom: 0;
     padding-top: 0;
-    row-gap: 8px;
+    row-gap: 8px
 }
-
 .arrangement-input {
     padding: 8px !important;
     border: 1px solid #d3d3d3 !important;
     border-radius: 0 !important;
-    background: var(--ui-input-background) !important;
+    background: var(--ui-input-background) !important
 }
-
 .arrangement-input:focus {
-    border: 1px solid var(--ui-border);
+    border: 1px solid var(--ui-border)
 }
-
 .arrangement-input:invalid {
-    border: 1px solid red !important;
+    border: 1px solid red !important
 }
-
 .arrangement-button {
     display: flex;
     padding: 8px;
@@ -789,43 +651,36 @@ header {
     background: linear-gradient(to bottom, var(--ui-border-unfocused), var(--ui-input-background));
     cursor: default;
     font-size: 18px;
-    color: var(--ui-text);
+    color: var(--ui-text)
 }
-
 .arrangement-button>img {
     filter: var(--icon-filter)
 }
-
 .arrangement-button:hover {
-    border: 1px solid var(--ui-border);
+    border: 1px solid var(--ui-border)
 }
-
 .modal-list {
     flex-grow: 1;
     overflow-y: auto;
     max-height: 494px;
     display: flex;
     flex-direction: column;
-    row-gap: 8px;
+    row-gap: 8px
 }
-
 .modal-list-buttons {
     display: flex;
     column-gap: 8px;
-    max-height: 42px;
+    max-height: 42px
 }
-
 .needs-login {
     display: flex;
     flex-direction: column;
     align-items: center;
-    text-align: center;
+    text-align: center
 }
-
 .profile-content {
-    width: min(80%, 1024px);
+    width: min(80%, 1024px)
 }
-
 .profile-header {
     border: 1px solid var(--ui-border);
     padding-left: 96px;
@@ -835,9 +690,8 @@ header {
     display: flex;
     flex-direction: column;
     height: 256px;
-    position: relative;
+    position: relative
 }
-
 .profile-header::before {
     content: "";
     position: absolute;
@@ -847,9 +701,8 @@ header {
     height: 100%;
     background: var(--profile-header-cover);
     background-size: 50px;
-    opacity: 0.2;
+    opacity: .2
 }
-
 .profile-picture {
     align-self: center;
     margin-bottom: -72px;
@@ -864,29 +717,21 @@ header {
     border: 1px solid var(--ui-border);
     background-color: #fff;
     cursor: pointer;
-    transition: 0.2s background-color;
+    transition: .2s background-color
 }
-
 .profile-picture>button {
     opacity: 0;
-    transition: 0.2s all;
+    transition: .2s all
 }
-
-.profile-picture:focus-within,
-.profile-picture:hover {
-    background-color: #969696;
+.profile-picture:focus-within, .profile-picture:hover {
+    background-color: #969696
 }
-
-.profile-picture:focus-within>button,
-.profile-picture:hover>button {
-    opacity: 1;
+.profile-picture:focus-within>button, .profile-picture:hover>button {
+    opacity: 1
 }
-
-.profile-picture:focus-within>img,
-.profile-picture:hover>img {
-    opacity: 0.6;
+.profile-picture:focus-within>img, .profile-picture:hover>img {
+    opacity: .6
 }
-
 .profile-picture>button {
     position: absolute;
     left: 50%;
@@ -897,23 +742,20 @@ header {
     display: flex;
     border-radius: 4px;
     align-items: center;
-    cursor: pointer;
+    cursor: pointer
 }
-
 .profile-picture>img {
     width: 100%;
     height: 100%;
-    transition: 0.2s opacity;
+    transition: .2s opacity
 }
-
 .profile-username {
-    opacity: 0.8;
-    letter-spacing: 0.1em;
+    opacity: .8;
+    letter-spacing: .1em;
     text-align: center;
     flex-grow: 1;
-    color: black;
+    color: #000
 }
-
 .profile-background-section {
     position: absolute;
     right: 16px;
@@ -925,40 +767,32 @@ header {
     backdrop-filter: blur(4px);
     display: flex;
     flex-direction: row;
-    gap: 4px;
+    gap: 4px
 }
-
 .profile-background-section>legend {
-    color: black;
+    color: #000
 }
-
-.profile-background-section>input[type="button"] {
+.profile-background-section>input[type=button] {
     width: 48px;
     height: 48px;
     box-shadow: 0 2px 6px 0 #00000059;
     border: 1px solid var(--ui-border);
     border-radius: 48px;
     margin: 0;
-    transition:
-        0.2s border,
-        0.2s filter;
+    transition: .2s border, .2s filter
 }
-
-.profile-background-section>input[type="button"]:hover {
+.profile-background-section>input[type=button]:hover {
     border: 2px solid var(--ui-input-hover);
-    filter: brightness(1.2);
+    filter: brightness(1.2)
 }
-
 .profile-biography-section {
-    position: relative;
+    position: relative
 }
-
 .profile-biography-button {
     bottom: -12px;
     right: 8px;
-    position: absolute;
+    position: absolute
 }
-
 .profile-biography {
     resize: none;
     font-family: Arial, sans-serif;
@@ -966,15 +800,13 @@ header {
     height: 96px;
     font-size: 20px;
     border: 1px solid #d3d3d3;
-    margin-bottom: 8px;
+    margin-bottom: 8px
 }
-
 .profile-stat-section {
     display: flex;
     flex-direction: column;
-    row-gap: 6px;
+    row-gap: 6px
 }
-
 .profile-stat {
     background: var(--ui-input);
     padding: 2px;
@@ -982,46 +814,36 @@ header {
     display: inline-block;
     border-radius: 32px;
     margin-right: 8px;
-    text-align: center;
+    text-align: center
 }
-
 @media screen and (width <=640px) {
     .profile-picture {
         min-width: 200px;
         min-height: 200px;
-        margin-bottom: -56px;
+        margin-bottom: -56px
     }
-
-    .profile-background-section>legend {
+    .profile-background-section > legend {
         min-width: 0;
         width: 48px;
-        font-size: 12px;
+        font-size: 12px
     }
-
     .profile-background-section {
         height: max-content;
         width: 64px;
         right: 2px;
         padding-top: 4px;
         padding-bottom: 4px;
-        flex-direction: column;
+        flex-direction: column
     }
 }
-
-@media screen and (orientation: portrait) {
+@media screen and (orientation:portrait) {
     .modal-content-container {
-        flex-direction: column;
-    }
-
-    .modal-content-side {
-        width: 100%;
-    }
-
-    .main-menu-field {
-        width: calc(100% - 16px);
-    }
-
-    .profile-content {
-        width: calc(100% - 16px);
+        flex-direction: column
+    }    .modal-content-side {
+        width: 100%
+    }    .main-menu-field {
+        width: calc(100% - 16px)
+    }    .profile-content {
+        width: calc(100% - 16px)
     }
 }

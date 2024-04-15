@@ -18,18 +18,3 @@ function createFromData(name, data) {
     element.connectedCallback()
     return element
 }
-
-function html(strings, ...values) {
-    return strings.reduce((result, string, i) => {
-        const value = values[i] !== undefined ? values[i] : ""
-        return result + string + value
-    }, "")
-}
-
-// Custom implementation of the css function
-function css(strings, ...values) {
-    return strings.reduce((result, string, i) => {
-        const value = values[i] !== undefined ? values[i] : ""
-        return result + string + value
-    }, "")
-}

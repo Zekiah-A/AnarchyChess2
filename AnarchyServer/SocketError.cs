@@ -1,6 +1,6 @@
 namespace AnarchyServer;
 
-public struct SocketError : IReceiveResult
+public struct SocketError
 {
     public Exception? Exception;
 

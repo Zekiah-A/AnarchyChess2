@@ -13,7 +13,7 @@ class ProfileView extends HTMLElement {
     }
 
     connectedCallback() {
-        this.shadowRoot.innerHTML = html`
+        this.shadowRoot.innerHTML = `
             <div id="header" class="profile-header">
                 <button class="close-button" id="closeButton">
                     <img src="./resources/close-icon.svg" alt="Close">
@@ -52,7 +52,7 @@ class ProfileView extends HTMLElement {
             </div>
         `
         const style = document.createElement("style")
-        style.innerHTML = css`
+        style.innerHTML = `
             :host {
                 position: fixed;
                 background-color: lightgray;

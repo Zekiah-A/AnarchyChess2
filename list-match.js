@@ -18,7 +18,7 @@ class ListMatch extends HTMLElement {
     }
 
     connectedCallback() {
-        this.shadowRoot.innerHTML = html`
+        this.shadowRoot.innerHTML = `
             <div class="name-container">
                 <span class="name" id="name">Unknown</span>
                 <sub class="match-id">(Match ID: <span id="matchId">0</span>)</sub>
@@ -35,7 +35,7 @@ class ListMatch extends HTMLElement {
             </button>
         `
         const style = document.createElement("style")
-        style.innerHTML = css`
+        style.innerHTML = `
             :host {
                 border: 1px solid lightgray;
                 display: flex;

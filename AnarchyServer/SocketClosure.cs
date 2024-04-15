@@ -1,9 +1,8 @@
-using System.Net.Sockets;
 using System.Net.WebSockets;
 
 namespace AnarchyServer;
 
-public struct SocketClosure : IReceiveResult
+public struct SocketClosure
 {
     public WebSocketCloseStatus? CloseStatus;
     public string? Reason;

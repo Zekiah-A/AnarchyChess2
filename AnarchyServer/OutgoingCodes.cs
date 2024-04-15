@@ -1,3 +1,5 @@
+namespace AnarchyServer;
+
 public static class OutgoingCodes
 {
     public const byte MatchInfo = 0;

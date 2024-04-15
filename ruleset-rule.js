@@ -7,7 +7,7 @@ class RulesetRule extends HTMLElement {
     }
 
     connectedCallback() {
-        this.shadowRoot.innerHTML = html`
+        this.shadowRoot.innerHTML = `
             <button class="delete-button" id="deleteButton" title="Delete rule">
                 <img src="./resources/close-icon.svg" alt="Delete rule">
             </button>
@@ -35,7 +35,7 @@ class RulesetRule extends HTMLElement {
             </div>
         `
         const style = document.createElement("style")
-        style.innerHTML = css`
+        style.innerHTML = `
             :host {
                 min-height: 128px;
                 position: relative;
@@ -80,7 +80,7 @@ class RulesetRule extends HTMLElement {
     updateAction1() {
         switch (this.action.value) {
             case "spawn": {
-                this.action1.innerHTML = html`
+                this.action1.innerHTML = `
                     <select id="atColour">
                         <option value="black">Black</option>
                         <option value="white">White</option>
@@ -110,7 +110,7 @@ class RulesetRule extends HTMLElement {
                 break
             }
             case "delete": {
-                this.action1.innerHTML = html`
+                this.action1.innerHTML = `
                     at
                     <input id="atPosition" type="text" style="width: 48px;" maxlength="2" placeholder="A1" value="A1">
                 `
@@ -122,7 +122,7 @@ class RulesetRule extends HTMLElement {
                 break
             }
             case "setCurrentTurn": {
-                this.action1.innerHTML = html`
+                this.action1.innerHTML = `
                     <select id="turnColour">
                         <option value="next">Next player</option>
                         <option value="previous">Previous player</option>

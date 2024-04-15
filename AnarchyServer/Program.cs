@@ -1,6 +1,5 @@
 using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
-using System.Text;
 using AnarchyServer;
 using System.Text.Json;
 using CommunityToolkit.HighPerformance.Buffers;
@@ -8,12 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 using AnarchyServer.DataModel;
-using System.Buffers.Text;
 using Microsoft.Extensions.FileProviders;
-
-// Reset DB: dotnet ef database update 0
-// Reset DB: dotnet ef migrations add InitialCreate
-// Reset DB: dotnet ef database update
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
@@ -105,7 +99,19 @@ void InsertDefaults()
                 NULL,
                 8,
                 8,
-                '[{"type":"rook","colour":"black"},{"type":"knight","colour":"black"},{"type":"bishop","colour":"black"},{"type":"king","colour":"black"},{"type":"queen","colour":"black"},{"type":"bishop","colour":"black"},{"type":"knight","colour":"black"},{"type":"rook","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"rook","colour":"white"},{"type":"knight","colour":"white"},{"type":"bishop","colour":"white"},{"type":"king","colour":"white"},{"type":"queen","colour":"white"},{"type":"bishop","colour":"white"},{"type":"knight","colour":"white"},{"type":"rook","colour":"white"}]',
+                '[{"type":"rook","colour":"black"},{"type":"knight","colour":"black"},{"type":"bishop","colour":"black"},
+                {"type":"king","colour":"black"},{"type":"queen","colour":"black"},{"type":"bishop","colour":"black"},
+                {"type":"knight","colour":"black"},{"type":"rook","colour":"black"},{"type":"pawn","colour":"black"},
+                {"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},
+                {"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},{"type":"pawn","colour":"black"},
+                {"type":"pawn","colour":"black"},null,null,null,null,null,null,null,null,null,null,null,null,null,null,
+                null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,
+                {"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},
+                {"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},
+                {"type":"pawn","colour":"white"},{"type":"pawn","colour":"white"},{"type":"rook","colour":"white"},
+                {"type":"knight","colour":"white"},{"type":"bishop","colour":"white"},{"type":"king","colour":"white"},
+                {"type":"queen","colour":"white"},{"type":"bishop","colour":"white"},{"type":"knight","colour":"white"},
+                {"type":"rook","colour":"white"}]',
                 'Default'
             )
         """);
@@ -125,14 +131,14 @@ void InsertDefaults()
 }
 InsertDefaults();
 
-async IAsyncEnumerable<IReceiveResult> ReceiveDataAsync(ClientData client, [EnumeratorCancellation] CancellationToken token)
+async IAsyncEnumerable<object> ReceiveDataAsync(ClientData client, [EnumeratorCancellation] CancellationToken token)
 {
     // Receive in chunks
     using var resultStream = new MemoryStream();
     var transportCompleted = false;
     while (true)
     {
-        IReceiveResult? readLoopResult = null!;
+        object? readLoopResult = null!;
         try
         {
             if (token.IsCancellationRequested)
@@ -144,7 +150,6 @@ async IAsyncEnumerable<IReceiveResult> ReceiveDataAsync(ClientData client, [Enum
                 {
                     await client.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", token);
                 }
-                readLoopResult = new SocketClosure(WebSocketCloseStatus.Empty, "Task cancelled");
                 transportCompleted = true;
             }
             else
@@ -260,7 +265,7 @@ app.MapPost("/Matches", async ([FromBody] MatchCreateInfo info, HttpContext cont
     }
 
     var matchId = random.Next();
-    while (usedMatchIds.Contains(matchId) || await dbContext.PastMatches.AnyAsync(match => match.Id == matchId))
+    while (usedMatchIds.Contains(matchId))
     {
         matchId = random.Next();
     }
@@ -516,8 +521,7 @@ app.MapGet("/Profiles/{id}", async (int id, DatabaseContext dbContext) =>
             account.ProfileBackground,
             account.Gender,
             account.Location,
-            // TODO: Implement these properties
-            GamesPlayed = 0,  
+            GamesPlayed = 0,
             MatchesWon = 0,
             PlayTime = 0
         };
