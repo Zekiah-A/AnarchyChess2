@@ -4,6 +4,7 @@ project.lock.json
 .DS_Store
 *.pyc
 nupkg/
+*.kate-swp
 
 # Visual Studio Code
 .vscode/
@@ -13,6 +14,9 @@ nupkg/
 
 # Visual Studio
 .vs/
+
+# Zed
+.zed/
 
 # Fleet
 .fleet/

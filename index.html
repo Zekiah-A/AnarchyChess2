@@ -1,1644 +1,578 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <title>Anarchy chess</title>
-    <meta name="description" content="A massive multiplayer chess game with slightly bent rules. Here be anarchy.">
-    <meta name="keywords" content="chess anarchy game multiplayer online">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="styles.css">
-    <link rel="icon" type="image/x-icon" href="resources/logo.ico">
-    <script src="./lib/tsparticles.confetti.bundle.min.js"></script>
-    <script src="./lib/dataproto1.1.3.js"></script>
-    <script src="./component-registrar.js"></script>
-    <script src="./piece-data.js"></script>
-    <script src="./resources.js"></script>
-    <script src="./board.js"></script>    
-    <script src="./ruleset-rule.js"></script>
-    <script src="./list-match.js"></script>
-    <script src="./profile-view.js"></script>
+	<meta charset="UTF-8">
+	<title>Anarchy chess</title>
+	<meta name="description" content="A massive multiplayer chess game with slightly bent rules. Here be anarchy.">
+	<meta name="keywords" content="chess anarchy game multiplayer online">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="styles.css">
+	<link rel="icon" type="image/x-icon" href="resources/logo.ico">
+	<script type="module" src="src/components/component-registrar.js"></script>
+	<script type="module" src="src/components/list-match.js"></script>
+	<script type="module" src="src/components/profile-view.js"></script>
+	<script type="module" src="src/components/ruleset-rule.js"></script>
+	<script type="module" src="src/components/board.js"></script>
+	<script type="module" src="src/player.js"></script>
+	<script type="module" src="src/piece-data.js"></script>
+	<script type="module" src="src/resources.js"></script>
+	<script type="module" src="src/game.js"></script>
+	<script type="module" src="src/index.js"></script>
 </head>
+
 <body>
-    <div id="gameScreen" class="game-screen"
-        onmousemove="handleBoardDrag(event)"
-        onmousedown="handleBoardPress(event)"
-        onmouseup="handleBoardRelease(event)"
-        ontouchmove="handleBoardDrag(event)"
-        ontouchstart="handleBoardPress(event)"
-        ontouchend="handleBoardRelease(event)"
-        onwheel="handleBoardZoom(event)">
-        <div id="boardPosition" data-x="500" data-y="500" data-z="0.8">
-            <ac-board id="board"></ac-board>
-            <canvas id="boardCanvas" width="1000" height="1000">
-        </div>
-        <p class="copyright-notice">
-            If you're seeing this, you probably moved the board offscreen. AnarchyChess, ©Zekiah-A
-        </p>
-        <div id="gamemodeTitle" class="hud" onclick="gamemodesPanel.toggleAttribute('data-closed');">
-            <p>AnarchyChess</p>
-        </div>
-        <div id="gamemodesPanel" class="info-panel" data-closed="">
-            <h4 style="margin: 0px;">Match options:</h4>
-            <input type="button" onclick="socket.close()" value="Exit match">
-        </div>
-        <div class="hud game-actions">
-            <p onclick="chatPanel.toggleAttribute('data-closed'); settingsPanel.setAttribute('data-closed', true);">Chat</p>
-            <p onclick="settingsPanel.toggleAttribute('data-closed'); chatPanel.setAttribute('data-closed', true);">Settings</p>
-            <p onclick="rulesetPanel.toggleAttribute('data-closed')">Ruleset</p>
-        </div>
-        <div id="chatPanel" data-closed="true" class="info-panel">
-            <div id="chatMessages">
-                <p>🢂 Chat messages will appear here</p>
-            </div>
-            <input placeholder="Send chat message" type="text" maxlength="96" onkeydown="
-                if (event.key == 'Enter' && socket != null) {
-                    socket.send(this.value)
-                    this.value = ''
-                }
-            ">
-        </div>
-        <div id="settingsPanel" data-closed="true" class="info-panel">
-            <h4 style="margin: 0px;">Sound effects:</h4>
-            <div style="display: flex;flex-direction: column;row-gap: 3px;">
-                <input type="button" onclick="localStorage.soundEnabled = true" value="Enable sound">
-                <input type="button" onclick="localStorage.soundEnabled = false" value="Disable sound">
-            </div>
-            <h4 style="margin: 0px;">Graphics options:</h4>
-            <div style="display: flex;flex-direction: column;row-gap: 3px;">
-                <input type="button" onclick="localStorage.effects = false" value="No effects">
-                <input type="button" onclick="localStorage.effects = true" value="All effects">
-            </div>
-        </div>
-        <div id="turnPanel" class="info-panel">
-            <div class="turn-progress-container">
-                <div id="turnProgress"><!--Turn progress indicator rect--></div>
-            </div>
-            <div id="turnLabel">Current turn: 1            (5s)</div>
-        </div>
-        <div id="takenPiecesPanel" class="info-panel">
-            <h4 style="margin: 0px;">Taken pieces:</h4>
-            <div id="takenPieces"><!--Taken pieces will display here--></div>
-        </div>
-        <div id="promotionPanel" class="info-panel" data-closed="">
-            <h4 style="margin: 0px;">Promote piece:</h4>
-            <div id="promotionPieces"><!--Potential pieces that can be promoted to will display here--></div>
-        </div>
-        <div id="meTurnPopup">It is now your turn!</div>
-        <div id="rulesetPanel" class="side-panel" data-closed="true">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin: 0px;">Game rules:</h3>
-                <input type="button" value="Close" onclick="rulesetPanel.setAttribute('data-closed', true)">    
-            </div>
-            <div class="match-rules" id="matchRules">
-                <h5 style="margin-bottom: 0px;">Game events:</h5>
-            </div>
-        </div>    
-    </div>
-    <div id="deathMenu" data-closed="true" class="menu">
-        <h1 style="margin-bottom: 8px;">♟️ BLUNDER</h1>
-        <p>You were killed by another piece.</p>
-        <div class="dual-options">
-            <input value="Respawn on map" type="button">
-            <input value="Main menu" type="button">
-        </div>
-    </div>
-    <div id="mainMenu" class="main-menu">
-        <header id="header" onwheel="
-            mainMenu.scrollBy({
-                top: event.deltaY,
-                left: 0,
-                behavior: 'smooth'
-            })
-        ">
-            <div id="headerContent" class="header-content">
-                <div id="headerBranding" class="branding">
-                    <img src="resources/logo.png" class="icon-symbolic" height="64" alt="logo">
-                    <h1>AnarchyChess</h1>
-                </div>
-                <nav id="headerNav" class="header-nav">
-                    <a class="novisit page-link" href="#login" data-page="login">Login</a> |
-                    <a class="novisit page-link" href="#signup" data-page="signup">Sign up</a> |
-                    <a class="novisit page-link" href="#main" data-page="main">Home</a> |
-                    <a class="novisit page-link" href="#profile" data-page="profile">My profile</a> |
-                    <a class="novisit page-link" href="#settings" data-page="settings">Settings</a>
-                </nav>
-            </div>
-        </header>
-        <div style="min-height: 200px;"><!--spacer--></div>
-        <div class="main-menu-page" data-page="login">
-            <h3 style="margin-top: 0;">Login with AnarchyChess account</h3>
-            <div class="form-frame" id="loginForm">
-                <input id="loginUsername" type="text" placeholder="Username" oninput="validateUsername(this)" maxlength="16" autocomplete="username" onkeydown="maybeSelectNext(event)">
-                <input id="loginEmail" type="email" maxlength="320" placeholder="Email" pattern="[^@\s]+@[^@\s]+\.[^@\s]+" autocomplete="email" onkeydown="maybeSelectNext(event)">
-                <input type="button" value="Login" onclick="
-                    if (loginUsername.value && loginEmail.value && loginEmail.validity.valid) {
-                        login(loginUsername.value, loginEmail.value)
-                    }
-                ">
-            </div>
-            <div>
-                <a class="novisit" href="#signup">Create account</a> | <a class="novisit" href="#home" onclick="if (confirm('Are you sure you want to sign out?')) signout()">Sign out of account</a>
-            </div>
-        </div>
-        <div class="main-menu-page" data-page="signup">
-            <h3 style="margin-top: 0;">Sign up to AnarchyChess</h3>
-            <div class="form-frame">
-                <input id="signupUsername" type="text" placeholder="Username" oninput="validateUsername(this)" maxlength="16" autocomplete="username" onkeydown="maybeSelectNext(event)">
-                <input id="signupEmail" type="email" maxlength="320" placeholder="Email" pattern="[^@\s]+@[^@\s]+\.[^@\s]+" autocomplete="email" onkeydown="maybeSelectNext(event)">
-                <input id="signupConfirm" type="email" maxlength="320" placeholder="Confirm email" oninput="
-                    this.setCustomValidity(signupEmail.value === this.value ? '' : 'Emails don\'t match!')
-                    this.reportValidity()
-                " pattern="[^@\s]+@[^@\s]+\.[^@\s]+" onkeydown="maybeSelectNext(event)">
-                <input type="button" value="Create account" onclick="
-                    (async function() {
-                        if (signupUsername.value && signupEmail.value && signupEmail.validity.valid) {
-                            if (await signup(signupUsername.value, signupEmail.value)) {
-                                await login(signupUsername.value,  signupEmail.value)
-                                loginUsername.text = signupUsername.value
-                                loginEmail.text = signupEmail.value
-                            }
-                            signupUsername.value = ''
-                            signupEmail.value = ''
-                            signupConfirm.value =  ''
-                        }
-                    })()
-                ">
-            </div>
-            <div>
-                <a class="novisit" href="#login">Already have an account?</a>
-            </div>
-        </div>
-        <div class="main-menu-page" data-page="main">
-            <p style="text-align: center;">A multiplayer chess game, with infinite variations and slightly bent rules. Here be anarchy.</p>
-            <dialog id="configurePanel" class="modal">
-                <div class="modal-title">
-                    <div data-selected data-page="ruleset" tabindex="0" onclick="setModalPage(configurePanel, this.dataset.page)">Ruleset</div>
-                    <div data-page="arrangement" tabindex="0" onclick="setModalPage(configurePanel, this.dataset.page)">Piece arrangement</div>
-                    <button autofocus aria-label="close" onclick="configurePanel.close()">
-                        <img src="./resources/close-icon.svg" alt="Close">
-                    </button>
-                </div>
-                <div class="modal-content" data-page="ruleset">
-                    <div class="modal-content-container">
-                        <div id="rulesetRules" class="modal-list"><!--Ruleset list elements go here--></div>
-                        <div class="modal-content-side" style="width: 192px;">
-                            <button class="arrangement-button" tabindex="0" onclick="
-                                let rule = document.createElement('ac-ruleset-rule')
-                                rulesetRules.appendChild(rule)
-                            "><img src="./resources/add-icon.svg" alt="+"> Add Rule</button>
-                            <button class="arrangement-button" tabindex="0" onclick="
-                                let ruleDatas = []
-                                for (let rule of rulesetRules.children) {
-                                    // Skip adding invalid rules
-                                    if (!rule.data || !rule.data?.condition || !rule.data?.action.type) {
-                                        continue;
-                                    }
-                                    ruleDatas.push(rule.data)
-                                }
-                                let rulesetName = prompt('Enter name for new ruleset', 'My ruleset')
-                                if (!rulesetName || rulesetName.length > 16) {
-                                    alert('Could not create ruleset. Name length was not in  valid range (1-16)')
-                                    return
-                                }
-                                uploadRulesetRules(rulesetName, ruleDatas)
-                            ">Save</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-content" data-page="arrangement" style="display: none;">
-                    <div class="modal-content-container">
-                        <div class="arrangement-board-container">
-                            <span class="arrangement-side-label">Black</span>
-                            <ac-board id="arrangementBoard" rows="8" columns="8"></ac-board> 
-                            <span class="arrangement-side-label">White</span>
-                        </div>
-                        <div class="modal-content-side" ondragstart="{const dragged = event.target
-                            if (dragged.nodeName == 'IMG') {
-                                arrangementCurCol = dragged.dataset.colour
-                                arrangementCurType = dragged.dataset.type
-                                dragged.style.border = '2px solid var(--ui-special)'
-                            }
-                        }" ondragend="{const dragged = event.target
-                            if (dragged.nodeName == 'IMG') {
-                                dragged.style.removeProperty('border')
-                            }
-                        }">
-                            <div class="arrangement-section">Black</div>
-                            <div class="arrangement-grid">
-                                <img src="resources/pawn-black.svg" data-colour="black" alt="pawn" data-type="pawn">
-                                <img src="resources/rook-black.svg" data-colour="black" alt="rook" data-type="rook">
-                                <img src="resources/knight-black.svg" data-colour="black" alt="knight" data-type="knight">
-                                <img src="resources/bishop-black.svg" data-colour="black" alt="bishop" data-type="bishop">
-                                <img src="resources/queen-black.svg" data-colour="black" alt="queen" data-type="queen">
-                                <img src="resources/king-black.svg" data-colour="black" alt="king" data-type="king">
-                            </div>
-                            <div class="arrangement-section">White</div>
-                            <div class="arrangement-grid">
-                                <img src="resources/pawn-white.svg" data-colour="white" alt="" data-type="pawn">
-                                <img src="resources/rook-white.svg" data-colour="white" alt="" data-type="rook">
-                                <img src="resources/knight-white.svg" data-colour="white" alt="" data-type="knight">
-                                <img src="resources/bishop-white.svg" data-colour="white" alt="" data-type="bishop">
-                                <img src="resources/queen-white.svg" data-colour="white" alt="" data-type="queen">
-                                <img src="resources/king-white.svg" data-colour="white" alt="" data-type="king">
-                            </div>
-                            <div style="display: flex; position: relative; column-gap: 4px;">
-                                <input id="arrangementColumns" data-oldvalue="8" onchange="
-                                    if (confirm('Are you sure you want to resize the board? This will wipe all pieces')) {
-                                        arrangementBoard.columns = this.value
-                                        this.dataset.oldvalue = this.value
-                                    }
-                                    else {
-                                        this.value = +this.dataset.oldvalue
-                                    }
-                                " type="number" style="width: 50%;" value="8" min="6" max="16">
-                                <input id="arrangementRows" data-oldvalue="8" onchange="
-                                    if (confirm('Are you sure you want to resize the board? This will wipe all pieces')) {
-                                        arrangementBoard.rows = this.value
-                                        this.dataset.oldvalue = this.value
-                                    }
-                                    else {
-                                        this.value = +this.dataset.oldvalue
-                                    }
-                                " type="number" style="width: 50%;" value="8" min="6" max="16">
-                            </div>
-                            <div style="flex-grow: 1;"><!--Spacer--></div>
-                            <button class="arrangement-button" tabindex="0" onclick="if (arrangementSelC != null && arrangementSelR != null) {
-                                animateDestroyPiece(arrangementBoard, arrangementCanvas, arrangementSelC, arrangementSelR)
-                                arrangementSelC = null
-                                arrangementSelR = null
-                                updateArrangementStats()
-                            }">Delete piece 🗑️</button>
-                            <button class="arrangement-button" tabindex="0" onclick="
-                                let arrangementName = prompt('Enter name for new arrangement', 'My arrangement')
-                                if (!arrangementName || arrangementName.length > 16) {
-                                    alert('Could not create arrangement. Name length was not in valid range (1-16)')
-                                    return
-                                }
-                                let piecesArray = []
-                                for (let r = 0; r < arrangementBoard.rows; r++) {
-                                    for (let c = 0; c < arrangementBoard.columns; c++) {
-                                        piecesArray.push(arrangementBoard.pieces[c][r])
-                                    }
-                                }
-                                uploadArrangement(name, arrangementColumns.value, arrangementRows.value, piecesArray)
-                            ">Save</button>
-                    </div>
-                        <canvas id="arrangementCanvas" style="position: absolute; bottom: 0; left: 0; height: 100%; pointer-events: none; width: 100%;"></canvas>
-                    </div>
-                    <span id="arrangementStats">Black pieces: 0, White pieces: 0, White king present: ❌, Black king present: ❌</span>
-                </div>
-            </dialog>
-            <dialog id="matchPanel" class="modal">
-                <div class="modal-title">
-                    <div data-selected data-page="join" tabindex="0" onclick="setModalPage(matchPanel, this.dataset.page)">Connect</div>
-                    <div data-page="create" tabindex="0" onclick="setModalPage(matchPanel, this.dataset.page)">Create</div>
-                    <button autofocus aria-label="close" onclick="matchPanel.close()">
-                        <img src="./resources/close-icon.svg" alt="Close">
-                    </button>
-                </div>
-                <div class="modal-content" data-page="join">
-                    <div id="matchList" class="modal-list"><!--Match list elements go here--></div>
-                    <div class="modal-list-buttons">
-                        <input id="matchIdInput" class="arrangement-input" type="number" placeholder="Match ID">
-                        <button class="arrangement-button" tabindex="0" onclick="play(matchIdInput.value)">Join</button>
-                        <div style="flex-grow: 1;"><!--spacer--></div>
-                        <button class="arrangement-button" tabindex="0" onclick="setModalPage(matchPanel, 'create')">
-                            <img src="./resources/add-icon.svg" alt="+"> Create my own match
-                        </button>
-                    </div>
-                </div>
-                <div class="modal-content" data-page="create" style="display: none;">
-                    <fieldset>
-                        <legend><h3 style="margin: 0px; color: var(--ui-text);">Game options:</h3></legend>
-                        <p>
-                            Using ruleset: 
-                            <select id="createRuleset" onmousedown="updateCreateRuleset()">
-                                <option value="0">Default</option>
-                            </select>
-                        </p>
-                        <p>
-                            Using arrangement: 
-                            <select id="createArrangement" onmousedown="updateCreateArrangement()">
-                                <option value="0">Default</option>
-                            </select>
-                        </p>    
-                    </fieldset>
-                    <fieldset style="display: flex; flex-direction: column; row-gap: 8px;">
-                        <legend><h3 style="margin: 0px; color: var(--ui-text);">Lobby options:</h3></legend>
-                        <input type="number" id="createLobbyCapacity" autocomplete="off" class="arrangement-input" placeholder="Lobby capacity" min="2" max="8">
-                        <input type="text" id="createLobbyName" autocomplete="off" style="flex-shrink: 1;" class="arrangement-input" placeholder="Lobby name" maxlength="64">
-                        <div>
-                            <input id="createPublic" type="checkbox" value="true">
-                            <label for="createPublic">Advertise lobby publicly</label>
-                        </div>
-                    </fieldset>
-                    <div style="flex-grow: 1;"><!--spacer--></div>
-                    <button class="arrangement-button" tabindex="0" onclick="(async function() {
-                        const lobbyName = createLobbyName.value
-                        const matchId = await createMatch(+createRuleset.value, +createArrangement.value, lobbyName, createLobbyCapacity.value, createPublic.checked)
-                        play(matchId)
-                    })()">Create and join match</button>
-                </div>
-            </dialog>
-            <fieldset class="main-menu-field">
-                <legend><h3>Create</h3></legend>
-                <input id="createRulesetButton" disabled value="Create a new ruleset" type="button" onclick="configurePanel.showModal(); setModalPage(configurePanel, 'ruleset')">
-                <input id="createArrangementButton" disabled value="Create a new arrangement" type="button" onclick="configurePanel.showModal(); setModalPage(configurePanel, 'arrangement')">
-            </fieldset>
-            <fieldset class="main-menu-field">
-                <legend><h3>Play</h3></legend>
-                <input id="joinLobbyButton" disabled value="Join someone's lobby" type="button" onclick="matchPanel.showModal(); setModalPage(matchPanel, 'join')">
-                <input id="createMatchButton" disabled value="Create my own match" type="button" onclick="matchPanel.showModal(); setModalPage(matchPanel, 'create')">
-            </fieldset>
-            <div class="main-menu-field" style="position: relative; z-index: -1;">
-                <ac-board id="mainMenuBoard"></ac-board>
-            </div>
-            <fieldset class="main-menu-field">
-                <legend><h3 style="margin: 0px;">Global stats:</h3></legend>
-                <p>Online players: <span id="globalOnlineLabel"><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
-                <p>Active matches: <span id="globalActiveLabel"><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
-            </fieldset>
-        </div>
-        <div class="main-menu-page" data-page="profile">
-            <h3 style="margin-top: 0;">Your profile</h3>
-            <div class="needs-login" id="profileNeedsLogin">
-                <p>No profile found. Are you sure you're logged in?</p>
-                <span><a class="novisit" href="#login">Login</a> | <a class="novisit" href="#signup">Signup</a></span>    
-            </div>
-            <div id="profileContent" class="profile-content" style="display: none;">
-                <div id="profileHeader" class="profile-header">
-                    <h2 id="profileUsername" class="profile-username">
-                        <img alt="loading..." height="32" src="resources/loading-icon.gif">
-                    </h2>
-                    <div class="profile-picture" onclick="profilePictureInput.click()" ondragenter="
-                        event.stopPropagation()
-                        event.preventDefault()
-                    " ondragover="
-                        event.stopPropagation()
-                        event.preventDefault()
-                        this.style.outline = '4px solid var(--ui-hilight)'
-                        profilePictureButton.focus()
-                    " ondrop="
-                        event.stopPropagation()
-                        event.preventDefault()
-                        this.style.outline = 'initial'
-                        const file = event.dataTransfer.files[0]
-                        if (file && file.type.startsWith('image/')) updateProfilePicture(file)
-                    " ondragleave="
-                        event.stopPropagation()
-                        event.preventDefault()
-                        this.style.outline = 'initial'
-                    ">
-                        <img id="profilePicture" src="resources/logo.png" alt="Profile picture">
-                        <input type="file" id="profilePictureInput" accept="image/*" onchange="
-                            if (this.files[0]) {
-                                updateProfilePicture(this.files[0])
-                            }
-                        " style="display: none;">
-                        <button type="button" id="profilePictureButton">
-                            <img src="./resources/edit-photo.svg" alt="Edit">
-                            Click to change
-                        </button>
-                    </div>
-                    <fieldset class="profile-background-section">
-                    <legend>Select profile colour</legend>
-                        <input type="button" onclick="updateProfileBackground('red')" style="background: linear-gradient(-45deg, #ff412d, #eee);" value=" " title="Red">
-                        <input type="button" onclick="updateProfileBackground('orange')" style="background: linear-gradient(-45deg, #ffd12d, #eee);" value=" " title="Orange">
-                        <input type="button" onclick="updateProfileBackground('green')" style="background: linear-gradient(-45deg, #a9ff86, #eee);" value=" " title="Green">
-                        <input type="button" onclick="updateProfileBackground('cyan')" style="background: linear-gradient(-45deg, #12ffff, #eee);" value=" " title="Cyan">
-                    </fieldset>     
-                </div>
-                <fieldset style="margin-top: 72px;">
-                    <legend><h3>About me</h3></legend>
-                    <div class="profile-biography-section">
-                        <textarea id="profileBiography" onfocus="this.oldvalue = this.value" maxlength="96" placeholder="Click to start editing your bio" class="profile-biography"></textarea>
-                        <input type="button" class="profile-biography-button" onclick="updateProfileBiography(profileBiography.value, profileBiography.oldvalue)" value="Save biography">
-                    </div>
-                    <div class="profile-stat-section">
-                        <div>
-                            <span class="profile-stat">Location</span>
-                            <input type="text" id="profileLocation" placeholder="Unknown"
-                                onfocus="this.oldValue = this.value;" maxlength="16">
-                            <input type="button" onclick="updateProfileLocation(profileLocation.value, profileLocation.oldValue)" value="Save location">
-                        </div>
-                        <div>
-                            <span class="profile-stat">Gender</span>
-                            <select id="profileGender"
-                                onfocus="this.oldvalue = this.value"
-                                onchange="updateProfileGender(this.value, this.oldvalue)">
-                                <option value="unknown">Unknown</option>
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                    </div>
-                </fieldset>
-                <fieldset>
-                    <legend><h3>My stats</h3></legend>
-                    <p>Games played: <span id="profileGamesPlayed"><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
-                    <p>Matches won: <span id="profileMatchesWon"><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
-                    <p>Play time: <span id="profilePlayTime"><img alt="loading..." width="16" src="resources/loading-icon.gif"></span></p>
-                </fieldset>
-            </div>
-        </div>
-        <div class="main-menu-page" data-page="settings">
-            <h3 style="margin-top: 0;">General settings</h3>
-            <div id="settingsContent" class="main-menu-page-content">
-                <fieldset class="main-menu-field">
-                    <legend><h3 style="margin: 0px;">Game settings</h3></legend>
-                    <p>
-                        <label for="boardThemeSelect">Chess Board theme:</label>
-                        <select id="boardThemeSelect" onchange="localStorage.boardTheme = this.value">
-                            <option value="0">Classic</option>
-                            <option value="1">Wooden</option>
-                            <option value="2">Chess.com</option>
-                            <option value="3">Glass</option>
-                        </select>
-                    </p>
-                    <p>
-                        <label for="siteThemeSelect">Site theme:</label>
-                        <select id="siteThemeSelect" onchange="setTheme(this.value)">
-                            <option value="modernLight">Modern light</option>
-                            <option value="modernDark">Modern dark</option>
-                        </select>
-                    </p>
-                    <p>
-                        <label for="soundCheckbox">Enable sound:</label>
-                        <input type="checkbox" id="soundCheckbox" onchange="localStorage.soundEnabled = this.checked" value="true" >
-                    </p>
-                    <p>
-                        <label for="effectsCheckbox">Enable graphical effects:</label>
-                        <input type="checkbox" id="effectsCheckbox" onchange="localStorage.effects = this.checked" value="true" >
-                    </p>
-                </fieldset>
-                <fieldset class="main-menu-field">
-                    <legend><h3 style="margin: 0px;">Advanced settings</h3></legend>
-                    <p>
-                        <label for="serverInput">Server hostname:</label>
-                        <input id="serverInput" onchange="localStorage.serverHostname = this.value" placeholder="ip/domain:port" value="server.rplace.live/ac">
-                    </p>
-                </fieldset>
-                <input type="button" onclick="
-                    if (confirm('Are you sure you want to revert all user settings?')) {
-                        delete localStorage.soundEnabled
-                        delete localStorage.boardTheme
-                        delete localStorage.siteTheme
-                        delete localStorage.serverHostname
-                        setLocalSettings()
-                    }
-                " value="Reset to defaults">    
-                <fieldset class="main-menu-field">
-                    <legend><h3 style="margin: 0px;">Danger zone</h3></legend>
-                    <input type="button" onclick="if (confirm('Are you sure you want to sign out?')) signout()" value="Sign out">
-                    <input type="button" onclick="if (confirm('Are you sure you want to delete your account?')) deleteAccount()" value="Delete my account">
-                </fieldset>
-            </div>
-        </div>
-    </div>
-<script>
-    let arrangementPrevValid = false
-    let arrangementCurCol = null
-    let arrangementCurType = null
-    let arrangementSelC = null
-    let arrangementSelR = null
-
-    arrangementBoard.ontilehover = function(e, column, row, tile) {
-        tile.classList.add("hilight")
-    } 
-    arrangementBoard.ontiledrop = function(e, column, row, tile) {
-        if (arrangementCurCol === null || arrangementCurType == null) return
-        tile.classList.remove("hilight")
-        arrangementBoard.setPiece(column, row, new PieceData(arrangementCurType, arrangementCurCol))
-        updateArrangementStats()
-    }
-    arrangementBoard.ontileleave = function(e, column, row, tile) {
-        tile.classList.remove("hilight")
-    }
-    arrangementBoard.onpiececlick = function(e, column, row, piece) {
-        if (arrangementSelC != null && arrangementSelR != null) {
-            const previousSelected = arrangementBoard.pieceElements[arrangementSelC][arrangementSelR]
-            previousSelected?.getAnimations().map(animation => animation.cancel())
-        }
-        arrangementSelC = column
-        arrangementSelR = row
-        
-        piece.animate([{
-            border: "8px solid var(--ui-hilight-transparent)",
-            transform: "scale(1.1)",
-        },
-        ], {
-            fill: "forwards",
-            duration: 200,
-            iterations: 1,
-        })
-    }
-    function getArrangementStats() {
-        let whiteKing = false
-        let blackKing = false
-        let blackCount = 0
-        let whiteCount = 0
-
-        for (let c = 0; c < arrangementBoard.columns; c++) {
-            for (let r = 0; r < arrangementBoard.rows; r++) {
-                const pieceData = arrangementBoard.pieces[c][r]
-                if (!pieceData) continue
-                if (pieceData.colour === "black") {
-                    blackCount++
-                    if (pieceData.type === "king") blackKing = true
-                }
-                else {
-                    whiteCount++
-                    if (pieceData.type === "king") whiteKing = true
-                }
-            }
-        }
-
-        return { whiteKing, blackKing, blackCount, whiteCount, valid: whiteKing && blackKing && blackCount > 1 && whiteCount > 1 }
-    }
-    function updateArrangementStats() {
-        const stats = getArrangementStats()
-        if (stats.valid && !arrangementPrevValid) {
-            if (localStorage.effects === "true") {
-                (async () => {
-                    arrangementCanvas.confetti({
-                        spread: 100,
-                        particleCount: 85,
-                        startVelocity: 35,
-                        origin: { x: 0.35, y: 1 },
-                    })
-                })();
-                arrangementStats.animate([
-                    { transform: "scale(1)" },
-                    { opacity: 1 },
-                    { opacity: 0 },
-                    { transform: "scale(1.2)" },
-                ], {
-                    duration: 1000,
-                    iterations: 1,
-                })
-
-                setTimeout(function() {
-                    if (getArrangementStats().valid) {
-                        arrangementStats.style.opacity = 1
-                    }
-                }, 1000)
-            }
-        }
-        else {
-            arrangementStats.style.opacity = 0.6
-        }
-        arrangementPrevValid = stats.valid
-        arrangementStats.innerHTML = `Black pieces: <span style="color:${stats.blackCount > 1 ? 'green' : 'red'}">${
-            stats.blackCount}</span>, White pieces: <span style="color:${stats.whiteCount > 1 ? 'green' : 'red'}">${
-            stats.whiteCount}</span>, White king present: ${stats.whiteKing ? "✅" : "❌"}, Black king present: ${
-            stats.blackKing ? "✅" : "❌"}`
-    }
-    updateArrangementStats()
-
-    function animateDestroyPiece(boardElement, canvasElement = null, column = 0, row = 0) {
-        if (canvasElement && localStorage.effects === "true") {
-            const pieceClone = boardElement.pieceElements[column][row].cloneNode(true)
-            boardElement.board.appendChild(pieceClone)
-            pieceClone.style.setProperty('--piece-fill', 'red')
-            pieceClone.animate([
-                { transform: 'scale(1.8) rotate(10deg)', opacity: 0 },
-            ], {
-                duration: 1000,
-                fill: 'forwards',
-                iterations: 1,
-            })
-            setTimeout(() => pieceClone.remove(), 1000)
-            const canvBounds = canvasElement.getBoundingClientRect()
-            const pieceBounds = pieceClone.getBoundingClientRect()
-            const tileSize = boardElement.getTileSize()
-            canvasElement.confetti({
-                spread: 360,
-                gravity: 1,
-                particleCount: 50,
-                startVelocity: 10,
-                shapes: ['text'],
-                shapeOptions: {
-                    text: {
-                        value: ['💥', '🔥', '🔴'],
-                    }
-                },
-                origin: { x: (pieceBounds.left - canvBounds.left + tileSize / 2) / canvasElement.offsetWidth,
-                    y: (pieceBounds.top - canvBounds.top + tileSize / 2) / canvasElement.offsetHeight },
-            })
-        }
-
-        boardElement.clearPiece(column, row)
-    }
-
-    // Random piece arrangement
-    let putInterval = null
-    function randomMainMenuBoard() {
-        clearInterval(putInterval)
-        for (let c = 0; c < mainMenuBoard.columns; c++) {
-            for (let r = 0; r < mainMenuBoard.rows; r++) {
-                if (mainMenuBoard.pieceElements[c][r]) {
-                    animateDestroyPiece(mainMenuBoard, null, c, r)
-                }
-            }
-        }
-        setTimeout(() => {
-            // Setting columns and rows will trigger flush, resulting in three flushes per change.
-            // TODO: Optimise with something like a special resizeClear() method
-            const columnsRows = 6 + Math.floor(Math.random() * 8)
-            mainMenuBoard.columns = columnsRows
-            mainMenuBoard.rows = columnsRows
-            mainMenuBoard.resetAll()
-            mainMenuBoard.flushBoard()
-
-            let i = 0
-            const tileCount = columnsRows ** 2
-            putInterval = setInterval(() => {
-                if (Math.random() > 0.8) {
-                    const type = ["pawn", "rook", "knight", "bishop", "queen", "king"][Math.floor(Math.random() * 6)]
-                    const piece = new PieceData(type, Math.random() > 0.5 ? "black" : "white")
-                    mainMenuBoard.setPiece(i % columnsRows, Math.floor(i / columnsRows), piece)
-                }
-
-                i++
-                if (i + 1 == tileCount) clearInterval(putInterval)
-            }, (2e4 - 3000) / tileCount)
-        }, 3000)
-    }
-    let mainMenuBoardInterval = setInterval(randomMainMenuBoard, 2e4)
-    randomMainMenuBoard()
-
-    function lerp(from, to, weight){
-        return (1 - weight) * from + weight *to
-    }
-
-    let scrollAnim = null
-    function setHeaderWillChange() { // Optimisation
-        headerBranding.style.willChange = "left, top, scale"
-        headerNav.style.willChange = "left, top"
-        headerContent.style.willChange = "height, box-shadow"
-    }
-    function clearHeaderWillChange() {
-        headerBranding.style.willChange = "auto"
-        headerNav.style.willChange = "auto"
-        headerContent.style.willChange = "auto"
-    }
-    let headerPositionFrame = 0
-    function calcHeaderPositioning() {
-        setHeaderWillChange()
-        headerPositionFrame = requestAnimationFrame(positionHeader)
-        function positionHeader() {
-            if (headerPositionFrame !== 0) {
-                cancelAnimationFrame(headerPositionFrame)
-                headerPositionFrame = 0
-            }
-            const portrait = window.innerWidth < window.innerHeight
-            const toCollapsed = Math.min(1, mainMenu.scrollTop / 100)
-            const headerCentreX = header.offsetWidth / 2
-            headerContent.style.boxShadow = `0px 0px ${Math.min(8, mainMenu.scrollTop)}px gray`
-            headerContent.style.height = `${Math.max(100, 200 - mainMenu.scrollTop)}px`
-
-            if (portrait) {
-                headerBranding.style.left = `${headerCentreX - headerBranding.offsetWidth / 2}px`
-                headerBranding.style.top = `${lerp(0, -16, toCollapsed)}px`
-                headerBranding.style.scale = lerp(1, 0.6, toCollapsed)
-
-                headerNav.style.left = `${headerCentreX - headerNav.offsetWidth / 2}px`
-                headerNav.style.top = `${lerp(120, 60, toCollapsed)}px`
-            }
-            else {
-                headerBranding.style.top = "0px"
-                headerBranding.style.left = `${lerp(headerCentreX - headerBranding.offsetWidth / 2, 16, toCollapsed)}px`
-                headerBranding.style.scale = lerp(1.2, 0.8, toCollapsed)
-
-                headerNav.style.left = `${lerp(headerCentreX - headerNav.offsetWidth / 2, header.offsetWidth - headerNav.offsetWidth - 16, toCollapsed)}px`
-                headerNav.style.top = `${lerp(120, 50 - headerNav.offsetHeight / 2, toCollapsed)}px`
-            }
-
-            clearHeaderWillChange()
-        }
-
-        if (scrollAnim) {
-            clearTimeout(scrollAnim)
-            scrollAnim = null
-        }
-        if (mainMenu.scrollTop < 100) {
-            const toCollapsed = Math.min(1, mainMenu.scrollTop / 100)
-            let scrollTarget = toCollapsed < 0.5 ? 0 : 100
-            setHeaderWillChange()
-            scrollAnim = setTimeout(() => {
-                mainMenu.scrollTo({
-                    top: scrollTarget,
-                    left: 0,
-                    behavior: "smooth",
-                })
-                setTimeout(clearHeaderWillChange, 500)
-            }, 200)
-        }
-    }
-    mainMenu.addEventListener("scroll", calcHeaderPositioning)
-    window.addEventListener("resize", calcHeaderPositioning)
-    calcHeaderPositioning()
-
-    function setModalPage(modal, pageName) {
-        modal.querySelectorAll(".modal-title > div").forEach(element => {
-            element.removeAttribute('data-selected')
-        })
-        modal.querySelector(`.modal-title > div[data-page="${pageName}"]`)
-            .setAttribute('data-selected', true)
-
-        modal.querySelectorAll('.modal-content').forEach(element => element.style.display = "none")
-        modal.querySelector(`.modal-content[data-page="${pageName}"]`).style.display = "flex"
-    }
-
-    let globalStatsInterval = null
-    let matchListInterval = null
-
-    function switchToGameScreen() {
-        mainMenu.style.display = "none"
-        gameScreen.style.display = "block"
-        configurePanel.close()
-        matchPanel.close()
-        clearInterval(mainMenuBoardInterval)
-        clearInterval(matchListInterval)
-        clearInterval(globalStatsInterval)
-    }
-
-    function setMainMenuPage(pageName) {
-        const page = mainMenu.querySelector(`.main-menu-page[data-page="${pageName}"]`)
-        if (!page) return
-
-        // data-page="main"
-        headerNav.querySelector(".page-link-current")?.classList.remove("page-link-current")
-        headerNav.querySelector(`a[data-page=${pageName}]`).classList.add("page-link-current")
-
-        mainMenu.querySelectorAll(".main-menu-page").forEach(pageEl =>
-            pageEl.style.display = "none")
-        page.style.display = "flex"
-    }
-    function setHashPage(mainFallback = false) {
-        const pages = ["main", "login", "signup", "profile", "settings"]
-        const page = window.location.hash?.slice(1)
-        if (pages.includes(page)) {
-            setMainMenuPage(page)
-        }
-        else if (mainFallback) {
-            setMainMenuPage("main")
-        }
-    }
-    window.addEventListener("hashchange", (_) => setHashPage())
-    setHashPage(true)
-
-    let myId = null
-    let myToken = null
-    const serverAddress = localStorage.serverHostname ? `${location.protocol}//${localStorage.serverHostname}` : "https://server.rplace.live/ac"
-    const socketAddress = localStorage.serverHostname ? `${location.protocol === "https:" ? "wss:" : "ws:"}//${localStorage.serverHostname}` : "wss://server.rplace.live/ac"
-    function validateUsername(input) {
-        input.value = input.value.replace(/\W+/g, '').toLowerCase()
-    }
-    function maybeSelectNext(event) {
-        if (event.code === 'Enter') {
-            event.target.nextElementSibling.focus()
-        }
-    }
-    // Get login token
-    async function login(username, email) {
-        const res = await fetch(`${serverAddress}/Login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", },
-            body: JSON.stringify({ username, email }),
-        })
-        if (!res.ok) {
-            const message = (await res.json())?.message
-            alert("Login failed - " + (message || "network error"))
-            return
-        }
-
-        const data = await res.json()
-        myToken = data.token
-        myId = data.id
-        // Used to indicate to client that we are currently logged in & likely have a cookie
-        localStorage.me = myId
-        applyLoginUi()
-        updateUserInfo()
-        setMainMenuPage("main")
-    }
-
-    async function loginToken() {
-        const res = await fetch(`${serverAddress}/Login`, { method: "POST" })
-        if (!res.ok) {
-            const message = (await res.json())?.message
-            console.error("Automatic login failed - " + (message || "network error"))
-            signout()
-            return
-        }
-
-        const data = await res.json()
-        myToken = data.token
-        myId = data.id
-        // localStorage.me is used to indicate if logged in after site reload
-        localStorage.me = myId
-        applyLoginUi()
-        updateUserInfo()
-    }
-
-    function applyLoginUi() {
-        loginForm.dataset.disabled = "true"
-        profileNeedsLogin.style.display = "none"
-        profileContent.style.display = "block"
-        settingsContent.style.display = "flex"
-        joinLobbyButton.removeAttribute("disabled")
-        createMatchButton.removeAttribute("disabled")
-        createRulesetButton.removeAttribute("disabled")
-        createArrangementButton.removeAttribute("disabled")
-        updateMatchList()
-        matchListInterval = setInterval(() => updateMatchList(), 5000)
-    }
-
-    async function updateUserInfo() {
-        // Fetch stats and profile
-        const userRes = await fetch(`${serverAddress}/Users/${myId}`, {
-            method: "GET",
-            headers: { Authorization: myToken }
-        })
-        if (!userRes.ok) {
-            const message = (await userRes.json())?.message
-            alert("User data fetch failed - " + (message || "network error"))
-            return
-        }
-
-        const user = await userRes.json()
-        profileGamesPlayed.textContent = user.gamesPlayed
-        profileMatchesWon.textContent = user.matchesWon
-        profilePlayTime.textContent = user.playTime
-        profileUsername.textContent = user.username
-        if (user.profileImageUri) profilePicture.src = `${serverAddress}/${user.profileImageUri}`
-        profileBiography.textContent = user.biography
-        profileGender.value = user.gender || "unknown"
-        if (user.location) profileLocation.value = user.location
-        setProfileBackground(user.profileBackground)
-    }
-
-    async function signup(username, email) {
-        const res = await fetch(`${serverAddress}/Signup`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", },
-            body: JSON.stringify({ username, email }),
-        })
-        if (!res.ok) {
-            const message = (await res.json())?.message
-            alert("Signup failed - " + (message || "network error"))
-            return false
-        }
-
-        const data = await res.json()
-        alert("Success - " + data.message)
-        return true
-    }
-
-    function signout() {
-        // Localstorage.me reminds the code that we are logged in on page reload, delete
-        delete localStorage.me
-        location.reload(true)
-    }
-
-    async function authedRequest(relativeUri, method, bodyObject, failMsg) {
-        const res = await fetch(`${serverAddress}/${relativeUri}`, {
-            method: "POST",
-            headers: {
-                Authorization: myToken,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(bodyObject)
-        })
-        if (!res.ok) {
-            const message = (await res.json())?.message
-            alert(failMsg + " - " + (message || "network error"))
-            return false
-        }
-
-        return true
-    }
-
-    // https://stackoverflow.com/questions/12710001/how-to-convert-uint8-array-to-base64-encoded-string
-    async function bufferToBase64(buffer) {
-        const base64url = await new Promise(resolve => {
-            const reader = new FileReader()
-            reader.onload = () => resolve(reader.result)
-            reader.readAsDataURL(new Blob([buffer]))
-        })
-
-        return base64url.slice(base64url.indexOf(',') + 1);
-    }
-
-    async function updateProfilePicture(file) {
-        //FileReader.readAsBinaryString()
-        let reader = new FileReader()
-        reader.onload = async function (event) {
-            const resultBytes = new Uint8Array(event.target.result)
-            let encodedResult = await bufferToBase64(resultBytes)
-            let success = await authedRequest(`Users/${myId}/ProfileImage`,
-                "POST", {
-                    mimeType: file.type,
-                    data: encodedResult
-                }, "Update profile picture failed")
-            if (success) {
-                profilePicture.src = imageUrl
-                alert("Successfully updated profile picture")
-            }
-        }
-        reader.readAsArrayBuffer(file)
-        const imageUrl = URL.createObjectURL(file)
-    }
-
-    async function updateProfileBackground(name) {
-        let success = await authedRequest(`Users/${myId}`,
-            "POST", { profileBackground: name },
-            "Update profile background failed")
-        if (success) {
-            alert("Successfully updated profile background")
-            setProfileBackground(name)
-        }
-    }
-
-    async function updateProfileBiography(biography, oldBiography) {
-        let success = await authedRequest(`Users/${myId}`,
-            "POST", { biography: biography },
-            "Update profile biography failed")
-        if (success) {
-            profileBiography.textContent = biography
-            alert("Sucessfully updated profile biography")
-        }
-        else {
-            profileBiography.textContent = oldBiography
-        }
-    }
-
-    const profileThemes = {
-        none: { background: "white", cover: "none" },
-        red: { background: "linear-gradient(-45deg, #ff412d, #eee)", cover:  "url(resources/logo-pawn-tilted.png) repeat" },
-        orange: { background: "linear-gradient(-45deg, #ffd12d, #eee)", cover: "url(resources/logo-pawn-tilted.png) repeat" },
-        green: { background: "linear-gradient(-45deg, #a9ff86, #eee)", cover: "url(resources/logo-pawn-tilted.png) repeat" },
-        cyan: { background: "linear-gradient(-45deg, #12ffff, #eee)", cover: "url(resources/logo-pawn-tilted.png) repeat" }
-    }
-    function setProfileBackground(name) {
-        const theme = profileThemes[name || "none"]
-        profileHeader.style.background = theme.background
-        profileHeader.style.setProperty("--profile-header-cover", theme.cover)
-    }
-
-    async function updateProfileGender(gender, oldGender) {
-        let success = await authedRequest(`Users/${myId}`,
-            "POST", { gender: gender },
-            "Update profile gender failed")
-        if (success) {
-            profileGender.value = gender
-            alert("Sucessfully updated profile gender")
-        }
-        else {
-            profileGender.value = oldGender
-        }
-    }
-
-    async function updateProfileLocation(location, oldLocation) {
-        let success = await authedRequest(`Users/${myId}`,
-            "POST", { location: location },
-            "Update profile location failed")
-        if (success) {
-            profileLocation.value = location
-            alert("Sucessfully updated profile location")
-        }
-        else {
-            profileLocation.value = oldLocation
-        }
-    }
-
-    async function uploadRulesetRules(name, rulesObject) {
-        let success = await authedRequest(`Rulesets`,
-            "POST", { name: name, rules: JSON.stringify(rulesObject) },
-            "Failed to upload ruleset")
-        if (success) {
-            alert(`Sucessfully uploaded ruleset ${name}`)
-        }
-    }
-
-    function appendDefaultOption(select) {
-        const defaultOption = document.createElement("option")
-        defaultOption.value = 0
-        defaultOption.textContent = "Default"
-        select.appendChild(defaultOption)
-    }
-
-    async function updateCreateRuleset() {
-        const res = await fetch(`${serverAddress}/Users/${myId}/Rulesets`, {
-            method: "GET",
-            headers: { "Content-Type": "application/json", Authorization: myToken },
-        })
-        if (!res.ok) {
-            const message = (await res.json())?.message
-            alert("Failed to fetch rulesets - " + (message || "network error"))
-            return
-        }
-
-        const rulesets = await res.json()
-        if (rulesets.length > 0) {
-            createRuleset.innerHTML = ""
-            appendDefaultOption(createRuleset)
-            for (const ruleset of rulesets) {
-                const rulesetOption = document.createElement("option")
-                rulesetOption.textContent = ruleset.name
-                rulesetOption.value = ruleset.id
-                createRuleset.appendChild(rulesetOption)
-            }
-        }
-    }
-
-    async function updateCreateArrangement() {
-        const res = await fetch(`${serverAddress}/Users/${myId}/Arrangements`, {
-            method: "GET",
-            headers: { "Content-Type": "application/json", Authorization: myToken },
-        })
-        if (!res.ok) {
-            const message = (await res.json())?.message
-            alert("Failed to fetch arrangements - " + (message || "network error"))
-            return
-        }
-
-        const arrangements = await res.json()
-        if (arrangements.length > 0) {
-            createArrangement.innerHTML = ""
-            appendDefaultOption(createArrangement)
-            for (const arrangement of arrangements) {
-                const arrangementOption = docment.createElement("option")
-                arrangementOption.textContent = ruleset.name
-                arrangementOption.value = ruleset.id
-                createArrangement.appendChild(arrangementOption)
-            }
-
-        }
-    }
-
-    async function uploadArrangement(name, columns, rows, piecesArray) {
-        const stats = getArrangementStats()
-        if (!stats.valid) {
-            alert(`Could not upload arrangement - Board requirements not satisfied (${
-                stats.blackKing ? 'no' : ''} black king present, ${stats.whiteKing ?  'no' : ''} white king present)`)
-            return
-        }
-        let success = await authedRequest(`Rulesets`,
-            "POST", { name: name, columns: columns, rows: rows, pieces: JSON.stringify(piecesArray) },
-            "Failed to upload arrangement")
-        if (success) {
-            alert(`Sucessfully uploaded arrangement ${name}`)
-        }
-    }
-
-    async function deleteAccount() {
-        const res = await fetch(`${serverAddress}/Users/${myId}`, {
-            method: "DELETE",
-            headers: { Authorization: myToken }
-        })
-        if (!res.ok) {
-            const message = (await res.json())?.message
-            alert("Account deletion failed - " + (message || "network error"))
-            return
-        }
-
-        const data = await res.json()
-        alert("Success - " + data.message)
-        signout()
-    }
-
-    async function createMatch(rulesetId, arrangementId, matchName, capacity, advertisePublic) {
-        const res = await fetch(`${serverAddress}/Matches`, {
-            method: "POST",
-            headers: {
-                Authorization: myToken,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ rulesetId, arrangementId, matchName, capacity, advertisePublic })
-        })
-        if (!res.ok) {
-            const message = (await res.json())?.message
-            alert("Failed to create match - " + (message || "network error"))
-        }
-        let json = await res.json()
-        return json.matchId
-    }
-
-    function createRulesetElement(rule) {
-        // Keyword part (WHEN)
-        const rulesetEl = document.createElement("div")
-        const keywordEl = document.createElement("span")
-        keywordEl.textContent = "WHEN "
-        keywordEl.dataset.kind = "keyword"
-        rulesetEl.appendChild(keywordEl)
-
-        // Condition for ruleset rule
-        const conditionEl = document.createElement("span")
-        switch (rule.condition) {
-            case "matchStart":
-                conditionEl.textContent = "the match starts "
-                break
-            case "pieceKilled":
-                conditionEl.textContent = "a piece is killed "
-                break
-            case "pawnPromoted":
-                conditionEl.textContent = "a pawn is promoted "
-                break
-            case "blackInCheck":
-                conditionEl.textContent = "a black is in check "
-                break
-            case "whiteInCheck":
-                conditionEl.textContent = "a white is in check "
-                break
-        }
-        conditionEl.dataset.layer = true
-        rulesetEl.appendChild(conditionEl)
-
-        // Action string part of ruleset rule
-        const actionEl = document.createElement("span")
-        switch (rule.action.type) {
-            case "spawn":
-                actionEl.textContent =
-                    `spawn ${rule.action.atColour} ${rule.action.atType} at ${rule.action.atPosition}`
-                break
-            case "delete":
-                actionEl.textContent =
-                    `the piece at ${rule.action.atPosition} will be deleted`
-                break
-            case "setCurrentTurn":
-                actionEl.textContent =
-                    `the current turn will be ${rule.action.turnColour}`
-                break
-        }
-        rulesetEl.appendChild(actionEl)
-        return rulesetEl
-    }
-
-    const outgoingCodes = {
-        pieceMoves: 0,
-        move: 1,
-        promote: 2
-    }
-
-    const incomingCodes = {
-        matchInfo: 0,
-        playerInfo: 1,
-        currentTurn: 2,
-        pieceMoves: 3,
-        move: 4,
-        take: 5,
-        availablePromotion: 6,
-        promote: 7
-    }
-
-    class Player {
-        constructor(turnNumber, accountId, colour) {
-            this.turnNumber = turnNumber
-            this.accountId = accountId
-            this.colour = colour
-            this.profile = null
-        }
-    }
-
-    let socket = null
-    const cachedProfiles = new Map()
-    async function play(matchId) {
-        // Make HTTP request beforehand to check if the specified match exists / is authorised
-        const res = await fetch(`${serverAddress}/Matches/${matchId}?authorization=${myToken}`, {
-            method: "GET",
-            headers: { Authorization: myToken }
-        })
-        if (!res.ok) {
-            const message = (await res.json())?.message
-            alert("Could not join match - " + (message || "network error"))
-            return
-        }
-
-        let myTurn = null
-        let currentTurn = null
-        let turnStart = null
-        let turnDuration = null
-        let playerCount = null
-        let players = null
-
-        // When a piece of ours is clicked, we need to ask the server for possible moves
-        board.onpiececlick = function(e, column, row, pieceElement) {
-            const myColour = players[myTurn].colour
-            const pieceData = board.pieces[column][row]
-            if (myColour !== pieceData.colour) {
-                return
-            }
-
-            board.clearMoveIndicators()
-            const movesPacket = new DataWriter()
-            movesPacket.uint8(outgoingCodes.pieceMoves)
-            movesPacket.uint8(column)
-            movesPacket.uint8(row)
-            socket.send(movesPacket.build())
-        }
-
-        board.onmoveclick = function(e, column, row, moveElement) {
-            if (!board.selected) {
-                return
-            }
-            const movePacket = new DataWriter()
-            movePacket.uint8(outgoingCodes.move)
-            movePacket.uint8(board.selected.column)
-            movePacket.uint8(board.selected.row)
-            movePacket.uint8(column)
-            movePacket.uint8(row)
-            socket.send(movePacket.build())
-        }
-
-        const matchInfo = await res.json()
-        turnLabel.textContent = `"${matchInfo.name}" | Match ID: ${matchId}`
-        socket = new WebSocket(`${socketAddress}/Matches/${matchId}?authorization=${myToken}`)
-        socket.binaryType = "arraybuffer"
-        socket.onopen =  function() {
-            console.log(`Connection to match instance ${matchId} opened`)
-            switchToGameScreen()
-            board.setTheme(localStorage.boardTheme)
-        }
-        socket.onmessage = function({data}) {
-            if (data instanceof ArrayBuffer) {
-                const packet = new DataReader(data)
-                // Packet code
-                const code = packet.uint8()
-                switch (code) {
-                    case incomingCodes.matchInfo: {
-                        const columns = packet.uint8()
-                        const rows = packet.uint8()
-                        board.columns = columns
-                        board.rows = rows
-                        const rulesetId = packet.uint32()
-                        const arrangementId = packet.uint32()
-                        async function loadRulesetArrangement() {
-                            const rulesetResponse = await fetch(`${serverAddress}/Rulesets/${rulesetId}`, {
-                                method: "GET",
-                                headers: { "Content-Type": "application/json", Authorization: myToken },
-                            })
-                            if (!rulesetResponse.ok) {
-                                const message = (await rulesetResponse.json())?.message
-                                alert(`Could not find match ruleset ${rulesetId}, ${message || "network error"}`)
-                                socket.close()
-                                return
-                            }
-                            else {
-                                const rulesetObject = await rulesetResponse.json()
-                                const rules = JSON.parse(rulesetObject.data)
-                                for (let rule of rules) {
-                                    const ruleEl = createRulesetElement(rule)
-                                    matchRules.appendChild(ruleEl)
-                                }
-                            }
-                            const arrangementResponse = await fetch(`${serverAddress}/Arrangements/${arrangementId}`, {
-                                method: "GET",
-                                headers: { "Content-Type": "application/json", Authorization: myToken },
-                            })
-                            if (!arrangementResponse.ok) {
-                                const message = (await arrangementResponse.json())?.message
-                                alert(`Could not find match arrangement ${arrangementId}, ${message || "network error"}`)
-                                socket.close()
-                                return
-                            }
-                            else {
-                                const arrangementObject = await arrangementResponse.json()
-                                const arrangement = JSON.parse(arrangementObject.data)
-
-                                for (let r = 0; r < board.columns; r++) {
-                                    for (let c = 0; c <  board.rows; c++) {
-                                        const index = r * board.columns + c
-                                        if (!arrangement[index]) {
-                                            continue
-                                        }
-                                        board.setPiece(c, r, arrangement[index])
-                                    }
-                                }
-                            }
-                        }
-                        loadRulesetArrangement()
-                        break
-                    }
-                    case incomingCodes.playerInfo: {
-                        playerCount = packet.uint8()
-                        players = []
-                        for (let i = 0; i < playerCount; i++) {
-                            const accountId = packet.uint32()
-                            const colour = packet.string()
-                            const player = new Player(i, accountId, colour)
-                            players.push(player)
-                            if (accountId == myId) {
-                                myTurn = i
-                                board.rotateBoard(colour)
-                            }
-                            async function loadPlayerProfile() {
-                                const profileResponse = await fetch(`${serverAddress}/Profiles/${accountId}`, {
-                                    method: "GET",
-                                    headers: { "Content-Type": "application/json", },
-                                })
-                                if (!profileResponse.ok) {
-                                    const message = (await profileResponse.json())?.message
-                                    console.error(`Could not find profile for user ${accountId}, ${message || "network error"}`)
-                                }
-                                else {
-                                    const user = await profileResponse.json()
-                                    player.profile = user
-                                }
-                            }
-                            loadPlayerProfile()
-                        }
-                        break
-                    }
-                    case incomingCodes.currentTurn: {
-                        currentTurn = packet.uint8()
-                        turnDuration = packet.uint32()
-                        turnStart = Date.now()
-                        const currentPlayer = players[currentTurn]
-                        const playerName = currentPlayer.profile?.username
-                            ? `(${currentPlayer.profile?.username}) `
-                            : ""
-                        if (currentTurn !== myTurn) {
-                            turnLabel.textContent = `Current turn: ${currentTurn + 1} ${playerName}| Your turn is ${myTurn + 1}`
-                            board.clearMoveIndicators()
-                        }
-                        else {
-                            turnLabel.textContent = `It's currently your turn (turn ${currentTurn + 1})`
-                        }
-                        turnProgress.animate([
-                            { width: "100%"},
-                            { width: "0%"}
-                            ], {
-                                duration: turnDuration,
-                                iterations: 1
-                            })
-                        board.clearHighlights()
-                        promotionPanel.dataset.closed = "true"
-                        break
-                    }
-                    case incomingCodes.pieceMoves: {
-                        const count = packet.uint16()
-                        for (let i = 0; i < count; i++) {
-                            const column = packet.uint8()
-                            const row = packet.uint8()
-                            board.addMoveIndicator(column, row)
-                        }
-                        break
-                    }
-                    case incomingCodes.move: {
-                        const pieceColumn = packet.uint8()
-                        const pieceRow = packet.uint8()
-                        const toColumn = packet.uint8()
-                        const toRow = packet.uint8()
-                        board.movePiece(pieceColumn, pieceRow, toColumn, toRow)
-                        board.clearMoveIndicators()
-                        break
-                    }
-                    case incomingCodes.take: {
-                        const takenColumn = packet.uint8()
-                        const takenRow = packet.uint8()
-                        const takerTurn = packet.uint8()
-                        if (takerTurn === myTurn) {
-                            const pieceData = board.pieces[takenColumn][takenRow]
-                            const pieceEl = document.createElement("img")
-                            pieceEl.classList.add("piece-draggable")
-                            pieceEl.src = `resources/${pieceData.type}-${pieceData.colour}.svg`
-                            pieceEl.width = "72"
-                            pieceEl.height = "72"
-                            takenPieces.appendChild(pieceEl)
-                        }
-                        animateDestroyPiece(board, boardCanvas, takenColumn, takenRow)
-                        break
-                    }
-                    case incomingCodes.availablePromotion: {
-                        const promotedColumn = packet.uint8()
-                        const promotedRow = packet.uint8()
-                        board.addHighlight(promotedColumn, promotedRow)
-
-                        // Show promotion panel with all promotable pieces
-                        delete promotionPanel.dataset.closed
-                        while (promotionPieces.lastElementChild) {
-                            promotionPieces.removeChild(promotionPieces.lastElementChild)
-                        }
-                        const myColour = players[myTurn].colour
-                        const possiblePromotions = ["rook", "knight", "bishop", "queen"]
-                        for (const type of possiblePromotions) {
-                            const pieceButton = document.createElement("button")
-                            pieceButton.addEventListener("click", function() {
-                                const promotePacket = new DataWriter()
-                                promotePacket.uint8(outgoingCodes.promote)
-                                promotePacket.uint8(promotedColumn)
-                                promotePacket.uint8(promotedRow)
-                                promotePacket.string(type)
-                                socket.send(promotePacket.build())
-                            })
-                            const pieceEl = document.createElement("img")
-                            pieceEl.src = `resources/${type}-${myColour}.svg`
-                            pieceEl.width = "72"
-                            pieceEl.height = "72"
-                            pieceButton.appendChild(pieceEl)
-                            promotionPieces.appendChild(pieceButton)
-                        }
-                        break
-                    }
-                    case incomingCodes.promote: {
-                        const column = packet.uint8()
-                        const row = packet.uint8()
-                        const toType = packet.string()
-                        const pieceData = board.pieces[column][row]
-                        // Replace piece with promoted type
-                        board.clearPiece(column, row)
-                        pieceData.type = toType
-                        board.setPiece(column, row, pieceData)
-                        break
-                    }
-                }
-            }
-            else if (typeof data === "string") {
-                const jsonData = JSON.parse(data)
-                
-                let cachedProfile = null
-                for (const player of players) {
-                    if (player.accountId == jsonData.userId) {
-                        cachedProfile = player.profile
-                    }
-                }
-                let displayUsername = cachedProfile?.username || "#" + jsonData.userId
-
-                // Create chat message item and add to UI
-                const chatItemEl = document.createElement("p")
-                const nameEl = document.createElement("button")
-                nameEl.title = "View profile"
-                nameEl.className = "chat-name-button"
-                nameEl.textContent = `[${displayUsername}]`
-                if (cachedProfile) {
-                    nameEl.onclick = async function() {
-                        const profileView = document.createElement("ac-profile-view")
-                        profileView.style.left = "50%"
-                        profileView.style.top = "50%"
-                        profileView.style.transform = "translateY(-50%)"
-                        chatItemEl.appendChild(profileView)
-                        profileView.loadFromData(cachedProfile)
-                    }
-                }
-                chatItemEl.appendChild(nameEl)
-                const messageEl = document.createElement("span")
-                messageEl.textContent = jsonData.message
-                chatItemEl.appendChild(messageEl)
-                chatMessages.appendChild(chatItemEl)
-    
-                //  If already near bottom, scroll so new chat message is visible
-                if (chatMessages.scrollTopMax - chatMessages.scrollTop < 64) {
-                    chatMessages.scroll({
-                        top: chatMessages.scrollTopMax,
-                        left: 0,
-                        behavior: "smooth",
-                    })
-                }
-            }
-        }
-        socket.onclose = function(event) {
-            alert(event.reason || "Match ended")
-            window.location.reload(true)
-        }
-    }
-
-    const boardPointerTargets = [gameScreen, board, boardPosition]
-    function handleBoardZoom(event) {
-        if (!boardPointerTargets.includes(event.target)) {
-            return
-        }
-        let z = +boardPosition.dataset.z
-        boardPosition.dataset.z = z = Math.max(0.5, Math.min(z + (event.deltaY < 0 ? 0.1 : -0.1), 1.5))
-        const transformX = -boardPosition.dataset.x
-        const transformY = -boardPosition.dataset.y
-        boardPosition.style.transform = `translate(${transformX}px, ${transformY}px) scale(${z})`
-    }
-
-    function handleBoardDrag(event) {
-        if (boardPosition.dataset.dragging === "true") {
-            gameScreen.style.cursor = "grabbing"
-            let x = +boardPosition.dataset.x
-            let y = +boardPosition.dataset.y
-            let z = +boardPosition.dataset.z
-            boardPosition.dataset.x = x = Math.max(0, Math.min(x - event.movementX * (1 / z), 1000))
-            boardPosition.dataset.y = y = Math.max(0, Math.min(y - event.movementY * (1 / z), 1000))
-            const offset = (1 - z) * 500
-            const transformX = -(x * z + offset)
-            const transformY = -(y * z + offset)
-            boardPosition.dataset.tx = transformX
-            boardPosition.dataset.ty = transformY
-            boardPosition.style.transform = `translate(${transformX}px, ${transformY}px) scale(${z})`
-        }
-    }
-
-    function handleBoardPress(event) {
-        if (!boardPointerTargets.includes(event.target)) {
-            return
-        }
-        boardPosition.dataset.dragging = true
-        boardPosition.style.willChange = "transform"
-    }
-
-    function handleBoardRelease(event) {
-        boardPosition.dataset.dragging = false
-        gameScreen.style.cursor = "default"
-        boardPosition.style.willChange = "auto"
-    }
-
-    //  MatchId : Match
-    const cachedMatches = new Map()
-    async function updateMatchList() {
-        const response = await fetch(`${serverAddress}/Matches`, {
-            method: "GET",
-            headers: { Authorization: myToken }
-        })
-        if (!response.ok) {
-            if (response.status != 401) {
-                console.error("Failed to load matches. Server response was not okay!")
-            }
-            return
-        }
-        const json = await response.json()
-        let existingIds = []
-        // Update matchList
-        for (const match of json.matches) {
-            existingIds.push(match.matchId)
-            //  Update previous cached match list item
-            let cachedMatchElement = cachedMatches.get(match.matchId)
-            if (cachedMatchElement) {
-                cachedMatchElement.setAttribute("playerCount", match.playerCount)
-            }
-            else {
-                // Create new match list item
-                let matchEl = createFromData("ac-list-match", match)
-                cachedMatches.set(match.matchId, matchEl)
-                matchList.appendChild(matchEl)
-            }
-        }
-
-        // Delete matches that no longer exist
-        for (const [key, value] of cachedMatches) {
-            if (!existingIds.includes(key)) {
-                cachedMatches.delete(key)
-                value.remove()
-            }
-        }
-    }
-
-    // Updates stats on profile and main pages
-    async function updateMyStats() {
-        const response = await fetch(`${serverAddress}/MyStats`)
-        if (!response.ok) {
-            console.error("Failed to load my stats. Server response was not okay!")
-            return
-        }
-        const stats = await response.json()
-        
-    }
-    async function updateGlobalStats() {
-        const response = await fetch(`${serverAddress}/GlobalStats`)
-        if (!response.ok) {
-            console.error("Failed to load global stats. Server response was not okay!")
-            return
-        }
-        const stats = await response.json()
-        globalOnlineLabel.textContent = stats.onlinePlayers
-        globalActiveLabel.textContent = stats.activeMatches
-    }
-
-    function setTheme(theme) {
-        document.documentElement.className = theme
-        localStorage.siteTheme = theme
-    }
-
-    function setLocalSettings() {
-        if (localStorage.soundEnabled == undefined) localStorage.soundEnabled = "true"
-        if (localStorage.boardTheme == undefined) localStorage.boardTheme = "0"
-        if (localStorage.siteTheme == undefined) localStorage.siteTheme = "modernLight"
-        if (localStorage.serverHostname == undefined) localStorage.serverHostname = "server.rplace.live/ac"
-        if (localStorage.effects == undefined) localStorage.effects = true
-        soundCheckbox.checked = localStorage.soundEnabled === "true"
-        effectsCheckbox.checked = localStorage.effects === "true"
-        boardThemeSelect.value = localStorage.boardTheme
-        siteThemeSelect.value = localStorage.siteTheme
-        setTheme(localStorage.siteTheme)
-        serverInput.value = localStorage.serverHostname
-    }
-
-    confetti.create(arrangementCanvas, { resize: true }).then(confetti => {
-        arrangementCanvas.confetti = confetti
-    })
-    confetti.create(boardCanvas, { resize: true }).then(confetti => {
-        boardCanvas.confetti = confetti
-    })
-    globalStatsInterval = setInterval(updateGlobalStats, 1e4) // 10s
-    updateGlobalStats()
-    setLocalSettings()
-    if (localStorage.me) {
-        loginToken()
-    }
-</script>
+	<div id="gameScreen" class="game-screen">
+		<div id="boardPosition" data-x="500" data-y="500" data-z="0.8">
+			<ac-board id="board"></ac-board>
+			<canvas id="boardCanvas" width="1000" height="1000">
+		</div>
+		<p class="copyright-notice">
+			If you're seeing this, you probably moved the board offscreen. AnarchyChess, ©Zekiah-A
+		</p>
+		<div id="gamemodeTitle" class="hud" onclick="gamemodesPanel.toggleAttribute('data-closed');">
+			<p>AnarchyChess</p>
+		</div>
+		<div id="gamemodesPanel" class="info-panel" data-closed="">
+			<h4 style="margin: 0px;">Match options:</h4>
+			<button type="button" id="exitMatchButton" disabled>
+				Exit match
+			</button>
+		</div>
+		<div class="hud game-actions">
+			<p onclick="chatPanel.toggleAttribute('data-closed'); settingsPanel.setAttribute('data-closed', true);">
+				Chat</p>
+			<p onclick="settingsPanel.toggleAttribute('data-closed'); chatPanel.setAttribute('data-closed', true);">
+				Settings</p>
+			<p onclick="rulesetPanel.toggleAttribute('data-closed')">Ruleset</p>
+		</div>
+		<div id="chatPanel" data-closed="true" class="info-panel">
+			<div id="chatMessages">
+				<p>🢂 Chat messages will appear here</p>
+			</div>
+			<input id="chatInput" placeholder="Send chat message" type="text" maxlength="96">
+		</div>
+		<div id="settingsPanel" data-closed="true" class="info-panel">
+			<h4 style="margin: 0px;">Sound effects:</h4>
+			<div style="display: flex;flex-direction: column;row-gap: 3px;">
+				<button type="button" onclick="localStorage.soundEnabled = true">
+					Enable sound
+				</button>
+				<button type="button" onclick="localStorage.soundEnabled = false">
+					Disable sound
+				</button>
+			</div>
+			<h4 style="margin: 0px;">Graphics options:</h4>
+			<div style="display: flex;flex-direction: column;row-gap: 3px;">
+				<button type="button" onclick="localStorage.effects = false">
+					No effects
+				</button>
+				<button type="button" onclick="localStorage.effects = true">
+					All effects
+				</button>
+			</div>
+		</div>
+		<div id="turnPanel" class="info-panel">
+			<div class="turn-progress-container">
+				<div id="turnProgress"><!--Turn progress indicator rect--></div>
+			</div>
+			<div id="turnLabel">Current turn: 1 (5s)</div>
+		</div>
+		<div id="takenPiecesPanel" class="info-panel">
+			<h4 style="margin: 0px;">Taken pieces:</h4>
+			<div id="takenPieces"><!--Taken pieces will display here--></div>
+		</div>
+		<div id="promotionPanel" class="info-panel" data-closed="">
+			<h4 style="margin: 0px;">Promote piece:</h4>
+			<div id="promotionPieces"><!--Potential pieces that can be promoted to will display here--></div>
+		</div>
+		<div id="meTurnPopup">It is now your turn!</div>
+		<div id="rulesetPanel" class="side-panel" data-closed="true">
+			<div style="display: flex; justify-content: space-between; align-items: center;">
+				<h3 style="margin: 0px;">Game rules:</h3>
+				<button type="button" onclick="rulesetPanel.setAttribute('data-closed', true)">
+					Close
+				</button>
+			</div>
+			<div class="match-rules" id="matchRules">
+				<h5 style="margin-bottom: 0px;">Game events:</h5>
+			</div>
+		</div>
+	</div>
+	<div id="deathMenu" data-closed="true" class="menu">
+		<h1 style="margin-bottom: 8px;">♟️ BLUNDER</h1>
+		<p>You were defeated by the other player.</p>
+		<div class="dual-options">
+			<button type="button" disabled>
+				Request rematch
+			</button>
+			<button type="button" disabled>
+				Exit to main menu
+			</button>
+		</div>
+	</div>
+	<div id="mainMenu" class="main-menu">
+		<header id="header">
+			<div id="headerContent" class="header-content">
+				<div id="headerBranding" class="branding">
+					<img src="resources/logo.png" class="icon-symbolic" height="64" alt="logo">
+					<h1>AnarchyChess</h1>
+				</div>
+				<nav id="headerNav" class="header-nav">
+					<a class="novisit page-link" href="#login" data-page="login">Login</a> |
+					<a class="novisit page-link" href="#signup" data-page="signup">Sign up</a> |
+					<a class="novisit page-link" href="#home" data-page="home">Home</a> |
+					<a class="novisit page-link" href="#profile" data-page="profile">My profile</a> |
+					<a class="novisit page-link" href="#settings" data-page="settings">Settings</a>
+				</nav>
+			</div>
+		</header>
+		<div style="min-height: 200px;"><!--spacer--></div>
+		<div class="main-menu-page" data-page="login">
+			<h3 style="margin-top: 0;">Login with AnarchyChess account</h3>
+			<form class="form-frame" id="loginForm">
+				<input id="loginUsername" type="text" placeholder="Username" maxlength="16" autocomplete="username">
+				<input id="loginEmail" type="email" maxlength="320" placeholder="Email"
+					pattern="[^@\s]+@[^@\s]+\.[^@\s]+" autocomplete="email">
+				<button type="submit" id="loginButton">
+					Login
+				</button>
+			</form>
+			<div>
+				<a class="novisit" href="#signup">Create account</a> | <a class="novisit" href="#home" disabled
+					onclick="if (confirm('Are you sure you want to sign out?')) signout()">Sign out
+					of account</a>
+			</div>
+		</div>
+		<div class="main-menu-page" data-page="signup">
+			<h3 style="margin-top: 0;">Sign up to AnarchyChess</h3>
+			<form id="signupForm" class="form-frame">
+				<input id="signupUsername" type="text" placeholder="Username" maxlength="16" autocomplete="username">
+				<input id="signupEmail" type="email" maxlength="320" placeholder="Email"
+					pattern="[^@\s]+@[^@\s]+\.[^@\s]+" autocomplete="email">
+				<input id="signupConfirm" type="email" maxlength="320" placeholder="Confirm email"
+					pattern="[^@\s]+@[^@\s]+\.[^@\s]+">
+				<button type="submit" id="signupButton">
+					Create account
+				</button>
+			</form>
+			<div>
+				<a class="novisit" href="#login">Already have an account?</a>
+			</div>
+		</div>
+		<div class="main-menu-page" data-page="home">
+			<p style="text-align: center;">A multiplayer chess game, with infinite variations and slightly
+				bent rules. Here be anarchy.</p>
+			<dialog id="configurePanel" class="modal">
+				<div class="modal-title">
+					<div data-selected data-page="ruleset" tabindex="0"
+						onclick="setModalPage(configurePanel, this.dataset.page)">Ruleset</div>
+					<div data-page="arrangement" tabindex="0" onclick="setModalPage(configurePanel, this.dataset.page)">
+						Piece arrangement
+					</div>
+					<button type="button" autofocus aria-label="close" onclick="configurePanel.close()">
+						<img src="./resources/close-icon.svg" alt="Close">
+					</button>
+				</div>
+				<div class="modal-content" data-page="ruleset">
+					<div class="modal-content-container">
+						<div id="rulesetRules" class="modal-list">
+							<!--Ruleset list elements go here-->
+						</div>
+						<div class="modal-content-side" style="width: 192px;">
+							<button class="arrangement-button" tabindex="0" onclick="
+								let rule = document.createElement('ac-ruleset-rule')
+								rulesetRules.appendChild(rule)
+							"><img src="./resources/add-icon.svg" alt="+"> Add Rule</button>
+							<button class="arrangement-button" tabindex="0" onclick="
+								let ruleDatas = []
+								for (let rule of rulesetRules.children) {
+									// Skip adding invalid rules
+									if (!rule.data || !rule.data?.condition || !rule.data?.action.type) {
+										continue;
+									}
+									ruleDatas.push(rule.data)
+								}
+								let rulesetName = prompt('Enter name for new ruleset', 'My ruleset')
+								if (!rulesetName || rulesetName.length > 16) {
+									alert('Could not create ruleset. Name length was not in  valid range (1-16)')
+									return
+								}
+								uploadRulesetRules(rulesetName, ruleDatas)
+							">Save</button>
+						</div>
+					</div>
+				</div>
+				<div class="modal-content" data-page="arrangement" style="display: none;">
+					<div class="modal-content-container">
+						<div class="arrangement-board-container">
+							<span class="arrangement-side-label">Black</span>
+							<ac-board id="arrangementBoard" rows="8" columns="8"></ac-board>
+							<span class="arrangement-side-label">White</span>
+						</div>
+						<div id="arrangementSideSection" class="modal-content-side">
+							<div class="arrangement-section">Black</div>
+							<div class="arrangement-grid">
+								<img src="resources/pawn-black.svg" data-colour="black" alt="pawn" data-type="pawn">
+								<img src="resources/rook-black.svg" data-colour="black" alt="rook" data-type="rook">
+								<img src="resources/knight-black.svg" data-colour="black" alt="knight"
+									data-type="knight">
+								<img src="resources/bishop-black.svg" data-colour="black" alt="bishop"
+									data-type="bishop">
+								<img src="resources/queen-black.svg" data-colour="black" alt="queen" data-type="queen">
+								<img src="resources/king-black.svg" data-colour="black" alt="king" data-type="king">
+							</div>
+							<div class="arrangement-section">White</div>
+							<div class="arrangement-grid">
+								<img src="resources/pawn-white.svg" data-colour="white" alt="" data-type="pawn">
+								<img src="resources/rook-white.svg" data-colour="white" alt="" data-type="rook">
+								<img src="resources/knight-white.svg" data-colour="white" alt="" data-type="knight">
+								<img src="resources/bishop-white.svg" data-colour="white" alt="" data-type="bishop">
+								<img src="resources/queen-white.svg" data-colour="white" alt="" data-type="queen">
+								<img src="resources/king-white.svg" data-colour="white" alt="" data-type="king">
+							</div>
+							<div style="display: flex; position: relative; column-gap: 4px;">
+								<input id="arrangementColumns" data-oldvalue="8" onchange="
+									if (+this.dataset.oldvalue !== this.value || !board.isEmpty()) {
+										if (!confirm('Are you sure you want to resize the board? This will wipe all pieces')) {
+											this.value = +this.dataset.oldvalue
+											return
+										}
+									}
+									arrangementBoard.columns = this.value
+									this.dataset.oldvalue = this.value
+								" type="number" style="width: 50%;" value="8" min="6" max="16">
+								<input id="arrangementRows" data-oldvalue="8" onchange="
+									if (confirm('Are you sure you want to resize the board? This will wipe all pieces')) {
+										arrangementBoard.rows = this.value
+										this.dataset.oldvalue = this.value
+									}
+									else {
+										this.value = +this.dataset.oldvalue
+									}
+								" type="number" style="width: 50%;" value="8" min="6" max="16">
+							</div>
+							<div style="flex-grow: 1;"><!--Spacer--></div>
+							<button class="arrangement-button" tabindex="0" onclick="if (arrangementSelC != null && arrangementSelR != null) {
+								animateDestroyPiece(arrangementBoard, arrangementCanvas, arrangementSelC, arrangementSelR)
+								arrangementSelC = null
+								arrangementSelR = null
+								updateArrangementStats()
+							}">Delete piece 🗑️</button>
+							<button class="arrangement-button" tabindex="0" onclick="
+								let arrangementName = prompt('Enter name for new arrangement', 'My arrangement')
+								if (!arrangementName || arrangementName.length > 16) {
+									alert('Could not create arrangement. Name length was not in valid range (1-16)')
+									return
+								}
+								let piecesArray = []
+								for (let r = 0; r < arrangementBoard.rows; r++) {
+									for (let c = 0; c < arrangementBoard.columns; c++) {
+										piecesArray.push(arrangementBoard.pieces[c][r])
+									}
+								}
+								uploadArrangement(name, arrangementColumns.value, arrangementRows.value, piecesArray)
+							">Save</button>
+						</div>
+						<canvas id="arrangementCanvas"
+							style="position: absolute; bottom: 0; left: 0; height: 100%; pointer-events: none; width: 100%;"></canvas>
+					</div>
+					<span id="arrangementStats">Black pieces: 0, White pieces: 0, White king
+						present: ❌, Black king present: ❌</span>
+				</div>
+			</dialog>
+			<dialog id="matchPanel" class="modal">
+				<div class="modal-title">
+					<div data-selected data-page="join" tabindex="0"
+						onclick="setModalPage(matchPanel, this.dataset.page)">Connect</div>
+					<div data-page="create" tabindex="0" onclick="setModalPage(matchPanel, this.dataset.page)">Create
+					</div>
+					<button autofocus aria-label="close" onclick="matchPanel.close()">
+						<img src="./resources/close-icon.svg" alt="Close">
+					</button>
+				</div>
+				<div class="modal-content" data-page="join">
+					<div id="matchList" class="modal-list"><!--Match list elements go here--></div>
+					<div class="modal-list-buttons">
+						<input id="matchIdInput" class="arrangement-input" type="number" placeholder="Match ID">
+						<button class="arrangement-button" tabindex="0" onclick="play(matchIdInput.value)">Join</button>
+						<div style="flex-grow: 1;"><!--spacer--></div>
+						<button class="arrangement-button" tabindex="0" onclick="setModalPage(matchPanel, 'create')">
+							<img src="./resources/add-icon.svg" alt="+"> Create my own match
+						</button>
+					</div>
+				</div>
+				<div class="modal-content" data-page="create" style="display: none;">
+					<fieldset>
+						<legend>
+							<h3 style="margin: 0px; color: var(--ui-text);">Game options:
+							</h3>
+						</legend>
+						<label>
+							Using ruleset:
+							<select id="createRuleset" onmousedown="updateCreateRuleset()">
+								<option value="0">Default</option>
+							</select>
+						</label>
+						<label>
+							Using arrangement:
+							<select id="createArrangement" onmousedown="updateCreateArrangement()">
+								<option value="0">Default</option>
+							</select>
+						</label>
+					</fieldset>
+					<fieldset style="display: flex; flex-direction: column; row-gap: 8px;">
+						<legend>
+							<h3 style="margin: 0px; color: var(--ui-text);">Lobby options:
+							</h3>
+						</legend>
+						<label>
+							Lobby capacity:
+							<input type="number" id="createLobbyCapacity" autocomplete="off" class="arrangement-input"
+								placeholder="Enter capacity" min="2" max="8" value="2">
+						</label>
+						<label>
+							Lobby name:
+							<input type="text" id="createLobbyName" autocomplete="off" style="flex-shrink: 1;"
+								class="arrangement-input" placeholder="Enter name" maxlength="64">
+						</label>
+						<div>
+							<input id="createPublic" type="checkbox" checked="true">
+							<label for="createPublic">Advertise lobby publicly</label>
+						</div>
+					</fieldset>
+					<div style="flex-grow: 1;"><!--spacer--></div>
+					<button type="button" id="createJoinButton" class="arrangement-button">
+						Create and join match
+					</button>
+				</div>
+			</dialog>
+			<fieldset class="main-menu-field">
+				<legend>
+					<h3>Create</h3>
+				</legend>
+				<button type="button" id="createRulesetButton" disabled
+					onclick="configurePanel.showModal(); setModalPage(configurePanel, 'ruleset')">
+					Create a new ruleset
+				</button>
+				<button type="button" id="createArrangementButton" disabled
+					onclick="configurePanel.showModal(); setModalPage(configurePanel, 'arrangement')">
+					Create a new arrangement
+				</button>
+			</fieldset>
+			<fieldset class="main-menu-field">
+				<legend>
+					<h3>Play</h3>
+				</legend>
+				<button type="button" id="joinLobbyButton" disabled
+					onclick="matchPanel.showModal(); setModalPage(matchPanel, 'join')">
+					Join someone's lobby
+				</button>
+				<button type="button" id="createMatchButton" disabled
+					onclick="matchPanel.showModal(); setModalPage(matchPanel, 'create')">
+					Create my own match
+				</button>
+			</fieldset>
+			<div class="main-menu-field" style="position: relative; z-index: -1;">
+				<ac-board id="mainMenuBoard"></ac-board>
+			</div>
+			<fieldset class="main-menu-field">
+				<legend>
+					<h3 style="margin: 0px;">Global stats:</h3>
+				</legend>
+				<p>Online players: <span id="globalOnlineLabel"><img alt="loading..." width="16"
+							src="resources/loading-icon.gif"></span></p>
+				<p>Active matches: <span id="globalActiveLabel"><img alt="loading..." width="16"
+							src="resources/loading-icon.gif"></span></p>
+			</fieldset>
+		</div>
+		<div class="main-menu-page" data-page="profile">
+			<h3 style="margin-top: 0;">Your profile</h3>
+			<div class="needs-login" id="profileNeedsLogin">
+				<p>No profile found. Are you sure you're logged in?</p>
+				<span><a class="novisit" href="#login">Login</a> | <a class="novisit" href="#signup">Signup</a></span>
+			</div>
+			<div id="profileContent" class="profile-content" style="display: none;">
+				<div id="profileHeader" class="profile-header">
+					<h2 id="profileUsername" class="profile-username">
+						<img alt="loading..." height="32" src="resources/loading-icon.gif">
+					</h2>
+					<div class="profile-picture" onclick="profilePictureInput.click()" ondragenter="
+						event.stopPropagation()
+						event.preventDefault()
+					" ondragover="
+						event.stopPropagation()
+						event.preventDefault()
+						this.style.outline = '4px solid var(--ui-highlight)'
+						profilePictureButton.focus()
+					" ondrop="
+						event.stopPropagation()
+						event.preventDefault()
+						this.style.outline = 'initial'
+						const file = event.dataTransfer.files[0]
+						if (file && file.type.startsWith('image/')) updateProfilePicture(file)
+					" ondragleave="
+						event.stopPropagation()
+						event.preventDefault()
+						this.style.outline = 'initial'
+					">
+						<img id="profilePicture" src="resources/logo.png" alt="Profile picture">
+						<input type="file" id="profilePictureInput" accept="image/*" onchange="
+							if (this.files[0]) {
+								updateProfilePicture(this.files[0])
+							}
+						" style="display: none;">
+						<button type="button" id="profilePictureButton">
+							<img src="./resources/edit-photo.svg" alt="Edit">
+							Click to change
+						</button>
+					</div>
+					<fieldset class="profile-background-section">
+						<legend>Select profile colour</legend>
+						<button type="button" onclick="updateProfileBackground('red')"
+							style="background: linear-gradient(-45deg, #ff412d, #eee);" title="Red">
+							Red
+						</button>
+						<button type="button" onclick="updateProfileBackground('orange')"
+							style="background: linear-gradient(-45deg, #ffd12d, #eee);" title="Orange">
+							Orange
+						</button>
+						<button type="button" onclick="updateProfileBackground('green')"
+							style="background: linear-gradient(-45deg, #a9ff86, #eee);" title="Green">
+							Green
+						</button>
+						<button type="button" onclick="updateProfileBackground('cyan')"
+							style="background: linear-gradient(-45deg, #12ffff, #eee);" title="Cyan">
+							Cyan
+						</button>
+					</fieldset>
+				</div>
+				<fieldset style="margin-top: 72px;">
+					<legend>
+						<h3>About me</h3>
+					</legend>
+					<div class="profile-biography-section">
+						<textarea id="profileBiography" onfocus="this.oldvalue = this.value" maxlength="96"
+							placeholder="Click to start editing your bio" class="profile-biography"></textarea>
+						<button type="button" class="profile-biography-button"
+							onclick="updateProfileBiography(profileBiography.value, profileBiography.oldvalue)">
+							Save biography
+						</button>
+					</div>
+					<div class="profile-stat-section">
+						<div>
+							<span class="profile-stat">Location</span>
+							<input type="text" id="profileLocation" placeholder="Unknown"
+								onfocus="this.oldValue = this.value;" maxlength="16">
+							<button type="button"
+								onclick="updateProfileLocation(profileLocation.value, profileLocation.oldValue)">
+								Save location
+							</button>
+						</div>
+						<div>
+							<span class="profile-stat">Gender</span>
+							<select id="profileGender" onfocus="this.oldvalue = this.value"
+								onchange="updateProfileGender(this.value, this.oldvalue)">
+								<option value="male">Male</option>
+								<option value="female">Female</option>
+								<option value="other">Other</option>
+							</select>
+						</div>
+					</div>
+				</fieldset>
+				<fieldset>
+					<legend>
+						<h3>My stats</h3>
+					</legend>
+					<p>Games played: <span id="profileGamesPlayed"><img alt="loading..." width="16"
+								src="resources/loading-icon.gif"></span></p>
+					<p>Matches won: <span id="profileMatchesWon"><img alt="loading..." width="16"
+								src="resources/loading-icon.gif"></span></p>
+					<p>Play time: <span id="profilePlayTime"><img alt="loading..." width="16"
+								src="resources/loading-icon.gif"></span></p>
+				</fieldset>
+			</div>
+		</div>
+		<div class="main-menu-page" data-page="settings">
+			<h3 style="margin-top: 0;">General settings</h3>
+			<div id="settingsContent" class="main-menu-page-content">
+				<fieldset class="main-menu-field">
+					<legend>
+						<h3 style="margin: 0px;">Game settings</h3>
+					</legend>
+					<p>
+						<label for="boardThemeSelect">Chess Board theme:</label>
+						<select id="boardThemeSelect">
+							<option value="0">Classic</option>
+							<option value="1">Wooden</option>
+							<option value="2">Chess.com</option>
+							<option value="3">Glass</option>
+						</select>
+					</p>
+					<p>
+						<label for="siteThemeSelect">Site theme:</label>
+						<select id="siteThemeSelect">
+							<option value="modernLight">Modern light</option>
+							<option value="modernDark">Modern dark</option>
+						</select>
+					</p>
+					<p>
+						<label for="soundCheckbox">Enable sound:</label>
+						<input type="checkbox" id="soundCheckbox" onchange="localStorage.soundEnabled = this.checked"
+							value="true">
+					</p>
+					<p>
+						<label for="effectsCheckbox">Enable graphical effects:</label>
+						<input type="checkbox" id="effectsCheckbox" onchange="localStorage.effects = this.checked"
+							value="true">
+					</p>
+				</fieldset>
+				<fieldset class="main-menu-field">
+					<legend>
+						<h3 style="margin: 0px;">Advanced settings</h3>
+					</legend>
+					<p>
+						<label for="serverInput">Server hostname:</label>
+						<input id="serverInput" onchange="localStorage.serverHostname = this.value"
+							placeholder="ip/domain:port" value="server.rplace.live/ac">
+					</p>
+				</fieldset>
+				<button id="settingsResetButton" type="button">
+					Reset to defaults
+				</button>
+				<fieldset class="main-menu-field">
+					<legend>
+						<h3 style="margin: 0px;">Danger zone</h3>
+					</legend>
+					<button type="button" id="accountSignoutButton">
+						Sign out
+					</button>
+					<button type="button" id="accountDeleteButton">
+						Delete my account
+					</button>
+				</fieldset>
+			</div>
+		</div>
+		<footer>
+			AnarchyChess, ©Zekiah-A 2025
+		</footer>
+	</div>
 </body>
+<script>
+	/**
+	 * @param {HTMLDialogElement} modal
+	 * @param {string} pageName
+	 */
+	function setModalPage(modal, pageName) {
+		modal.querySelectorAll(".modal-title > div").forEach(element => {
+			element.removeAttribute('data-selected')
+		});
+		modal.querySelector(`.modal-title > div[data-page="${pageName}"]`)
+			.setAttribute('data-selected', true);
+
+		modal.querySelectorAll('.modal-content').forEach(element => element.style.display = "none");
+		modal.querySelector(`.modal-content[data-page="${pageName}"]`).style.display = "flex";
+	}
+</script>
+
 </html>

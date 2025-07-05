@@ -423,8 +423,8 @@ public class Match
 
     /// <summary>
     /// Gets a list of all pieces currently putting the king in check,
-    /// assuming the king at it's current location (cooluumn, row) were
-    /// moved to a specified location (withColuumn, withRow).
+    /// assuming the king at it's current location (column, row) were
+    /// moved to a specified location (withColumn, withRow).
     /// </summary>
     private List<PieceInfo> GetKingCheckers(int kingColumn, int kingRow, int withColumn, int withRow)
     {
