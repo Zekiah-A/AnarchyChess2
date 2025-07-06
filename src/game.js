@@ -49,12 +49,13 @@ const incomingCodes = {
 // Utils
 /**
  * @param {Board} boardElement
- * @param {HTMLCanvasElement|null} canvasElement
+ * @param {HTMLCanvasElement|null} confettiCanvas
+ * @param {Function|null} confetti
  * @param {number} column
  * @param {number} row
  */
-export function animateDestroyPiece(boardElement, canvasElement = null, column = 0, row = 0) {
-	if (canvasElement && localStorage.effects === "true") {
+export function animateDestroyPiece(boardElement, confettiCanvas = null, confetti = null, column = 0, row = 0) {
+	if (confettiCanvas && localStorage.effects === "true") {
 		const pieceClone = boardElement.pieceElements[column][row].cloneNode(true);
 		boardElement.board.appendChild(pieceClone);
 		pieceClone.style.setProperty('--piece-fill', 'red');
@@ -66,25 +67,27 @@ export function animateDestroyPiece(boardElement, canvasElement = null, column =
 			iterations: 1,
 		});
 		setTimeout(() => pieceClone.remove(), 1000);
-		const canvBounds = canvasElement.getBoundingClientRect();
+		const canvBounds = confettiCanvas.getBoundingClientRect();
 		const pieceBounds = pieceClone.getBoundingClientRect();
 		const tileSize = boardElement.getTileSize();
-		canvasElement.confetti({
-			spread: 360,
-			gravity: 1,
-			particleCount: 50,
-			startVelocity: 10,
-			shapes: ['text'],
-			shapeOptions: {
-				text: {
-					value: ['💥', '🔥', '🔴'],
-				}
-			},
-			origin: {
-				x: (pieceBounds.left - canvBounds.left + tileSize / 2) / canvasElement.offsetWidth,
-				y: (pieceBounds.top - canvBounds.top + tileSize / 2) / canvasElement.offsetHeight
-			},
-		});
+		if (confetti) {
+			confetti({
+				spread: 360,
+				gravity: 1,
+				particleCount: 50,
+				startVelocity: 10,
+				shapes: ['text'],
+				shapeOptions: {
+					text: {
+						value: ['💥', '🔥', '🔴'],
+					}
+				},
+				origin: {
+					x: (pieceBounds.left - canvBounds.left + tileSize / 2) / confettiCanvas.offsetWidth,
+					y: (pieceBounds.top - canvBounds.top + tileSize / 2) / confettiCanvas.offsetHeight
+				},
+			});
+		}
 	}
 
 	boardElement.clearPiece(column, row);
@@ -363,7 +366,7 @@ export function play(matchId) {
 							pieceEl.height = 72;
 							takenPieces.appendChild(pieceEl);
 						}
-						animateDestroyPiece(board, boardCanvas, takenColumn, takenRow);
+						animateDestroyPiece(board, boardCanvas, boardCanvasConfetti, takenColumn, takenRow);
 						break;
 					}
 					case incomingCodes.availablePromotion: {
@@ -583,8 +586,8 @@ function handleBoardRelease() {
 gameScreen.addEventListener("mouseup", handleBoardRelease);
 gameScreen.addEventListener("touchend", handleBoardRelease);
 
-let boardCanvasConfetti = null;
-confetti.create(boardCanvas, { resize: true }).then(confetti => {
+/**@type {Function|null}*/let boardCanvasConfetti = null;
+confetti.create(boardCanvas, { }).then(confetti => {
 	boardCanvasConfetti = confetti;
 })
 

@@ -20,10 +20,9 @@ export function defineAndInject(_this, element) {
  * @param {Object} data
  */
 export function createFromData(name, data) {
-	let element = document.createElement(name);
+	const element = document.createElement(name);
 	for (const [key, value] of Object.entries(data)) {
 		element.setAttribute(key, value.toString());
 	}
-	element.connectedCallback();
 	return element;
 }

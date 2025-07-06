@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
 	<meta charset="UTF-8">
 	<title>Anarchy chess</title>
@@ -20,7 +19,6 @@
 	<script type="module" src="src/game.js"></script>
 	<script type="module" src="src/index.js"></script>
 </head>
-
 <body>
 	<div id="gameScreen" class="game-screen">
 		<div id="boardPosition" data-x="500" data-y="500" data-z="0.8">
@@ -180,26 +178,13 @@
 							<!--Ruleset list elements go here-->
 						</div>
 						<div class="modal-content-side" style="width: 192px;">
-							<button class="arrangement-button" tabindex="0" onclick="
-								let rule = document.createElement('ac-ruleset-rule')
-								rulesetRules.appendChild(rule)
-							"><img src="./resources/add-icon.svg" alt="+"> Add Rule</button>
-							<button class="arrangement-button" tabindex="0" onclick="
-								let ruleDatas = []
-								for (let rule of rulesetRules.children) {
-									// Skip adding invalid rules
-									if (!rule.data || !rule.data?.condition || !rule.data?.action.type) {
-										continue;
-									}
-									ruleDatas.push(rule.data)
-								}
-								let rulesetName = prompt('Enter name for new ruleset', 'My ruleset')
-								if (!rulesetName || rulesetName.length > 16) {
-									alert('Could not create ruleset. Name length was not in  valid range (1-16)')
-									return
-								}
-								uploadRulesetRules(rulesetName, ruleDatas)
-							">Save</button>
+							<button type="button" id="rulesetAddRuleButton" class="arrangement-button">
+								<img src="./resources/add-icon.svg" alt="+">
+								Add Rule
+							</button>
+							<button type="button" id="rulesetSaveButton" class="arrangement-button">
+								Save
+							</button>
 						</div>
 					</div>
 				</div>
@@ -232,53 +217,25 @@
 								<img src="resources/king-white.svg" data-colour="white" alt="" data-type="king">
 							</div>
 							<div style="display: flex; position: relative; column-gap: 4px;">
-								<input id="arrangementColumns" data-oldvalue="8" onchange="
-									if (+this.dataset.oldvalue !== this.value || !board.isEmpty()) {
-										if (!confirm('Are you sure you want to resize the board? This will wipe all pieces')) {
-											this.value = +this.dataset.oldvalue
-											return
-										}
-									}
-									arrangementBoard.columns = this.value
-									this.dataset.oldvalue = this.value
-								" type="number" style="width: 50%;" value="8" min="6" max="16">
-								<input id="arrangementRows" data-oldvalue="8" onchange="
-									if (confirm('Are you sure you want to resize the board? This will wipe all pieces')) {
-										arrangementBoard.rows = this.value
-										this.dataset.oldvalue = this.value
-									}
-									else {
-										this.value = +this.dataset.oldvalue
-									}
-								" type="number" style="width: 50%;" value="8" min="6" max="16">
+								<input type="number" id="arrangementColumns" data-oldvalue="8"
+									style="width: 50%;" value="8" min="6" max="16">
+								<input type="number" id="arrangementRows" data-oldvalue="8"
+									style="width: 50%;" value="8" min="6" max="16">
 							</div>
 							<div style="flex-grow: 1;"><!--Spacer--></div>
-							<button class="arrangement-button" tabindex="0" onclick="if (arrangementSelC != null && arrangementSelR != null) {
-								animateDestroyPiece(arrangementBoard, arrangementCanvas, arrangementSelC, arrangementSelR)
-								arrangementSelC = null
-								arrangementSelR = null
-								updateArrangementStats()
-							}">Delete piece 🗑️</button>
-							<button class="arrangement-button" tabindex="0" onclick="
-								let arrangementName = prompt('Enter name for new arrangement', 'My arrangement')
-								if (!arrangementName || arrangementName.length > 16) {
-									alert('Could not create arrangement. Name length was not in valid range (1-16)')
-									return
-								}
-								let piecesArray = []
-								for (let r = 0; r < arrangementBoard.rows; r++) {
-									for (let c = 0; c < arrangementBoard.columns; c++) {
-										piecesArray.push(arrangementBoard.pieces[c][r])
-									}
-								}
-								uploadArrangement(name, arrangementColumns.value, arrangementRows.value, piecesArray)
-							">Save</button>
+							<button type="button" id="arrangementDeleteButton" class="arrangement-button">
+								Delete piece 🗑️
+							</button>
+							<button type="button" id="arrangementSaveButton" class="arrangement-button">
+								Save
+							</button>
 						</div>
 						<canvas id="arrangementCanvas"
 							style="position: absolute; bottom: 0; left: 0; height: 100%; pointer-events: none; width: 100%;"></canvas>
 					</div>
-					<span id="arrangementStats">Black pieces: 0, White pieces: 0, White king
-						present: ❌, Black king present: ❌</span>
+					<span id="arrangementStats">
+						Black pieces: 0, White pieces: 0, White king present: ❌, Black king present: ❌
+					</span>
 				</div>
 			</dialog>
 			<dialog id="matchPanel" class="modal">
@@ -287,7 +244,7 @@
 						onclick="setModalPage(matchPanel, this.dataset.page)">Connect</div>
 					<div data-page="create" tabindex="0" onclick="setModalPage(matchPanel, this.dataset.page)">Create
 					</div>
-					<button autofocus aria-label="close" onclick="matchPanel.close()">
+					<button type="button" autofocus aria-label="close" onclick="matchPanel.close()">
 						<img src="./resources/close-icon.svg" alt="Close">
 					</button>
 				</div>
@@ -295,9 +252,9 @@
 					<div id="matchList" class="modal-list"><!--Match list elements go here--></div>
 					<div class="modal-list-buttons">
 						<input id="matchIdInput" class="arrangement-input" type="number" placeholder="Match ID">
-						<button class="arrangement-button" tabindex="0" onclick="play(matchIdInput.value)">Join</button>
+						<button type="button" class="arrangement-button" onclick="play(matchIdInput.value)">Join</button>
 						<div style="flex-grow: 1;"><!--spacer--></div>
-						<button class="arrangement-button" tabindex="0" onclick="setModalPage(matchPanel, 'create')">
+						<button type="button" class="arrangement-button" onclick="setModalPage(matchPanel, 'create')">
 							<img src="./resources/add-icon.svg" alt="+"> Create my own match
 						</button>
 					</div>
@@ -452,27 +409,20 @@
 						<h3>About me</h3>
 					</legend>
 					<div class="profile-biography-section">
-						<textarea id="profileBiography" onfocus="this.oldvalue = this.value" maxlength="96"
+						<textarea id="profileBiography" maxlength="96"
 							placeholder="Click to start editing your bio" class="profile-biography"></textarea>
-						<button type="button" class="profile-biography-button"
-							onclick="updateProfileBiography(profileBiography.value, profileBiography.oldvalue)">
+						<button type="button" id="profileBiographyButton" class="profile-biography-button">
 							Save biography
 						</button>
 					</div>
 					<div class="profile-stat-section">
 						<div>
 							<span class="profile-stat">Location</span>
-							<input type="text" id="profileLocation" placeholder="Unknown"
-								onfocus="this.oldValue = this.value;" maxlength="16">
-							<button type="button"
-								onclick="updateProfileLocation(profileLocation.value, profileLocation.oldValue)">
-								Save location
-							</button>
+							<input type="text" id="profileLocation" placeholder="Unknown" maxlength="16">
 						</div>
 						<div>
 							<span class="profile-stat">Gender</span>
-							<select id="profileGender" onfocus="this.oldvalue = this.value"
-								onchange="updateProfileGender(this.value, this.oldvalue)">
+							<select id="profileGender">
 								<option value="male">Male</option>
 								<option value="female">Female</option>
 								<option value="other">Other</option>
@@ -485,11 +435,11 @@
 						<h3>My stats</h3>
 					</legend>
 					<p>Games played: <span id="profileGamesPlayed"><img alt="loading..." width="16"
-								src="resources/loading-icon.gif"></span></p>
+						src="resources/loading-icon.gif"></span></p>
 					<p>Matches won: <span id="profileMatchesWon"><img alt="loading..." width="16"
-								src="resources/loading-icon.gif"></span></p>
+						src="resources/loading-icon.gif"></span></p>
 					<p>Play time: <span id="profilePlayTime"><img alt="loading..." width="16"
-								src="resources/loading-icon.gif"></span></p>
+						src="resources/loading-icon.gif"></span></p>
 				</fieldset>
 			</div>
 		</div>
@@ -574,5 +524,4 @@
 		modal.querySelector(`.modal-content[data-page="${pageName}"]`).style.display = "flex";
 	}
 </script>
-
 </html>

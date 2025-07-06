@@ -1,9 +1,9 @@
 "use strict";
 import { PieceData } from "./piece-data.js";
 import { Board } from "./components/board.js";
-import { ProfileView } from "./components/profile-view.js";
+import { ListMatch } from "./components/list-match.js"
 import { createFromData } from "./components/component-registrar.js";
-import { serverAddress, socketAddress, profileThemes } from "./resources.js";
+import { serverAddress, profileThemes } from "./resources.js";
 import { play, animateDestroyPiece } from "./game.js";
 import { myId, myToken, login, loginToken, signup, signout, authedRequest } from "./auth.js";
 import { confetti } from "@tsparticles/confetti";
@@ -25,12 +25,16 @@ const signupConfirm = /**@type {HTMLInputElement}*/(document.getElementById("sig
 const signupButton = /**@type {HTMLButtonElement}*/(document.getElementById("signupButton"));
 const signupForm = /**@type {HTMLFormElement}*/(document.getElementById("signupForm"));
 const configurePanel = /**@type {HTMLDialogElement}*/(document.getElementById("configurePanel"));
-const arrangementTabButton = /**@type {HTMLElement}*/(document.getElementById(""));
 const rulesetRules = /**@type {HTMLElement}*/(document.getElementById("rulesetRules"));
+const rulesetAddRuleButton = /**@type {HTMLButtonElement}*/(document.getElementById("rulesetAddRuleButton"));
+const rulesetSaveButton = /**@type {HTMLButtonElement}*/(document.getElementById("rulesetSaveButton"));
+const arrangementTabButton = /**@type {HTMLElement}*/(document.getElementById(""));
 const arrangementBoard = /**@type {Board}*/(document.getElementById("arrangementBoard"));
 const arrangementSideSection = /**@type {Board}*/(document.getElementById("arrangementSideSection"));
-const arrangementColumns = /**@type {HTMLElement}*/(document.getElementById("arrangementColumns"));
-const arrangementRows = /**@type {HTMLElement}*/(document.getElementById("arrangementRows"));
+const arrangementDeleteButton = /**@type {HTMLButtonElement}*/(document.getElementById("arrangementDeleteButton"));
+const arrangementSaveButton = /**@type {HTMLButtonElement}*/(document.getElementById("arrangementSaveButton"));
+const arrangementColumns = /**@type {HTMLInputElement}*/(document.getElementById("arrangementColumns"));
+const arrangementRows = /**@type {HTMLInputElement}*/(document.getElementById("arrangementRows"));
 const arrangementCanvas = /**@type {HTMLCanvasElement}*/(document.getElementById("arrangementCanvas"));
 const arrangementStats = /**@type {HTMLElement}*/(document.getElementById("arrangementStats"));
 const matchPanel = /**@type {HTMLDialogElement}*/(document.getElementById("matchPanel"));
@@ -55,7 +59,8 @@ const profileHeader = /**@type {HTMLElement}*/(document.getElementById("profileH
 const profileUsername = /**@type {HTMLElement}*/(document.getElementById("profileUsername"));
 const profilePicture = /**@type {HTMLImageElement}*/(document.getElementById("profilePicture"));
 const profilePictureInput = /**@type {HTMLInputElement}*/(document.getElementById("profilePictureInput"));
-const profileBiography = /**@type {HTMLElement}*/(document.getElementById("profileBiography"));
+const profileBiography = /**@type {HTMLTextAreaElement}*/(document.getElementById("profileBiography"));
+const profileBiographyButton = /**@type {HTMLButtonElement}*/(document.getElementById("profileBiographyButton"));
 const profileLocation = /**@type {HTMLInputElement}*/(document.getElementById("profileLocation"));
 const profileGender = /**@type {HTMLSelectElement}*/(document.getElementById("profileGender"));
 const profileGamesPlayed = /**@type {HTMLElement}*/(document.getElementById("profileGamesPlayed"));
@@ -292,7 +297,7 @@ function randomMainMenuBoard() {
 	for (let c = 0; c < mainMenuBoard.columns; c++) {
 		for (let r = 0; r < mainMenuBoard.rows; r++) {
 			if (mainMenuBoard.pieceElements[c][r]) {
-				animateDestroyPiece(mainMenuBoard, null, c, r);
+				animateDestroyPiece(mainMenuBoard, null, null, c, r);
 			}
 		}
 	}
@@ -324,14 +329,37 @@ function randomMainMenuBoard() {
 let mainMenuBoardInterval = setInterval(randomMainMenuBoard, 2e4);
 randomMainMenuBoard();
 
+// Ruleset
+rulesetAddRuleButton.addEventListener("click", function(e) {
+	const rule = document.createElement('ac-ruleset-rule')
+	rulesetRules.appendChild(rule)
+})
+rulesetSaveButton.addEventListener("click", function(e) {
+	const ruleDatas = [];
+	for (const rule of Array.from(rulesetRules.children)) {
+		// Skip adding invalid rules
+		if (!rule.data || !rule.data?.condition || !rule.data?.action.type) {
+			continue;
+		}
+		ruleDatas.push(rule.data);
+	}
+	let rulesetName = prompt("Enter name for new ruleset", "My ruleset");
+	if (!rulesetName || rulesetName.length > 16) {
+		alert("Could not create ruleset. Name length was not in  valid range (1-16)");
+		return;
+	}
+	uploadRulesetRules(rulesetName, ruleDatas);
+});
+
+
 // Arrangement
 let arrangementPrevValid = false;
-let arrangementCanvasConfetti = null;
+/**@type {Function|null}*/let arrangementCanvasConfetti = null;
 /**@type {number|null}*/let arrangementCurCol = null;
 /**@type {number|null}*/let arrangementCurType = null;
 /**@type {number|null}*/let arrangementSelC = null;
 /**@type {number|null}*/let arrangementSelR = null;
-confetti.create(arrangementCanvas, { resize: true }).then(confetti => {
+confetti.create(arrangementCanvas, { }).then(confetti => {
 	arrangementCanvasConfetti = confetti;
 })
 
@@ -339,7 +367,9 @@ arrangementBoard.ontilehover = function(e, column, row, tile) {
 	tile.classList.add("highlight");
 }
 arrangementBoard.ontiledrop = function(e, column, row, tile) {
-	if (arrangementCurCol === null || arrangementCurType == null) return
+	if (arrangementCurCol === null || arrangementCurType == null) {
+		return
+	}
 	tile.classList.remove("highlight");
 	arrangementBoard.setPiece(column, row, new PieceData(arrangementCurType, arrangementCurCol));
 	updateArrangementStats();
@@ -365,9 +395,31 @@ arrangementBoard.onpiececlick = function(e, column, row, piece) {
 		iterations: 1,
 	});
 }
+arrangementColumns.addEventListener("change", function(e) {
+	if (arrangementColumns.dataset.oldValue !== arrangementColumns.value || !arrangementBoard.isEmpty()) {
+		if (!confirm("Are you sure you want to resize the board? This will wipe all pieces")) {
+			arrangementColumns.value = arrangementColumns.dataset.oldValue ?? "8";
+			return;
+		}
+	}
+
+	arrangementBoard.columns = +(arrangementColumns.value ?? 8);
+	arrangementColumns.dataset.oldValue = arrangementColumns.value;
+});
+arrangementRows.addEventListener("change", function(e) {
+	if (arrangementRows.dataset.oldValue !== arrangementRows.value || !arrangementBoard.isEmpty()) {
+		if (confirm("Are you sure you want to resize the board? This will wipe all pieces")) {
+			arrangementRows.value = arrangementRows.dataset.oldValue ?? "8";
+			return;
+		}
+	}
+
+	arrangementBoard.rows = +(arrangementRows.value ?? 8);
+	arrangementRows.dataset.oldValue = arrangementRows.value;
+});
 arrangementSideSection.addEventListener("dragstart", function(e) {
 	const dragged = e.target;
-	if (dragged.nodeName == "IMG") {
+	if (dragged instanceof HTMLImageElement) {
 		arrangementCurCol = dragged.dataset.colour;
 		arrangementCurType = dragged.dataset.type;
 		dragged.style.border = "2px solid var(--ui-special)";
@@ -375,10 +427,33 @@ arrangementSideSection.addEventListener("dragstart", function(e) {
 });
 arrangementSideSection.addEventListener("dragend", function(e) {
 	const dragged = e.target;
-	if (dragged.nodeName == "IMG") {
+	if (dragged instanceof HTMLImageElement) {
 		dragged.style.removeProperty("border");
 	}
 });
+arrangementDeleteButton.addEventListener("click", function(e) {
+	if (arrangementSelC != null && arrangementSelR != null) {
+		animateDestroyPiece(arrangementBoard, arrangementCanvas, arrangementCanvasConfetti, arrangementSelC, arrangementSelR);
+		arrangementSelC = null;
+		arrangementSelR = null;
+		updateArrangementStats();
+	}
+});
+arrangementSaveButton.addEventListener("click", function(e) {
+	let arrangementName = prompt("Enter name for new arrangement", "My arrangement");
+	if (!arrangementName || arrangementName.length > 16) {
+		alert('Could not create arrangement. Name length was not in valid range (1-16)');
+		return;
+	}
+	let piecesArray = [];
+	for (let r = 0; r < arrangementBoard.rows; r++) {
+		for (let c = 0; c < arrangementBoard.columns; c++) {
+			piecesArray.push(arrangementBoard.pieces[c][r]);
+		}
+	}
+	uploadArrangement(arrangementName, +arrangementColumns.value, +arrangementRows.value, piecesArray);
+});
+
 function getArrangementStats() {
 	let whiteKing = false;
 	let blackKing = false;
@@ -412,14 +487,14 @@ function updateArrangementStats() {
 	const stats = getArrangementStats()
 	if (stats.valid && !arrangementPrevValid) {
 		if (localStorage.effects === "true") {
-			(async function() {
-				arrangementCanvas.confetti({
+			if (arrangementCanvasConfetti) {
+				arrangementCanvasConfetti({
 					spread: 100,
 					particleCount: 85,
 					startVelocity: 35,
 					origin: { x: 0.35, y: 1 },
 				})
-			})();
+			}
 			arrangementStats.animate([
 				{ transform: "scale(1)" },
 				{ opacity: 1 },
@@ -445,11 +520,33 @@ function updateArrangementStats() {
 }
 updateArrangementStats();
 
-// Settings page
+// Profile
+profileBiography.addEventListener("focus", function(e) {
+	profileBiography.dataset.oldValue = profileBiography.value;
+});
+profileBiographyButton.addEventListener("click", function(e) {
+	updateProfileBiography(profileBiography.value, profileBiography.dataset.oldValue ?? null);
+});
+
+profileLocation.addEventListener("focus", function(e) {
+	profileLocation.dataset.oldValue = profileLocation.value;
+});
+profileLocation.addEventListener("click", function(e) {
+	updateProfileLocation(profileLocation.value, profileLocation.dataset.oldValue ?? null);
+});
+
+profileGender.addEventListener("focus", function(e) {
+	profileGender.dataset.oldValue = profileGender.value;
+});
+
+profileGender.addEventListener("change", function(e) {
+	updateProfileGender(profileGender.value, profileGender.dataset.oldValue ?? null);
+});
+
+// Settings
 boardThemeSelect.addEventListener("change", function(e) {
 	localStorage.boardTheme = boardThemeSelect.value;
 });
-
 
 siteThemeSelect.addEventListener("change", function(e) {
 	setTheme(siteThemeSelect.value);
@@ -480,7 +577,7 @@ accountDeleteButton.addEventListener("click", function(e) {
 // Match panel
 createJoinButton.addEventListener("click", async function(e) {
 	const lobbyName = createLobbyName.value;
-	const matchId = await createMatch(+createRuleset.value, +createArrangement.value, lobbyName, createLobbyCapacity.value, createPublic.checked);
+	const matchId = await createMatch(+createRuleset.value, +createArrangement.value, lobbyName, +createLobbyCapacity.value, createPublic.checked);
 	if (await play(matchId)) {
 		switchToGameScreen();
 	}
@@ -580,7 +677,7 @@ async function updateProfileBackground(name) {
 
 /**
  * @param {string} biography
- * @param {string} oldBiography
+ * @param {string|null} oldBiography
  */
 async function updateProfileBiography(biography, oldBiography) {
 	let success = await authedRequest(`Users/${myId}`,
@@ -588,10 +685,10 @@ async function updateProfileBiography(biography, oldBiography) {
 		"Update profile biography failed");
 	if (success) {
 		profileBiography.textContent = biography;
-		alert("Sucessfully updated profile biography");
+		alert("Successfully updated profile biography");
 	}
 	else {
-		profileBiography.textContent = oldBiography;
+		profileBiography.textContent = oldBiography ?? "";
 	}
 }
 
@@ -606,10 +703,10 @@ function setProfileBackground(name = null) {
 
 /**
  * @param {string} gender
- * @param {string} oldGender
+ * @param {string|null} oldGender
  */
 async function updateProfileGender(gender, oldGender) {
-	let success = await authedRequest(`Users/${myId}`,
+	const success = await authedRequest(`Users/${myId}`,
 		"POST", { gender: gender },
 		"Update profile gender failed");
 	if (success) {
@@ -617,13 +714,13 @@ async function updateProfileGender(gender, oldGender) {
 		alert("Sucessfully updated profile gender");
 	}
 	else {
-		profileGender.value = oldGender;
+		profileGender.value = oldGender ?? "unknown";
 	}
 }
 
 /**
  * @param {string} location
- * @param {string} oldLocation
+ * @param {string|null} oldLocation
  */
 async function updateProfileLocation(location, oldLocation) {
 	let success = await authedRequest(`Users/${myId}`,
@@ -631,10 +728,10 @@ async function updateProfileLocation(location, oldLocation) {
 		"Update profile location failed");
 	if (success) {
 		profileLocation.value = location;
-		alert("Sucessfully updated profile location");
+		alert("Successfully updated profile location");
 	}
 	else {
-		profileLocation.value = oldLocation;
+		profileLocation.value = oldLocation ?? "";
 	}
 }
 
@@ -647,7 +744,7 @@ async function uploadRulesetRules(name, rulesObject) {
 		"POST", { name: name, rules: JSON.stringify(rulesObject) },
 		"Failed to upload ruleset");
 	if (success) {
-		alert(`Sucessfully uploaded ruleset ${name}`);
+		alert(`Successfully uploaded ruleset ${name}`);
 	}
 }
 
@@ -712,7 +809,7 @@ async function updateCreateArrangement() {
  * @param {string} name
  * @param {number} columns
  * @param {number} rows
- * @param {PieceData[][]} piecesArray
+ * @param {(PieceData|null)[]} piecesArray
  */
 async function uploadArrangement(name, columns, rows, piecesArray) {
 	const stats = getArrangementStats();
@@ -807,10 +904,14 @@ async function updateMatchList() {
 		}
 		else {
 			// Create new match list item
-			const matchEl = createFromData("ac-list-match", match);
+			const matchEl = /**@type {ListMatch}*/(createFromData("ac-list-match", match));
 			matchEl.onplayclicked = function(e) {
-				const matchId = +matchEl.getAttribute("matchId");
-				play(+matchId);
+				const matchIdStr = matchEl.getAttribute("matchId");
+				if (!matchIdStr) {
+					return;
+				}
+				const matchId = parseInt(matchIdStr);
+				play(matchId);
 				switchToGameScreen();
 			}
 			cachedMatches.set(match.matchId, matchEl);
